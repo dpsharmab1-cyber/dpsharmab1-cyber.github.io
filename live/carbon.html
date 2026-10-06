@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Carbon Footprint — live UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live.css">
+<style>
+:root { --page: #e9ecef; --bg: #f4f5f6; --card: #ffffff; --ink: #15191d; --ink-2: #4a5259; --muted: #8b939b; --line: #eceef0; --track: #eceef0; --green: #2e9e5b; --green-2: #e7f5ec; --orange: #ef6c35; --blue: #3b8fe8; --purple: #8e3fe6; --lime: #5bb84a; --red: #e5484d; --shadow: 0 1px 2px rgba(20,25,30,.04), 0 10px 24px -14px rgba(20,25,30,.18); }
+:root[data-theme="dark"] { --page: #0c0f12; --bg: #12161a; --card: #1a2025; --ink: #eef1f3; --ink-2: #c2c9cf; --muted: #7c858d; --line: #262d33; --track: #262d33; --green-2: #16301f; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -14px rgba(0,0,0,.6); --tip-bg: #eef1f3; --tip-ink: #111; }
+body { background: radial-gradient(1100px 700px at 60% 20%, #f8faf9, var(--page)); color: var(--ink); overflow: hidden; transition: background .5s; }
+:root[data-theme="dark"] body { background: radial-gradient(1100px 700px at 60% 20%, #141a1f, var(--page)); }
+.show { height: 100vh; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 56px; padding: 0 56px; }
+.intro h1 { font-size: 34px; font-weight: 700; letter-spacing: -.01em; line-height: 1.1; }
+.intro p { color: var(--ink-2); margin: 14px 0 24px; max-width: 34ch; font-size: 14px; line-height: 1.65; }
+.steps { display: flex; flex-direction: column; gap: 6px; }
+.steps button { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; font-size: 13px; color: var(--ink-2); text-align: left; transition: background .3s, color .3s; }
+.steps button b { width: 24px; height: 24px; border-radius: 50%; background: var(--track); display: grid; place-items: center; font-size: 11px; }
+.steps button.is-active { background: var(--card); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+.steps button.is-active b { background: var(--green); color: #fff; }
+.notes { display: flex; flex-direction: column; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
+.notes div { background: var(--card); padding: 16px 18px; border-radius: 16px; box-shadow: var(--shadow); }
+.notes b { display: block; font-size: 13px; color: var(--ink); margin-bottom: 4px; }
+
+.phone { width: 390px; height: min(844px, 94vh); border-radius: 56px; background: #0e1012; padding: 12px; box-shadow: 0 50px 90px -40px rgba(10,30,20,.5), inset 0 0 0 2px #2a2e33; position: relative; }
+.screen { width: 100%; height: 100%; border-radius: 44px; background: var(--bg); overflow: hidden; position: relative; transition: background .5s; }
+.island { position: absolute; z-index: 9; top: 11px; left: 50%; translate: -50% 0; width: 118px; height: 34px; border-radius: 20px; background: #000; }
+.status { position: absolute; z-index: 8; top: 0; left: 0; right: 0; height: 54px; display: flex; justify-content: space-between; align-items: center; padding: 0 32px; font-size: 14px; font-weight: 600; pointer-events: none; }
+[data-page] { position: absolute; inset: 0; overflow-y: auto; padding: 62px 18px 120px; scrollbar-width: none; }
+[data-page]::-webkit-scrollbar { display: none; }
+.hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.hd h2 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.hd p { font-size: 12.5px; color: var(--muted); }
+.bell { display: flex; align-items: center; gap: 8px; background: var(--card); padding: 5px 12px 5px 5px; border-radius: 99px; box-shadow: var(--shadow); font-size: 13px; font-weight: 600; }
+.bell i { width: 32px; height: 32px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; position: relative; font-style: normal; }
+.bell i::after { content: ''; position: absolute; top: 7px; right: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); }
+.card { background: var(--card); border-radius: 22px; padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; transition: background .5s; }
+.card h3 { font-size: 15px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.icb { width: 34px; height: 34px; border-radius: 12px; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--line); font-size: 14px; }
+.budget { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+.ring { position: relative; width: 120px; height: 120px; }
+.ring svg { width: 120px; height: 120px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.16,1,.3,1), stroke .4s; }
+.ring .t { stroke: var(--track); }
+.ring div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.ring b { font-size: 22px; font-weight: 700; }
+.ring span { font-size: 12px; color: var(--muted); }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 10px; font-size: 11.5px; color: var(--muted); }
+.kv b { display: block; font-size: 16px; color: var(--ink); font-weight: 600; margin-top: 2px; }
+.kv b small { font-size: 11px; color: var(--muted); font-weight: 500; }
+.ql { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ql button { background: var(--bg); border-radius: 16px; padding: 12px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 7px; font-size: 11.5px; box-shadow: inset 0 0 0 1px var(--line); transition: transform .3s, box-shadow .3s; }
+.ql button:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--line), var(--shadow); }
+.ql i { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-style: normal; font-size: 15px; }
+.sec-t { display: flex; justify-content: space-between; align-items: center; margin: 18px 2px 10px; font-size: 16px; font-weight: 600; }
+.sec-t a { font-size: 12.5px; font-weight: 500; color: var(--ink-2); cursor: pointer; }
+.act { display: flex; align-items: center; gap: 12px; background: var(--card); border-radius: 18px; padding: 12px; margin-bottom: 8px; box-shadow: var(--shadow); animation: rise .5s both; }
+.act i { width: 40px; height: 40px; border-radius: 12px; background: var(--bg); display: grid; place-items: center; font-style: normal; font-size: 17px; flex: none; }
+.act div { flex: 1; font-size: 13.5px; font-weight: 500; }
+.act div span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.act b { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.nav { position: absolute; z-index: 7; left: 50%; bottom: 26px; translate: -50% 0; display: flex; gap: 6px; padding: 6px; border-radius: 99px; background: color-mix(in srgb, var(--card) 80%, transparent); backdrop-filter: blur(16px); box-shadow: 0 12px 30px -10px rgba(0,0,0,.25), inset 0 0 0 1px var(--line); }
+.nav button { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); color: var(--ink-2); transition: background .35s, color .35s, transform .3s; }
+.nav button svg { width: 21px; height: 21px; }
+.nav button.is-active { background: var(--green); color: #fff; transform: scale(1.06); }
+.month { display: flex; align-items: center; gap: 6px; background: var(--card); padding: 8px 10px; border-radius: 14px; box-shadow: var(--shadow); font-size: 13px; font-weight: 500; }
+.month button { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; color: var(--muted); }
+.month button:hover { background: var(--bg); color: var(--ink); }
+.split { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; }
+.leg { display: flex; flex-direction: column; gap: 10px; font-size: 12px; color: var(--ink-2); }
+.leg button { display: flex; gap: 8px; text-align: left; align-items: flex-start; border-radius: 10px; padding: 3px 4px; transition: background .2s; }
+.leg button:hover { background: var(--bg); }
+.leg i { width: 10px; height: 10px; border-radius: 50%; margin-top: 3px; flex: none; }
+.leg b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; }
+.impact { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.impact:first-of-type { border-top: 0; }
+.impact span { color: var(--muted); font-size: 11.5px; display: block; }
+.pill { font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 99px; background: var(--green-2); color: var(--green); transition: background .3s, color .3s; }
+.pill.on { background: var(--green); color: #fff; }
+.alert { background: #fde8e8; color: var(--red); text-align: center; font-size: 13px; font-weight: 600; padding: 10px; border-radius: 18px 18px 0 0; margin-bottom: -10px; position: relative; z-index: 0; }
+:root[data-theme="dark"] .alert { background: #3a1b1d; }
+.alert.ok { background: var(--green-2); color: var(--green); }
+.goalbar { position: relative; height: 10px; border-radius: 10px; background: var(--track); margin: 20px 0 6px; overflow: visible; }
+.goalbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 10px; background: linear-gradient(90deg, #7ccf96, var(--green)); transition: width 1s cubic-bezier(.16,1,.3,1); }
+.goalbar em { position: absolute; top: 0; bottom: 0; border-radius: 10px; background: var(--red); transition: left 1s cubic-bezier(.16,1,.3,1), width 1s cubic-bezier(.16,1,.3,1); }
+.goalbar u { position: absolute; top: -14px; width: 0; height: 0; border: 6px solid transparent; border-top-color: var(--red); translate: -6px 0; transition: left 1s cubic-bezier(.16,1,.3,1); }
+.scale { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); }
+.stepper { display: flex; align-items: center; gap: 8px; }
+.stepper button { width: 28px; height: 28px; border-radius: 9px; background: var(--bg); font-weight: 700; }
+.rec { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); margin-bottom: 8px; }
+.rec i { width: 40px; height: 40px; border-radius: 12px; background: var(--bg); display: grid; place-items: center; font-style: normal; font-size: 17px; flex: none; }
+.rec div { flex: 1; font-size: 13px; font-weight: 500; }
+.rec span { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.offset { border-radius: 18px; overflow: hidden; position: relative; height: 150px; background: linear-gradient(135deg, #3f8f4f, #9fd16b); color: #fff; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; }
+.offset::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, rgba(255,255,255,.25), transparent 40%), repeating-linear-gradient(115deg, rgba(0,0,0,.06) 0 6px, transparent 6px 14px); }
+.offset > * { position: relative; }
+.offset b { font-size: 15px; }
+.offset button { margin-top: 8px; align-self: flex-start; background: #fff; color: var(--green); font-weight: 600; font-size: 12px; padding: 8px 14px; border-radius: 99px; }
+.sheet { position: absolute; z-index: 10; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 28px 28px 0 0; padding: 14px 20px 28px; transform: translateY(105%); transition: transform .6s cubic-bezier(.16,1,.3,1); box-shadow: 0 -20px 50px rgba(0,0,0,.2); }
+.sheet.open { transform: none; }
+.scrim { position: absolute; inset: 0; z-index: 9; background: rgba(0,0,0,.25); opacity: 0; pointer-events: none; transition: opacity .4s; }
+.scrim.open { opacity: 1; pointer-events: auto; }
+.grab { width: 40px; height: 5px; border-radius: 5px; background: var(--track); margin: 0 auto 14px; }
+.sheet h4 { font-size: 17px; font-weight: 600; margin-bottom: 4px; }
+.sheet p { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+.opts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.opts button { padding: 8px 12px; border-radius: 99px; font-size: 12.5px; box-shadow: inset 0 0 0 1px var(--line); transition: background .3s, color .3s; }
+.opts button.on { background: var(--ink); color: var(--card); }
+input[type=range] { width: 100%; accent-color: var(--green); }
+.amt { display: flex; justify-content: space-between; font-size: 13px; margin: 6px 0 18px; }
+.amt b { font-size: 20px; }
+.cta { width: 100%; padding: 14px; border-radius: 16px; background: var(--green); color: #fff; font-weight: 600; font-size: 14px; }
+.prof { text-align: center; padding: 10px 0 8px; }
+.prof .av { width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 10px; background: linear-gradient(135deg, #a8e0b7, #2e9e5b); display: grid; place-items: center; color: #fff; font-size: 26px; font-weight: 700; }
+.set { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.set:first-of-type { border-top: 0; }
+.tog { width: 42px; height: 24px; border-radius: 99px; background: var(--track); position: relative; transition: background .3s; }
+.tog::after { content: ''; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .35s cubic-bezier(.16,1,.3,1); }
+.tog.on { background: var(--green); }
+.tog.on::after { transform: translateX(18px); }
+.toast { position: absolute; z-index: 11; left: 50%; top: 64px; translate: -50% -20px; background: var(--ink); color: var(--card); font-size: 12.5px; font-weight: 500; padding: 9px 14px; border-radius: 99px; opacity: 0; transition: opacity .3s, translate .5s cubic-bezier(.16,1,.3,1); pointer-events: none; white-space: nowrap; }
+.toast.on { opacity: 1; translate: -50% 0; }
+@media (max-width: 1100px) { .show { grid-template-columns: auto; justify-content: center; } .intro, .notes { display: none; } }
+@media (max-width: 500px) { body { overflow: auto; } .show { padding: 0; display: block; height: auto; } .phone { width: 100%; height: 100vh; border-radius: 0; padding: 0; box-shadow: none; } .screen { border-radius: 0; } .island { display: none; } }
+</style>
+</head>
+<body>
+<div class="show">
+  <div class="intro">
+    <h1>Carbon Footprint</h1>
+    <p>A calm daily tracker. Log a trip, a meal or an appliance in two taps and watch your budget update. No guilt, just a clear number and one next step.</p>
+    <div class="steps">
+      <button data-go="home"><b>1</b>Today &amp; quick log</button>
+      <button data-go="analytics"><b>2</b>Analytics</button>
+      <button data-go="goals"><b>3</b>Goals &amp; actions</button>
+      <button data-go="profile"><b>4</b>Profile</button>
+    </div>
+  </div>
+
+  <div class="phone"><div class="screen">
+    <span class="island"></span>
+    <div class="status"><span id="clock">9:41</span><span>●●● ▮</span></div>
+    <div class="toast" id="toast"></div>
+
+    <section data-page="home">
+      <div class="hd"><div><h2>Hi, Peter 👋</h2><p id="date">Tue, 27 May 2026</p></div><button class="bell" id="bell"><i>🔔</i>+4</button></div>
+      <div class="stagger">
+        <div class="card"><h3>Carbon Budget Today <button class="icb" data-go="goals" aria-label="Edit budget">✎</button></h3>
+          <div class="budget">
+            <div class="ring"><svg viewBox="0 0 120 120"><circle class="t" cx="60" cy="60" r="50"/><circle id="ring" cx="60" cy="60" r="50" stroke="url(#rg)" stroke-dasharray="314.16" stroke-dashoffset="314.16"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7ccf96"/><stop offset="1" stop-color="#2e9e5b"/></linearGradient></defs></svg><div><b id="pct">0%</b><span>used</span></div></div>
+            <div class="kv"><div>Status<b id="status" style="color:var(--green)">Normal</b></div><div>Budget Left<b id="left">2.3 kg</b></div><div>Total CO₂<b><span id="total">4.2</span> <small>/6.5 kg</small></b></div><div>Main Source<b id="src">Transport</b></div></div>
+          </div></div>
+        <div class="card"><h3>Quick Log <span style="color:var(--muted)">↗</span></h3>
+          <div class="ql">
+            <button data-log="transport"><i style="background:#fdeee6;color:var(--orange)">🚗</i>Transport</button>
+            <button data-log="food"><i style="background:#e8f1fd;color:var(--blue)">🍴</i>Food</button>
+            <button data-log="energy"><i style="background:#f3e8fd;color:var(--purple)">⚡</i>Energy</button>
+            <button data-log="shopping"><i style="background:#eaf6e6;color:var(--lime)">🛍</i>Shopping</button>
+          </div></div>
+        <div class="sec-t">Today’s Activity Log <a data-go="analytics">See All</a></div>
+        <div id="log"></div>
+      </div>
+    </section>
+
+    <section data-page="analytics" hidden>
+      <div class="hd"><h2>Analytics</h2><div class="month"><button id="mPrev" aria-label="Previous month">‹</button><span id="mName">May 2026</span><button id="mNext" aria-label="Next month">›</button></div></div>
+      <div class="stagger">
+        <div class="card"><h3>Breakdown by Category <span style="color:var(--muted)">ⓘ</span></h3><div class="split"><div id="donut"></div><div class="leg" id="leg"></div></div></div>
+        <div class="card"><h3>Weekly Trend CO₂ <span style="font-size:11.5px;color:var(--muted);font-weight:500">Target 6.5 kg/day</span></h3><div id="weeks"></div></div>
+        <div class="card"><h3>Biggest Impact Items <span style="color:var(--muted)">↗</span></h3><div id="impact"></div></div>
+      </div>
+    </section>
+
+    <section data-page="goals" hidden>
+      <div class="hd"><h2>My Goals</h2></div>
+      <div class="stagger">
+        <div><div class="alert" id="alert">You’re 42 kg CO₂ over your target!</div>
+        <div class="card" style="position:relative;z-index:1"><h3>Monthly Goals <span class="stepper"><button id="tMinus" aria-label="Lower target">−</button><button id="tPlus" aria-label="Raise target">+</button></span></h3>
+          <div class="kv"><div>Current<b>142 kg CO₂ <small>/month</small></b></div><div>Target<b><span id="tgt">100</span> kg CO₂ <small>/month</small></b></div></div>
+          <div class="goalbar"><i id="gGreen"></i><em id="gRed"></em><u id="gMark"></u></div>
+          <div class="scale"><span>0 kg</span><span id="tLbl">100 kg (target)</span><span>150 kg</span></div></div></div>
+        <div class="card"><h3>Recommended Actions</h3><div id="recs"></div></div>
+        <div class="sec-t">Offset Remaining</div>
+        <div class="offset"><span style="font-size:11.5px;opacity:.9">Kalimantan Mangrove Project</span><b id="offTxt">Offset 42 kg for ₹ 380</b><button id="offBtn">Offset now</button></div>
+      </div>
+    </section>
+
+    <section data-page="profile" hidden>
+      <div class="hd"><h2>Profile</h2></div>
+      <div class="stagger">
+        <div class="card prof"><div class="av">P</div><b style="font-size:17px">Peter Lim</b><p style="font-size:12.5px;color:var(--muted)">Jakarta · member since 2025</p>
+          <div class="kv" style="margin-top:14px;text-align:left"><div>This month<b>142 kg</b></div><div>Best week<b>W3 · 34 kg</b></div><div>Streak<b>12 days</b></div><div>Offset<b>18 kg</b></div></div></div>
+        <div class="card"><div class="set">Daily reminder at 8 pm<button class="tog on" aria-label="toggle"></button></div><div class="set">Weekly report<button class="tog on" aria-label="toggle"></button></div><div class="set">Dark appearance<button class="tog" id="darkTog" aria-label="toggle dark"></button></div><div class="set">Units<span style="color:var(--muted)">kg CO₂e</span></div></div>
+      </div>
+    </section>
+
+    <nav class="nav">
+      <button data-go="home" aria-label="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z"/></svg></button>
+      <button data-go="analytics" aria-label="Analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8"/><path d="M12 4v8l6 5"/></svg></button>
+      <button data-go="goals" aria-label="Goals"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6-6"/></svg></button>
+      <button data-go="profile" aria-label="Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c1-4 4-6 7.5-6s6.5 2 7.5 6"/></svg></button>
+    </nav>
+
+    <div class="scrim" id="scrim"></div>
+    <div class="sheet" id="sheet"><div class="grab"></div><h4 id="shT">Log transport</h4><p id="shP">How did you travel?</p><div class="opts" id="shOpts"></div>
+      <label for="amt" style="font-size:12.5px;color:var(--muted)" id="shUnit">Distance</label><input id="amt" type="range" min="1" max="60" value="12"><div class="amt"><span id="amtV">12 km</span><b id="amtC">1.8 kg CO₂</b></div><button class="cta" id="add">Add to today</button></div>
+  </div></div>
+
+  <div class="notes">
+    <div><b>Two taps to log</b>Quick log tiles open one sheet with presets and a slider. The budget ring updates as you add.</div>
+    <div><b>Clear status</b>Normal, careful or over, shown in colour and in words, never colour alone.</div>
+    <div><b>One next step</b>Recommendations show the kilograms you’d save, so the choice is easy.</div>
+  </div>
+</div>
+
+<script type="module">
+import { theme, router, barChart, donut } from './live.js';
+const setTheme = theme();
+const $ = (s) => document.querySelector(s);
+const BUDGET = 6.5;
+const log = [
+  { i: '🚗', t: 'Commute motor 12 km', s: '07:30', kg: 1.8, cat: 'transport' },
+  { i: '🍗', t: 'Fried chicken lunch', s: '12:45', kg: 0.9, cat: 'food' },
+  { i: '❄️', t: 'Air conditioner 3 h', s: '14:00 – 17:00', kg: 1.2, cat: 'energy' },
+  { i: '🛍', t: 'Online order delivery', s: '18:10', kg: 0.3, cat: 'shopping' },
+];
+const fmt = (n) => (Math.round(n * 10) / 10).toFixed(1);
+function renderHome() {
+  const total = log.reduce((a, b) => a + b.kg, 0);
+  const pct = Math.min(total / BUDGET, 1.4);
+  const ring = $('#ring');
+  ring.style.strokeDashoffset = 314.16 * (1 - Math.min(pct, 1));
+  ring.setAttribute('stroke', pct > 1 ? 'var(--red)' : pct > 0.8 ? 'var(--orange)' : 'url(#rg)');
+  $('#pct').textContent = Math.round(pct * 100) + '%';
+  $('#total').textContent = fmt(total);
+  $('#left').textContent = (BUDGET - total >= 0 ? fmt(BUDGET - total) : '0.0') + ' kg';
+  const st = pct > 1 ? ['Over budget', 'var(--red)'] : pct > 0.8 ? ['Careful', 'var(--orange)'] : ['Normal', 'var(--green)'];
+  $('#status').textContent = st[0]; $('#status').style.color = st[1];
+  const by = {}; log.forEach((l) => { by[l.cat] = (by[l.cat] || 0) + l.kg; });
+  const top = Object.entries(by).sort((a, b) => b[1] - a[1])[0][0];
+  $('#src').textContent = top[0].toUpperCase() + top.slice(1);
+  $('#log').innerHTML = [...log].reverse().map((l, k) => `<div class="act" style="animation-delay:${k * 40}ms"><i>${l.i}</i><div>${l.t}<span>${l.s}</span></div><b>${fmt(l.kg)} kg CO₂</b></div>`).join('');
+}
+const PRESETS = {
+  transport: { t: 'Log transport', p: 'How did you travel?', unit: 'Distance', u: 'km', max: 60, v: 12, opts: [['Motorbike', 0.15, '🏍'], ['Car', 0.19, '🚗'], ['Bus', 0.08, '🚌'], ['Metro', 0.04, '🚇']] },
+  food: { t: 'Log a meal', p: 'What did you eat?', unit: 'Servings', u: 'servings', max: 4, v: 1, opts: [['Chicken', 0.9, '🍗'], ['Beef', 3.3, '🥩'], ['Vegetarian', 0.4, '🥗'], ['Vegan', 0.25, '🥦']] },
+  energy: { t: 'Log energy', p: 'Which appliance?', unit: 'Hours', u: 'h', max: 12, v: 2, opts: [['Air conditioner', 0.4, '❄️'], ['Heater', 0.6, '🔥'], ['Washing machine', 0.25, '🧺'], ['Laptop', 0.03, '💻']] },
+  shopping: { t: 'Log shopping', p: 'What did you buy?', unit: 'Items', u: 'items', max: 10, v: 1, opts: [['Clothing', 6, '👕'], ['Electronics', 25, '📱'], ['Delivery', 0.3, '📦'], ['Groceries', 0.5, '🛒']] },
+};
+let cur = null, opt = 0;
+function openSheet(cat) {
+  cur = cat; opt = 0;
+  const P = PRESETS[cat];
+  $('#shT').textContent = P.t; $('#shP').textContent = P.p; $('#shUnit').textContent = P.unit;
+  $('#shOpts').innerHTML = P.opts.map(([n, , e], i) => `<button class="${i === 0 ? 'on' : ''}" data-i="${i}">${e} ${n}</button>`).join('');
+  $('#shOpts').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => { opt = +b.dataset.i; $('#shOpts').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); calc(); }));
+  $('#amt').max = P.max; $('#amt').value = P.v;
+  calc();
+  $('#sheet').classList.add('open'); $('#scrim').classList.add('open');
+}
+function calc() {
+  const P = PRESETS[cur], v = +$('#amt').value;
+  $('#amtV').textContent = `${v} ${P.u}`;
+  $('#amtC').textContent = `${fmt(v * P.opts[opt][1])} kg CO₂`;
+}
+const close = () => { $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); };
+document.querySelectorAll('[data-log]').forEach((b) => b.addEventListener('click', () => openSheet(b.dataset.log)));
+$('#amt').addEventListener('input', calc);
+$('#scrim').addEventListener('click', close);
+$('#add').addEventListener('click', () => {
+  const P = PRESETS[cur], v = +$('#amt').value, o = P.opts[opt];
+  const d = new Date();
+  log.push({ i: o[2], t: `${o[0]} ${v} ${P.u}`, s: `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`, kg: v * o[1], cat: cur });
+  close(); renderHome(); toast('Added to today’s log');
+});
+function toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove('on'), 1800); }
+$('#bell').addEventListener('click', () => toast('4 new tips this week'));
+
+// analytics
+const MONTHS = [
+  { n: 'April 2026', parts: [61, 34, 30, 18], weeks: [36, 33, 30, 29] },
+  { n: 'May 2026', parts: [68, 31, 28, 15], weeks: [28, 31, 34, 28] },
+  { n: 'June 2026', parts: [52, 29, 26, 12], weeks: [27, 25, 24, 23] },
+];
+let mi = 1;
+const CATS = [['Transport', '#ef6c35'], ['Food', '#3b8fe8'], ['Energy', '#8e3fe6'], ['Shopping', '#5bb84a']];
+function renderAnalytics() {
+  const M = MONTHS[mi];
+  $('#mName').textContent = M.n;
+  const tot = M.parts.reduce((a, b) => a + b, 0);
+  donut($('#donut'), { parts: M.parts.map((v, i) => ({ value: v, color: CATS[i][1] })), size: 150, thick: 16, label: tot + ' kg', sub: 'CO₂' });
+  $('#leg').innerHTML = M.parts.map((v, i) => `<button><i style="background:${CATS[i][1]}"></i><span>${CATS[i][0]}<b>${v} kg (${Math.round(v / tot * 100)}%)</b></span></button>`).join('');
+  const best = M.weeks.indexOf(Math.min(...M.weeks));
+  barChart($('#weeks'), { labels: ['W1', 'W2', 'W3', 'W4'], data: M.weeks, colors: M.weeks.map((_, i) => (i === best ? '#2e9e5b' : '#cfe9d3')), height: 190, max: 40, unit: ' kg' });
+  $('#impact').innerHTML = [['✈️', '2 domestic flights', '89 kg CO₂'], ['🥩', 'Beef meals ×4', '13 kg CO₂'], ['❄️', 'AC 3 h / day', '11 kg CO₂']].map(([e, t, k]) => `<div class="impact"><div>${e} ${t}<span>${k}</span></div><button class="pill" data-tip="${t}">Reduce this</button></div>`).join('');
+  $('#impact').querySelectorAll('.pill').forEach((p) => p.addEventListener('click', () => { p.classList.toggle('on'); p.textContent = p.classList.contains('on') ? 'Plan added' : 'Reduce this'; }));
+}
+$('#mPrev').addEventListener('click', () => { mi = Math.max(0, mi - 1); renderAnalytics(); });
+$('#mNext').addEventListener('click', () => { mi = Math.min(MONTHS.length - 1, mi + 1); renderAnalytics(); });
+
+// goals
+let target = 100, saved = 0, offset = 0;
+const RECS = [['🚇', 'Replace car trips with metro', 12], ['🥗', 'Eat plant-based 3× a week', 8], ['❄️', 'Set AC to 26 °C', 5]];
+function renderGoals() {
+  const current = 142 - saved - offset, max = 150;
+  const over = current - target;
+  $('#tgt').textContent = target; $('#tLbl').textContent = `${target} kg (target)`;
+  $('#gGreen').style.width = Math.min(current, target) / max * 100 + '%';
+  $('#gRed').style.left = target / max * 100 + '%';
+  $('#gRed').style.width = Math.max(0, current - target) / max * 100 + '%';
+  $('#gMark').style.left = Math.min(current, max) / max * 100 + '%';
+  const a = $('#alert');
+  a.classList.toggle('ok', over <= 0);
+  a.textContent = over > 0 ? `You’re ${over} kg CO₂ over your target!` : `You’re ${-over} kg under your target. Nice work!`;
+  $('#offTxt').textContent = over > 0 ? `Offset ${over} kg for ₹ ${Math.round(over * 9)}` : 'You’re on target this month';
+}
+$('#recs').innerHTML = RECS.map(([e, t, k], i) => `<div class="rec"><i>${e}</i><div>${t}<span>Save ${k} kg CO₂ / month</span></div><button class="pill" data-k="${k}">Add</button></div>`).join('');
+$('#recs').querySelectorAll('.pill').forEach((p) => p.addEventListener('click', () => { const on = p.classList.toggle('on'); p.textContent = on ? 'Added' : 'Add'; saved += (on ? 1 : -1) * +p.dataset.k; renderGoals(); }));
+$('#tMinus').addEventListener('click', () => { target = Math.max(60, target - 5); renderGoals(); });
+$('#tPlus').addEventListener('click', () => { target = Math.min(140, target + 5); renderGoals(); });
+$('#offBtn').addEventListener('click', () => { const over = 142 - saved - offset - target; if (over > 0) { offset += over; renderGoals(); toast('Offset confirmed. Thank you 🌱'); } });
+
+document.querySelectorAll('.tog').forEach((t) => t.addEventListener('click', () => { t.classList.toggle('on'); if (t.id === 'darkTog') setTheme(t.classList.contains('on') ? 'dark' : 'light'); }));
+window.addEventListener('themechange', () => { $('#darkTog').classList.toggle('on', document.documentElement.dataset.theme === 'dark'); if (curPage === 'analytics') renderAnalytics(); });
+const d = new Date();
+$('#date').textContent = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+const tick = () => { const n = new Date(); $('#clock').textContent = (n.getHours() % 12 || 12) + ':' + String(n.getMinutes()).padStart(2, '0'); };
+tick(); setInterval(tick, 30000);
+let curPage = 'home';
+router((name) => { curPage = name; close(); if (name === 'home') requestAnimationFrame(renderHome); if (name === 'analytics') requestAnimationFrame(renderAnalytics); if (name === 'goals') requestAnimationFrame(renderGoals); });
+</script>
+</body>
+</html>

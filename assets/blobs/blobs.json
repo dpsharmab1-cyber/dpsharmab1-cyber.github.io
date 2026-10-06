@@ -1,0 +1,8 @@
+{
+ "splash":   { "tex": "comet",     "bbox": [241, 6, 1039, 825] },
+ "aboutL":   { "tex": "comet",     "bbox": [-483, 0, 315, 819] },
+ "quote":    { "tex": "comet",     "bbox": [241, 7, 1039, 826] },
+ "services": { "tex": "cometFlip", "bbox": [241, 7, 1039, 826] },
+ "connect":  { "tex": "connect",   "bbox": [0, 51, 1280, 781] },
+ "footer":   { "tex": "footer",    "bbox": [-41.7, -23.6, 1321.9, 855.8] }
+}

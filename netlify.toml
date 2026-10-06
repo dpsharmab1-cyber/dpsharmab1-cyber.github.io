@@ -1,0 +1,9 @@
+# Static site: no build step, publish this folder as-is.
+[build]
+  publish = "."
+  command = ""
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"

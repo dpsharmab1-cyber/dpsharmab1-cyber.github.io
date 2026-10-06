@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ColdTrace — live UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="live.css">
+<style>
+/* palette from the reference: #E9F0F3 #346694 #98B4CC #A8D6DF #8FA5B4 #65A5BD #343E3D */
+:root { --sky1: #9fc0dc; --sky2: #e9f0f3; --bg: #eef3f6; --card: rgba(255,255,255,.78); --solid: #fff; --ink: #1f2a33; --ink-2: #4a5a66; --muted: #8fa5b4; --line: rgba(52,102,148,.12); --track: #e1eaf0; --teal: #65a5bd; --aqua: #a8d6df; --navy: #346694; --mint: #3ec7b4; --warn: #f06a5b; --ok: #2fb487; --glass: blur(18px) saturate(1.4); --shadow: 0 1px 2px rgba(52,102,148,.06), 0 20px 40px -24px rgba(52,102,148,.35); }
+:root[data-theme="dark"] { --sky1: #0f2236; --sky2: #16283a; --bg: #0d1822; --card: rgba(22,38,52,.72); --solid: #152535; --ink: #e9f0f3; --ink-2: #b6c7d3; --muted: #7f97a8; --line: rgba(168,214,223,.12); --track: #1d3244; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 20px 40px -24px rgba(0,0,0,.7); --tip-bg: #e9f0f3; --tip-ink: #111; }
+body { background: var(--bg); color: var(--ink); transition: background .5s, color .5s; }
+.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 24px; padding: 16px 40px; backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+.logo i { width: 30px; height: 30px; border-radius: 10px; background: linear-gradient(135deg, #a8d6df, #346694); display: grid; place-items: center; color: #fff; font-style: normal; font-size: 16px; }
+.links { display: flex; gap: 6px; margin: 0 auto; background: var(--card); padding: 5px; border-radius: 99px; box-shadow: var(--shadow); }
+.links button { padding: 8px 16px; border-radius: 99px; font-size: 13px; color: var(--ink-2); transition: background .3s, color .3s; }
+.links button.is-active { background: var(--ink); color: var(--bg); }
+.cta { padding: 10px 18px; border-radius: 99px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 600; transition: transform .3s; }
+.cta:hover { transform: translateY(-1px); }
+.cta.soft { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+
+/* ---- landing ---- */
+.sky { position: absolute; inset: 0 0 auto 0; height: 860px; background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 70%, var(--bg) 100%); overflow: hidden; z-index: -1; }
+.cloud { position: absolute; border-radius: 50%; background: #fff; filter: blur(30px); opacity: .7; animation: drift 40s linear infinite; }
+:root[data-theme="dark"] .cloud { opacity: .07; }
+@keyframes drift { from { transform: translateX(-20vw); } to { transform: translateX(120vw); } }
+.mtn { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 360px; }
+.hero { text-align: center; padding: 70px 20px 40px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 99px; background: var(--card); box-shadow: var(--shadow); color: var(--navy); }
+:root[data-theme="dark"] .eyebrow { color: var(--aqua); }
+.hero h1 { font-size: 56px; font-weight: 600; letter-spacing: -.02em; line-height: 1.08; margin-top: 18px; }
+.hero h1 em { font-style: italic; font-weight: 500; color: var(--navy); }
+:root[data-theme="dark"] .hero h1 em { color: var(--aqua); }
+.hero p { max-width: 52ch; margin: 18px auto 0; color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+.hero .btns { display: flex; gap: 12px; justify-content: center; margin-top: 26px; }
+.feat { display: flex; gap: 22px; justify-content: center; padding: 30px 20px 90px; perspective: 1200px; }
+.fc { width: 300px; border-radius: 26px; background: var(--card); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); box-shadow: var(--shadow); padding: 12px; transition: transform .8s cubic-bezier(.16,1,.3,1), box-shadow .8s; cursor: pointer; }
+.fc.focus { transform: translateY(-16px) scale(1.03); box-shadow: 0 40px 70px -30px rgba(52,102,148,.55); }
+.fc .vis { position: relative; height: 210px; border-radius: 18px; background: linear-gradient(180deg, #e3f4f7, #c8e7ee); overflow: hidden; display: grid; place-items: center; }
+:root[data-theme="dark"] .fc .vis { background: linear-gradient(180deg, #17364a, #10283a); }
+.fc .tx { padding: 16px 10px 8px; }
+.fc .tx b { font-size: 14px; font-weight: 600; }
+.fc .tx p { font-size: 12px; color: var(--ink-2); margin-top: 6px; line-height: 1.55; }
+.chip { position: absolute; display: flex; align-items: center; gap: 6px; background: var(--solid); border-radius: 10px; padding: 6px 9px; font-size: 10.5px; font-weight: 600; box-shadow: 0 10px 20px -10px rgba(52,102,148,.5); transition: transform .8s cubic-bezier(.16,1,.3,1), opacity .6s; white-space: nowrap; }
+.chip em { font-style: normal; font-size: 9.5px; padding: 2px 6px; border-radius: 6px; }
+.chip .ok { background: rgba(47,180,135,.14); color: var(--ok); }
+.chip .bad { background: rgba(240,106,91,.14); color: var(--warn); }
+.fc .chip { opacity: .0; transform: translateY(10px) scale(.9); }
+.fc.focus .chip, .fc:hover .chip { opacity: 1; transform: none; }
+.fc .chip:nth-of-type(2) { transition-delay: .08s; }
+.fc .chip:nth-of-type(3) { transition-delay: .16s; }
+.bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+.bars i { width: 5px; border-radius: 3px; background: linear-gradient(180deg, #65a5bd, #a8d6df); transform-origin: bottom; animation: eq 2.4s ease-in-out infinite; }
+@keyframes eq { 50% { transform: scaleY(.55); } }
+.route { width: 100%; height: 100%; }
+.trust { text-align: center; padding: 0 20px 70px; color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+.trust div { display: flex; gap: 46px; justify-content: center; margin-top: 18px; font-size: 18px; font-weight: 700; letter-spacing: .02em; color: var(--ink-2); opacity: .55; text-transform: none; }
+.how { max-width: 1060px; margin: 0 auto; padding: 0 20px 90px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.how div { background: var(--card); border-radius: 22px; padding: 22px; box-shadow: var(--shadow); }
+.how b { font-size: 15px; } .how p { font-size: 12.5px; color: var(--ink-2); margin-top: 8px; line-height: 1.6; }
+.how span { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 12px; background: linear-gradient(135deg, #a8d6df, #65a5bd); color: #fff; font-weight: 700; margin-bottom: 14px; }
+
+/* ---- app ---- */
+.appw { max-width: 1240px; margin: 0 auto; padding: 18px 32px 40px; }
+.welcome { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; gap: 20px; }
+.welcome h2 { font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
+.welcome p { font-size: 12.5px; color: var(--muted); }
+.g { display: grid; gap: 16px; }
+.k3 { grid-template-columns: repeat(3, 1fr) 1.2fr; }
+.card { background: var(--card); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass); border-radius: 22px; padding: 18px 20px; box-shadow: var(--shadow); position: relative; }
+.card h3 { font-size: 13.5px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+.card .sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.kpi .ic { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 12px; }
+.kpi .v { font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+.kpi .v small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 4px; }
+.kpi .d { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+.kpi .d b { color: var(--ok); font-weight: 600; }
+.tag { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 7px; }
+.tag.ok { background: rgba(47,180,135,.14); color: var(--ok); } .tag.bad { background: rgba(240,106,91,.14); color: var(--warn); } .tag.info { background: rgba(101,165,189,.16); color: var(--teal); }
+.row2 { grid-template-columns: 1.7fr 1fr; margin-top: 16px; }
+.row3 { grid-template-columns: 1.15fr 1fr; margin-top: 16px; }
+.legend { display: flex; gap: 12px; font-size: 11px; color: var(--muted); }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.eq { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; font-size: 12px; }
+.eq div { display: flex; justify-content: space-between; align-items: center; padding-top: 10px; border-top: 1px solid var(--line); }
+.map { height: 300px; border-radius: 16px; overflow: hidden; margin-top: 12px; background: #e6eef3; position: relative; }
+:root[data-theme="dark"] .map { background: #10202d; }
+.map svg { width: 100%; height: 100%; }
+.track { position: absolute; left: 14px; bottom: 14px; right: 14px; background: var(--solid); border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); display: grid; grid-template-columns: auto 1fr auto; gap: 10px 14px; align-items: center; font-size: 11.5px; }
+.track b { font-size: 13px; }
+.prog { height: 6px; border-radius: 6px; background: var(--track); overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #a8d6df, #346694); transition: width 1s linear; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 11px 10px; border-bottom: 1px solid var(--line); }
+tbody tr { animation: rise .5s both; transition: background .2s; }
+tbody tr:hover { background: rgba(101,165,189,.08); }
+.alert { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-top: 1px solid var(--line); font-size: 12.5px; animation: rise .5s both; }
+.alert:first-of-type { border-top: 0; }
+.alert i { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-style: normal; flex: none; }
+.alert b { display: block; font-size: 13px; }
+.alert span { color: var(--muted); font-size: 11.5px; }
+.pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; max-width: 980px; margin: 30px auto 0; }
+.plan { background: var(--card); border-radius: 24px; padding: 26px; box-shadow: var(--shadow); transition: transform .5s cubic-bezier(.16,1,.3,1); }
+.plan:hover { transform: translateY(-6px); }
+.plan.pop { background: linear-gradient(180deg, #a8d6df, #65a5bd); color: #fff; }
+.plan.pop p, .plan.pop li { color: rgba(255,255,255,.9); }
+.plan h4 { font-size: 14px; font-weight: 600; }
+.plan .price { font-size: 40px; font-weight: 600; margin: 10px 0 2px; letter-spacing: -.02em; }
+.plan .price small { font-size: 13px; font-weight: 500; }
+.plan p { font-size: 12px; color: var(--ink-2); }
+.plan ul { list-style: none; margin: 18px 0; display: grid; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.plan li::before { content: '✓'; margin-right: 8px; color: var(--teal); font-weight: 700; }
+.plan.pop li::before { color: #fff; }
+.plan button { width: 100%; padding: 11px; border-radius: 12px; background: var(--ink); color: var(--bg); font-weight: 600; font-size: 13px; }
+.plan.pop button { background: #fff; color: #346694; }
+.center { text-align: center; }
+@media (max-width: 1000px) { .feat { flex-wrap: wrap; } .k3, .row2, .row3, .how, .pricing { grid-template-columns: 1fr; } .links { display: none; } .hero h1 { font-size: 38px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><i>❄</i>ColdTrace</div>
+  <nav class="links"><button data-go="home">Overview</button><button data-go="fleet">Fleet</button><button data-go="map">Live map</button><button data-go="alerts">Alerts</button><button data-go="pricing">Pricing</button></nav>
+  <button class="cta soft" data-go="fleet">Sign in</button><button class="cta" data-go="pricing">Start free trial</button>
+</header>
+
+<section data-page="home">
+  <div class="sky"><span class="cloud" style="width:420px;height:120px;top:120px;animation-duration:70s"></span><span class="cloud" style="width:300px;height:90px;top:240px;animation-duration:55s;animation-delay:-20s"></span><span class="cloud" style="width:520px;height:140px;top:420px;animation-duration:90s;animation-delay:-45s"></span>
+    <svg class="mtn" viewBox="0 0 1440 360" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="m1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7fbfd"/><stop offset=".45" stop-color="#cfe1ec"/><stop offset="1" stop-color="#eef3f6"/></linearGradient>
+      <linearGradient id="m2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#b9d2e2"/><stop offset="1" stop-color="#eef3f6"/></linearGradient></defs>
+      <path d="M0 250 L160 150 L260 210 L420 90 L560 200 L700 120 L820 190 L980 70 L1120 180 L1260 110 L1440 200 L1440 360 L0 360 Z" fill="url(#m1)" opacity=".8"/>
+      <path d="M0 300 L200 200 L330 260 L520 160 L660 250 L860 150 L1000 240 L1180 170 L1320 230 L1440 190 L1440 360 L0 360 Z" fill="url(#m2)"/>
+    </svg></div>
+  <div class="hero">
+    <span class="eyebrow">❄ Cold-chain intelligence</span>
+    <h1>Real-Time Protection<br><em>for Every Degree</em></h1>
+    <p>Monitor reefer equipment, predict failures before they happen and keep temperature-sensitive cargo safe — from the dock to the doorstep.</p>
+    <div class="btns"><button class="cta" data-go="fleet">Open the dashboard</button><button class="cta soft" data-go="map">Track a shipment</button></div>
+  </div>
+  <div class="feat" id="feat">
+    <div class="fc"><div class="vis">
+      <div id="g1"></div>
+      <span class="chip" style="left:16px;top:18px">Health Status <em class="ok">Stable</em></span>
+      <span class="chip" style="right:14px;top:58px">Power <em class="bad">Warning</em></span>
+      <span class="chip" style="left:50%;bottom:14px;translate:-50% 0">◔ Health Performance</span>
+    </div><div class="tx"><b>Equipment Health Status</b><p>Monitor reefer performance in real-time to ensure peak operational efficiency.</p></div></div>
+    <div class="fc"><div class="vis">
+      <div class="bars" id="bars"></div>
+      <span class="chip" style="left:50%;top:18px;translate:-50% 0">↗ Predictive Analysis</span>
+      <span class="chip" style="left:16px;bottom:16px"><b style="font-size:15px">98.2%</b> Compressor Health <em class="ok">Stable</em></span>
+      <span class="chip" style="right:12px;top:58px">Compressor <em class="ok">Running</em></span>
+    </div><div class="tx"><b>Predictive Diagnostics</b><p>Auto-track compressor and sensor status to prevent malfunctions.</p></div></div>
+    <div class="fc"><div class="vis">
+      <svg class="route" viewBox="0 0 300 210" aria-hidden="true"><path d="M30 170 C 80 120, 120 160, 160 110 S 240 60, 270 40" fill="none" stroke="#65a5bd" stroke-width="3" stroke-dasharray="6 6"/><circle r="9" fill="#346694"><animateMotion dur="5s" repeatCount="indefinite" path="M30 170 C 80 120, 120 160, 160 110 S 240 60, 270 40"/></circle><circle cx="30" cy="170" r="6" fill="#3ec7b4"/><circle cx="270" cy="40" r="6" fill="#f06a5b"/></svg>
+      <span class="chip" style="left:16px;top:18px">#CL0045 <em class="ok">In-Route</em></span>
+      <span class="chip" style="right:14px;top:70px">Box Temp <em class="info tag">−4.2°C</em></span>
+      <span class="chip" style="left:50%;bottom:14px;translate:-50% 0">● Live Shipment</span>
+    </div><div class="tx"><b>Cargo Spoilage Prevention</b><p>Eliminate spoilage risks with temperature compliance and automated diagnostics.</p></div></div>
+  </div>
+  <div class="trust">Trusted by cold-chain teams<div><span>FreshLine</span><span>Polar Freight</span><span>Arctica</span><span>NorthCold</span><span>Glacier Co.</span></div></div>
+  <div class="how stagger">
+    <div><span>1</span><br><b>Connect sensors</b><p>Plug-and-play gateways stream temperature, door and compressor data every 30 seconds.</p></div>
+    <div><span>2</span><br><b>Predict, don’t react</b><p>Models flag drifting compressors and weak seals days before a failure.</p></div>
+    <div><span>3</span><br><b>Prove compliance</b><p>Every shipment ships with an audit-ready temperature log your customers can trust.</p></div>
+  </div>
+</section>
+
+<section data-page="fleet" hidden>
+  <div class="appw">
+    <div class="welcome"><div><h2>Welcome back, Robert 👋</h2><p>Here’s your fleet’s performance breakdown</p></div><span class="tag info" id="live">● Live · updated just now</span></div>
+    <div class="g k3 stagger">
+      <div class="card kpi"><span class="ic" style="background:rgba(101,165,189,.16);color:#346694">🚚</span><div class="sub">Total active fleet</div><div class="v"><span data-num="142">0</span><small>units</small></div><div class="d"><b>+4.4%</b> vs last month</div></div>
+      <div class="card kpi"><span class="ic" style="background:rgba(47,180,135,.14)">⏱</span><div class="sub">On-time delivery</div><div class="v"><span data-num="96.4" data-dec="1">0</span><small>%</small></div><div class="d"><b>+1.2%</b> target 95%</div></div>
+      <div class="card kpi"><span class="ic" style="background:rgba(240,106,91,.14)">⚠</span><div class="sub">Active alerts</div><div class="v"><span data-num="3">0</span><small>units</small></div><div class="d"><b style="color:var(--warn)">−25%</b> since yesterday</div></div>
+      <div class="card"><h3>Equipment health <span class="tag ok">Normal</span></h3><div id="g2" style="display:grid;place-items:center;margin-top:6px"></div></div>
+    </div>
+    <div class="g row2 stagger">
+      <div class="card"><h3>Temperature monitoring <div class="legend"><span><i style="background:#65a5bd"></i>Fresh produce</span><span><i style="background:#346694"></i>Frozen food</span><span><i style="background:#3ec7b4"></i>Beverage</span></div></h3><p class="sub">Average cargo temperature, last 24 h (°C)</p><div id="temp" style="margin-top:10px"></div></div>
+      <div class="card"><h3>Reefer status</h3><p class="sub">Unit #RF-2209</p>
+        <div class="eq"><div>Compressor status <span class="tag ok">Running well</span></div><div>Power <span>92% <span class="tag ok">Stable</span></span></div><div>Door sensor <span class="tag bad">1 open</span></div><div>Reefer pressure <b>14.2 PSI</b></div><div>Door cycles <b>2,400 /mo</b></div></div></div>
+    </div>
+    <div class="g row3 stagger">
+      <div class="card"><h3>Recent shipments <button class="tag info" data-go="map">View map →</button></h3>
+        <table><thead><tr><th>ID</th><th>Route</th><th>Cargo</th><th>Temp</th><th>Status</th></tr></thead><tbody id="ship"></tbody></table></div>
+      <div class="card"><h3>Space capacity</h3><p class="sub">76% used across the active fleet</p><div id="cap" style="margin-top:8px"></div></div>
+    </div>
+  </div>
+</section>
+
+<section data-page="map" hidden>
+  <div class="appw">
+    <div class="welcome"><div><h2>Live shipment #CL0045</h2><p>Hyderabad → Bengaluru · Frozen food</p></div><span class="tag ok">On route</span></div>
+    <div class="g row2">
+      <div class="card"><div class="map" style="height:470px"><svg viewBox="0 0 800 470" id="mapsvg" aria-hidden="true"></svg>
+        <div class="track"><span class="tag info">ETA 4h 12m</span><div><b id="pct">0%</b> of 568 km · <span id="tmp">−4.2°C</span><div class="prog" style="margin-top:6px"><i id="bar"></i></div></div><span class="tag ok">Box sealed</span></div></div></div>
+      <div class="card"><h3>Timeline</h3>
+        <div class="alert"><i style="background:rgba(47,180,135,.14)">✓</i><div><b>Picked up · Hyderabad DC</b><span>06:40 · temp −4.6°C</span></div></div>
+        <div class="alert"><i style="background:rgba(47,180,135,.14)">✓</i><div><b>Checkpoint · Kurnool</b><span>09:15 · temp −4.3°C</span></div></div>
+        <div class="alert"><i style="background:rgba(101,165,189,.16)">●</i><div><b>In transit · NH 44</b><span>Now · temp −4.2°C</span></div></div>
+        <div class="alert"><i style="background:var(--track)">○</i><div><b>Delivery · Bengaluru hub</b><span>ETA 14:30</span></div></div>
+        <p class="sub" style="margin-top:14px">Box temperature, last 6 h</p><div id="mini"></div></div>
+    </div>
+  </div>
+</section>
+
+<section data-page="alerts" hidden>
+  <div class="appw">
+    <div class="welcome"><div><h2>Alerts & incidents</h2><p>3 open · 12 resolved this week</p></div></div>
+    <div class="g row2"><div class="card" id="alist"></div><div class="card"><h3>Incidents by type</h3><p class="sub">Last 30 days</p><div id="types" style="display:grid;place-items:center;margin-top:20px"></div></div></div>
+  </div>
+</section>
+
+<section data-page="pricing" hidden>
+  <div class="appw center"><span class="eyebrow">Pricing</span><h2 style="font-size:34px;font-weight:600;margin-top:14px">Plans built for <em style="font-weight:500;color:var(--teal)">every scale</em></h2><p class="sub" style="font-size:13px;color:var(--muted);margin-top:8px">Per refrigerated unit, billed monthly. Cancel anytime.</p>
+    <div class="pricing stagger">
+      <div class="plan"><h4>Starter</h4><div class="price">$10<small>/unit</small></div><p>For small fleets getting started.</p><ul><li>Real-time temperature</li><li>Email alerts</li><li>30-day history</li></ul><button>Get started</button></div>
+      <div class="plan pop"><h4>Professional</h4><div class="price">$24<small>/unit</small></div><p>Most popular for growing fleets.</p><ul><li>Everything in Starter</li><li>Predictive diagnostics</li><li>Live route tracking</li><li>Compliance reports</li></ul><button>Start free trial</button></div>
+      <div class="plan"><h4>Enterprise</h4><div class="price">$38<small>/unit</small></div><p>Custom integrations and SLAs.</p><ul><li>Everything in Pro</li><li>API & ERP sync</li><li>Dedicated manager</li></ul><button>Talk to sales</button></div>
+    </div></div>
+</section>
+
+<script type="module">
+import { theme, router, lineChart, barChart, donut, gauge, animateCounts } from './live.js';
+theme();
+const $ = (s) => document.querySelector(s);
+$('#bars').innerHTML = Array.from({ length: 26 }, (_, i) => `<i style="height:${30 + Math.abs(Math.sin(i * 0.7)) * 60}px;animation-delay:${-i * 0.13}s"></i>`).join('');
+// focus cycle like the reference animation
+const cards = [...document.querySelectorAll('.fc')];
+let fi = 0, hover = false;
+cards.forEach((c, i) => { c.addEventListener('mouseenter', () => { hover = true; cards.forEach((x) => x.classList.toggle('focus', x === c)); }); c.addEventListener('mouseleave', () => { hover = false; }); });
+setInterval(() => { if (hover) return; fi = (fi + 1) % 3; cards.forEach((x, i) => x.classList.toggle('focus', i === fi)); }, 2600);
+cards[0].classList.add('focus');
+
+function mapSvg() {
+  const s = $('#mapsvg');
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const road = dark ? '#1e3546' : '#ffffff', block = dark ? '#132a3a' : '#dbe6ed';
+  let h = '';
+  for (let i = 0; i < 9; i++) for (let j = 0; j < 6; j++) h += `<rect x="${i * 92 + 8}" y="${j * 82 + 8}" width="${78 + (i * j) % 3 * 4}" height="${68}" rx="10" fill="${block}"/>`;
+  h += `<path d="M0 300 C 200 280, 260 120, 420 160 S 640 60, 800 90" stroke="${road}" stroke-width="14" fill="none"/>`;
+  h += `<path id="rt" d="M60 410 C 160 360, 220 300, 300 290 S 420 200, 500 180 S 650 110, 740 70" stroke="#65a5bd" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  h += `<path d="M60 410 C 160 360, 220 300, 300 290 S 420 200, 500 180 S 650 110, 740 70" stroke="#346694" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="0 2000" id="done"/>`;
+  h += `<circle cx="60" cy="410" r="9" fill="#3ec7b4"/><circle cx="740" cy="70" r="9" fill="#f06a5b"/><g id="truck"><circle r="16" fill="#346694" opacity=".18"><animate attributeName="r" values="12;22;12" dur="2s" repeatCount="indefinite"/></circle><circle r="9" fill="#346694" stroke="#fff" stroke-width="3"/></g>`;
+  s.innerHTML = h;
+}
+let tp = 0.42;
+function moveTruck() {
+  const p = $('#rt'); if (!p) return;
+  const L = p.getTotalLength(), pt = p.getPointAtLength(L * tp);
+  $('#truck')?.setAttribute('transform', `translate(${pt.x},${pt.y})`);
+  $('#done')?.setAttribute('stroke-dasharray', `${L * tp} 2000`);
+  $('#pct').textContent = Math.round(tp * 100) + '%';
+  $('#bar').style.width = tp * 100 + '%';
+  $('#tmp').textContent = (-4.2 + Math.sin(tp * 30) * 0.15).toFixed(1) + '°C';
+}
+setInterval(() => { tp = tp >= 0.98 ? 0.05 : tp + 0.004; moveTruck(); }, 120);
+
+const draw = {
+  home() { gauge($('#g1'), { value: 98.2, size: 200, label: 'Health', color: '#65a5bd' }); },
+  fleet() {
+    animateCounts(document.querySelector('[data-page="fleet"]'));
+    gauge($('#g2'), { value: 98.2, size: 190, label: 'Normal', color: '#65a5bd' });
+    const hrs = Array.from({ length: 13 }, (_, i) => `${String(i * 2).padStart(2, '0')}:00`);
+    lineChart($('#temp'), { labels: hrs, height: 230, min: -20, max: 12, unit: '°', series: [
+      { name: 'Fresh produce', color: '#65a5bd', data: [4.1, 4.3, 3.8, 4.6, 5.2, 4.4, 4.0, 4.2, 4.8, 4.1, 3.9, 4.2, 4.2], area: true },
+      { name: 'Frozen food', color: '#346694', data: [-15, -14.2, -15.6, -14.8, -13.9, -15.1, -14.6, -15.3, -14.1, -14.9, -15.2, -14.4, -14.8] },
+      { name: 'Beverage', color: '#3ec7b4', data: [7.2, 7.8, 6.9, 7.4, 8.1, 7.6, 7.0, 7.3, 7.9, 7.1, 6.8, 7.4, 7.2] }] });
+    const rows = [['#CL0045', 'HYD → BLR', 'Frozen food', '−4.2°C', 'ok', 'On route'], ['#CL0046', 'HYD → CHN', 'Fresh produce', '4.1°C', 'ok', 'On route'], ['#CL0039', 'VJA → HYD', 'Beverage', '7.9°C', 'bad', 'Temp drift'], ['#CL0031', 'BLR → PUN', 'Dairy', '3.6°C', 'info', 'Delivered'], ['#CL0028', 'HYD → VSK', 'Vaccines', '2.4°C', 'info', 'Delivered']];
+    $('#ship').innerHTML = rows.map((r, i) => `<tr style="animation-delay:${i * 40}ms"><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td><span class="tag ${r[4]}">${r[5]}</span></td></tr>`).join('');
+    barChart($('#cap'), { horizontal: true, labels: ['Fresh produce', 'Frozen food', 'Beverage', 'Free space'], data: [40, 25, 22, 13], colors: ['#65a5bd', '#346694', '#3ec7b4', '#c9d8e1'], max: 50, height: 200, unit: '%' });
+  },
+  map() { mapSvg(); moveTruck(); lineChart($('#mini'), { labels: ['−6h', '−5h', '−4h', '−3h', '−2h', '−1h', 'now'], height: 140, min: -6, max: -2, unit: '°', series: [{ name: 'Box', color: '#346694', area: true, dots: true, data: [-4.6, -4.5, -4.4, -4.3, -4.25, -4.2, -4.2] }] }); },
+  alerts() {
+    const A = [['⚠', 'rgba(240,106,91,.14)', 'Temperature drift on #CL0039', 'Beverage at 7.9°C — above 7.5°C limit · 12 min ago', 'bad', 'Open'], ['🚪', 'rgba(240,106,91,.14)', 'Door open · Reefer RF-2209', 'Open for 4 min at Kurnool dock · 40 min ago', 'bad', 'Open'], ['⚡', 'rgba(243,167,44,.16)', 'Power dip · RF-1180', 'Battery backup engaged for 2 min · 2 h ago', 'bad', 'Open'], ['✓', 'rgba(47,180,135,.14)', 'Compressor service done', 'RF-0942 back to 99% health · yesterday', 'ok', 'Resolved'], ['✓', 'rgba(47,180,135,.14)', 'Sensor recalibrated', 'Gateway GW-17 · 2 days ago', 'ok', 'Resolved']];
+    $('#alist').innerHTML = '<h3>Latest</h3>' + A.map((a, i) => `<div class="alert" style="animation-delay:${i * 50}ms"><i style="background:${a[1]}">${a[0]}</i><div style="flex:1"><b>${a[2]}</b><span>${a[3]}</span></div><span class="tag ${a[4]}">${a[5]}</span></div>`).join('');
+    donut($('#types'), { parts: [{ value: 42, color: '#346694' }, { value: 28, color: '#65a5bd' }, { value: 18, color: '#a8d6df' }, { value: 12, color: '#f06a5b' }], size: 190, thick: 22, label: '15', sub: 'incidents' });
+  },
+  pricing() {},
+};
+let cur;
+router((name) => { cur = name; requestAnimationFrame(() => draw[name]()); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+window.addEventListener('themechange', () => cur && draw[cur]());
+</script>
+</body>
+</html>
