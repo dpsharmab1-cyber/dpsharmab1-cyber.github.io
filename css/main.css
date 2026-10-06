@@ -193,7 +193,6 @@ html.nav-hidden .nav { opacity: 0; pointer-events: none; }
   display: grid; place-items: center; transition: transform .6s var(--ease);
 }
 .seemore-dot svg, .send-dot svg { width: 18px; height: 18px; }
-.seemore:hover .seemore-dot { transform: translateY(3px); }
 
 /* ---------- cursor ---------- */
 #cursor { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; width: 0; height: 0; opacity: 0; transition: opacity .3s; }
@@ -292,11 +291,11 @@ html.lens-svg .cursor-lens { -webkit-backdrop-filter: url(#lens) saturate(1.5); 
 .arrow {
   position: absolute; z-index: 3; top: 50%; translate: 0 -50%; width: 60px; height: 60px; border-radius: 50%;
   background: var(--ink); color: var(--bg); display: grid; place-items: center;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, .2); transition: transform .5s var(--ease), box-shadow .5s;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .2); transition: scale .5s var(--ease), box-shadow .5s;
 }
 .arrow svg { width: 22px; height: 22px; display: block; }
-.arrow:hover { transform: scale(1.06); box-shadow: 0 14px 30px rgba(0, 0, 0, .28); }
-.arrow:active { transform: scale(.96); }
+.arrow:hover { scale: 1.06; box-shadow: 0 14px 30px rgba(0, 0, 0, .28); }
+.arrow:active { scale: .96; }
 .folders .arrow { top: var(--arrow-y, 50%); }
 .folders .arrow-prev { left: max(16px, 5.9%); }
 .folders .arrow-next { right: max(16px, 5.9%); }
@@ -408,14 +407,13 @@ html.lens-svg .cursor-lens { -webkit-backdrop-filter: url(#lens) saturate(1.5); 
 .wb-cat { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wb-proj { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wb-count { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
-.wb-next { width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; transition: transform .5s var(--ease); }
+.wb-next { width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
 .live-full { position: fixed; inset: 0; z-index: 120; background: var(--bg); opacity: 0; transform: translateY(24px); transition: opacity .4s var(--ease), transform .5s var(--ease); }
 .live-full.is-open { opacity: 1; transform: none; }
 .live-full iframe { width: 100%; height: 100%; border: 0; display: block; }
 .live-close { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 44px; height: 44px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; box-shadow: 0 10px 24px -8px rgba(0,0,0,.45); }
 .live-close svg { width: 18px; height: 18px; }
 .wb-next svg { width: 17px; height: 17px; display: block; }
-.wb-next:hover { transform: translateY(2px); }
 
 /* phones: each chapter opens as its own page over the site (js/chpage.js) */
 .chpage { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; transform: translateY(100%); visibility: hidden; transition: transform .6s var(--ease), visibility 0s .6s; }
@@ -432,6 +430,9 @@ html.lens-svg .cursor-lens { -webkit-backdrop-filter: url(#lens) saturate(1.5); 
 .chp-next svg { width: 16px; height: 16px; }
 .chp-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; transition: opacity .22s var(--ease); }
 .chp-scroll.is-swapping { opacity: 0; }
+/* Lenis: a stopped page can't scroll; nested scrollers keep their overscroll */
+.lenis.lenis-stopped { overflow: clip; }
+.chpage, .chp-scroll { overscroll-behavior: contain; }
 .chpage .sec-work { padding: 0 0 40px; }
 .chpage .chapter { display: none; padding-top: clamp(30px, 7vh, 72px); }
 .chpage .chapter.is-current { display: block; }
@@ -451,7 +452,6 @@ html.work-sheet-mode #workbar { display: none; }
 .chp-cover.is-in .chp-cover-title { opacity: 1; transform: none; }
 .chp-more { position: absolute; left: 50%; bottom: 26px; translate: -50% 0; height: 40px; padding: 0 4px 0 22px; border-radius: 999px; display: flex; align-items: center; gap: 19px; font-size: 13px; letter-spacing: .02em; line-height: 1; background: rgba(255, 255, 255, .7); box-shadow: 0 4px 18px rgba(0, 0, 0, .1), inset 0 1px 0 rgba(255, 255, 255, .9); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; transition: opacity 1s var(--ease) .7s; }
 .chp-cover.is-in .chp-more { opacity: 1; }
-.chp-more:hover .seemore-dot { transform: translateY(3px); }
 @media (prefers-reduced-motion: reduce) { .chp-cover.is-in .chp-cover-bg { animation: none; } }
 
 /* connect */
@@ -515,7 +515,6 @@ html.work-sheet-mode #workbar { display: none; }
 .form-foot { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
 .send { height: 32px; padding: 0 0 0 16px; border-radius: 999px; display: inline-flex; align-items: center; gap: 15px; font-size: 13px; line-height: 1; }
 .send-dot { width: 32px; height: 32px; background: var(--ink); color: var(--bg); }
-.send:hover .send-dot { transform: translateX(3px); }
 .contact-form.is-sending .send { opacity: .6; pointer-events: none; }
 .form-status { font-size: 13px; color: var(--ink-2); }
 
@@ -598,6 +597,13 @@ html.work-sheet-mode #workbar { display: none; }
 .prod-cap b { font-size: 14px; font-weight: 600; color: var(--ink); }
 .prod-hero { grid-column: span 2; grid-row: span 2; }
 .prod-hero .prod-img { aspect-ratio: auto; flex: 1; min-height: 0; }
+
+/* work tiles: 3D tilt toward the pointer with a soft sheen (js/fx.js) */
+.fx-tilt { will-change: transform; }
+.fx-tilt.is-tilting { transition: transform .14s ease-out, box-shadow .6s var(--ease) !important; }
+.fx-tilt::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: inherit; background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 55%); opacity: 0; transition: opacity .5s var(--ease); }
+.fx-tilt.is-tilting::after { opacity: 1; }
+.agrid button, .ggrid button, .sgrid button, .prod { position: relative; }
 
 /* lightbox */
 .lightbox { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; visibility: hidden; opacity: 0; transition: opacity .5s var(--ease), visibility 0s .5s; background: color-mix(in srgb, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.2); backdrop-filter: blur(22px) saturate(1.2); }

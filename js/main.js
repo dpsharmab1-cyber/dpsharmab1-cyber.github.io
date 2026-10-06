@@ -9,8 +9,9 @@ import { Work } from './work.js';
 import { ChapterPage } from './chpage.js';
 import { Splash } from './splash.js';
 import { Lightbox } from './lightbox.js';
-import { Nav, Theme, Skills, Contact, Cursor, counters } from './ui.js';
+import { Nav, Theme, Skills, Contact, Cursor, Magnet, counters } from './ui.js';
 import { runIntro } from './intro.js';
+import { Fx } from './fx.js';
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 const app = (window.__app = { themeListeners: [] });
@@ -75,6 +76,8 @@ app.chpage = new ChapterPage(app);
 app.nav = new Nav(app);
 app.contact = new Contact(app);
 app.cursor = new Cursor();
+app.magnet = new Magnet();
+app.fx = new Fx();
 counters(app);
 
 // ---- layout
@@ -145,6 +148,7 @@ const frame = (now) => {
   app.nav.update(dt);
   app.skills.update(dt);
   app.cursor.update(dt);
+  app.magnet.update(dt);
   const st = app.stage;
   const W = st ? st.w : document.documentElement.clientWidth, H = st ? st.h : innerHeight;
   pageFade.set(app.introOn || app.splash.active ? 0 : 1);

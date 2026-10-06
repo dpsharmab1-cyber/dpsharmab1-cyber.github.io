@@ -1,4 +1,5 @@
 // Shared motion utilities: springs, smooth scroll, split text, reveal states.
+import Lenis from './vendor/lenis.mjs';
 
 export const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 export const lerp = (a, b, t) => a + (b - a) * t;
@@ -32,58 +33,56 @@ export class Spring {
 // finger stays in charge), but text and glass still move in the same frame, so
 // the WebGL glass never trails the page while flinging.
 export class SmoothScroll {
+  // Lenis (MIT, darkroom.engineering, js/vendor/lenis.mjs) eases the window
+  // scroll; the page itself is a fixed layer moved to Lenis' value every frame,
+  // so the DOM, the WebGL glass and the wheel always read the same number.
+  // Touch keeps its native momentum; Lenis just follows it.
   constructor(content) {
     this.content = content;
     this.enabled = !reduced;
     this.y = window.scrollY;
     this.vel = 0;
-    this.anim = null;
     this.locked = false;
     this.shift = 0;        // px the page sits below its scroll position (splash hand-over)
-    if (this.enabled) document.documentElement.classList.add('smooth');
+    this.clock = 0;
+    if (this.enabled) {
+      document.documentElement.classList.add('smooth');
+      this.lenis = new Lenis({
+        autoRaf: false, autoResize: false, lerp: 0.085, smoothWheel: true, syncTouch: false,
+        // the folder pages and the lightbox scroll on their own
+        prevent: (n) => n.classList?.contains('chpage') || n.id === 'lightbox',
+      });
+    }
     this.resize();
   }
   resize() {
     if (this.enabled) document.body.style.height = this.content.offsetHeight + 'px';
     this.max = Math.max(0, (this.enabled ? this.content.offsetHeight : document.documentElement.scrollHeight) - window.innerHeight);
+    this.lenis?.resize();
   }
-  get target() { return window.scrollY; }
+  get target() { return this.lenis ? this.lenis.targetScroll : window.scrollY; }
   to(y, { immediate = false, duration } = {}) {
     y = clamp(y, 0, this.max);
-    if (immediate || reduced) {
-      window.scrollTo(0, y);
-      this.y = this.base = y;
-      this.anim = null;
-      return;
-    }
-    const from = window.scrollY;
-    const d = duration ?? clamp(0.6 + Math.abs(y - from) / 2600, 0.7, 1.6);
-    this.anim = { from, to: y, t: 0, d };
+    if (!this.lenis) { window.scrollTo(0, y); this.y = y; return; }
+    if (immediate) { this.lenis.scrollTo(y, { immediate: true, force: true }); this.y = y; return; }
+    const d = duration ?? clamp(0.6 + Math.abs(y - this.lenis.animatedScroll) / 2600, 0.7, 1.6);
+    this.lenis.scrollTo(y, { duration: d, easing: easeInOutCubic, force: true });
   }
   lock(on) {
     this.locked = on;
+    if (this.lenis) on ? this.lenis.stop() : this.lenis.start();
     document.documentElement.style.overflow = on ? 'hidden' : '';
   }
   update(dt) {
-    if (this.anim) {
-      const a = this.anim;
-      a.t += dt / a.d;
-      const y = lerp(a.from, a.to, easeInOutCubic(clamp(a.t)));
-      window.scrollTo(0, y);
-      if (a.t >= 1) this.anim = null;
-    }
     const prev = this.y;
-    if (this.enabled) {
-      const t = this.target;
-      this.y = this.base ?? this.y;
-      this.y = coarse && !this.anim ? t : this.y + (t - this.y) * (1 - Math.exp(-dt * (this.anim ? 30 : 10)));
-      if (Math.abs(t - this.y) < 0.05) this.y = t;
-      this.base = this.y;
+    if (this.lenis) {
+      this.clock += dt * 1000;
+      this.lenis.raf(this.clock);
       // a shift moves page, glass and wheel together: they all read scroll.y
-      this.y -= this.shift;
+      this.y = this.lenis.animatedScroll - this.shift;
       this.content.style.transform = `translate3d(0,${-this.y.toFixed(2)}px,0)`;
     } else {
-      this.y = this.target;
+      this.y = window.scrollY;
     }
     this.vel = (this.y - prev) / Math.max(dt, 1e-3);
   }
@@ -195,47 +194,18 @@ export function gradText(root = document) {
   });
 }
 
-// The same smooth scroll for an inner scroller (the opened folder pages): wheel
-// input sets a target and the view eases to it with the page's own constant;
-// links glide with the page's ease. Touch keeps its native momentum, and the
-// scrollbar or keys simply resync the target.
+// The same Lenis scroll for an inner scroller (the opened folder pages). Links
+// glide with the page's ease; touch keeps its native momentum.
 export class InnerSmooth {
-  constructor(el) {
+  constructor(el, content) {
     this.el = el;
-    this.y = this.t = el.scrollTop;
-    this.set = -1;
-    this.anim = null;
-    this.on = !reduced;
-    const max = () => Math.max(0, el.scrollHeight - el.clientHeight);
-    if (this.on && !coarse) el.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      e.preventDefault();
-      const k = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? el.clientHeight : 1;
-      this.anim = null;
-      this.t = clamp(this.t + e.deltaY * k, 0, max());
-    }, { passive: false });
-    el.addEventListener('scroll', () => {
-      if (Math.abs(el.scrollTop - this.set) < 1.5) return;     // our own write
-      this.y = this.t = el.scrollTop;
-      this.anim = null;
-    }, { passive: true });
-    this.max = max;
+    this.clock = 0;
+    this.lenis = reduced ? null : new Lenis({ wrapper: el, content, autoRaf: false, lerp: 0.085, smoothWheel: true, syncTouch: false });
   }
-  jump(y) { this.anim = null; this.el.scrollTop = this.y = this.t = this.set = clamp(y, 0, this.max()); }
+  jump(y) { if (this.lenis) this.lenis.scrollTo(y, { immediate: true, force: true }); else this.el.scrollTop = y; }
   to(y) {
-    y = clamp(y, 0, this.max());
-    if (!this.on) return this.jump(y);
-    this.anim = { from: this.el.scrollTop, to: y, t: 0, d: clamp(0.6 + Math.abs(y - this.el.scrollTop) / 2600, 0.7, 1.6) };
+    if (!this.lenis) return this.jump(y);
+    this.lenis.scrollTo(y, { duration: clamp(0.6 + Math.abs(y - this.lenis.animatedScroll) / 2600, 0.7, 1.6), easing: easeInOutCubic, force: true });
   }
-  update(dt) {
-    if (this.anim) {
-      const a = this.anim;
-      a.t += dt / a.d;
-      this.t = this.y = lerp(a.from, a.to, easeInOutCubic(clamp(a.t)));
-      if (a.t >= 1) this.anim = null;
-    } else if (Math.abs(this.t - this.y) > 0.3) {
-      this.y += (this.t - this.y) * (1 - Math.exp(-dt * 10));
-    } else this.y = this.t;
-    if (Math.abs(this.el.scrollTop - this.y) >= 0.5) { this.set = this.y; this.el.scrollTop = this.y; this.set = this.el.scrollTop; }
-  }
+  update(dt) { this.clock += dt * 1000; this.lenis?.raf(this.clock); }
 }

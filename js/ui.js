@@ -307,3 +307,46 @@ export class Cursor {
     this.lens.style.transform = `scale(${s.toFixed(3)})`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Magnetic buttons: inside its own box a button leans toward the pointer (35 %,
+// at most 14 px) and its round icon leans a touch further, then eases back on
+// leave. Glass buttons hand the offset to their glass item, so the WebGL glass
+// moves with them. Mouse and trackpad only.
+const MAGNETIC = '#seemore, .nav-contact, .send, .to-top, .arrow, .cta-red, .chp-more, .chp-next, .chp-back, .wb-next';
+export class Magnet {
+  constructor() {
+    this.items = [];
+    if (!finePointer || reduced) return;
+    document.querySelectorAll(MAGNETIC).forEach((el) => this.add(el));
+  }
+  add(el) {
+    if (el._magnet) return;
+    const m = el._magnet = { el, x: new Spring(0, 9), y: new Spring(0, 9), icon: el.querySelector('.seemore-dot, .send-dot, i, svg'), t: '', ti: '' };
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2 - m.x.v, cy = r.top + r.height / 2 - m.y.v;
+      m.x.set(clamp((e.clientX - cx) * 0.35, -14, 14));
+      m.y.set(clamp((e.clientY - cy) * 0.35, -14, 14));
+    });
+    el.addEventListener('pointerleave', () => { m.x.set(0); m.y.set(0); });
+    this.items.push(m);
+  }
+  update(dt) {
+    for (const m of this.items) {
+      const x = m.x.step(dt), y = m.y.step(dt);
+      const rest = Math.abs(x) < 0.05 && Math.abs(y) < 0.05;
+      const g = m.el._glass;
+      if (g) { g.mx = rest ? 0 : x; g.my = rest ? 0 : y; }
+      else {
+        const t = rest ? '' : `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0)`;
+        if (t !== m.t) { m.el.style.transform = t; m.t = t; }
+      }
+      if (m.icon) {
+        const ti = rest ? '' : `translate3d(${(x * 0.18).toFixed(2)}px,${(y * 0.18).toFixed(2)}px,0)`;
+        if (ti !== m.ti) { m.icon.style.transform = ti; m.ti = ti; }
+      }
+    }
+  }
+}
+

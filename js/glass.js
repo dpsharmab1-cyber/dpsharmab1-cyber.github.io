@@ -39,6 +39,7 @@ export class GlassItem {
     this.tint = new Spring(0, 10);
     this.focus = new Spring(0, 12);
     this.ext = 1;          // external visibility multiplier (modules)
+    this.mx = 0; this.my = 0;   // magnetic pull (ui.js Magnet), px
     this.rectFn = null;    // custom rect provider
     this.lastT = '';
     const interactive = el.matches('a, button, input, textarea, .chip');
@@ -101,7 +102,7 @@ export class GlassLayer {
       const dy = (1 - a) * 22 * dir;
       const big = Math.max(it.base.w, it.base.h) > 520;
       const s = (big ? 1 : 0.965 + 0.035 * a) * (1 + it.preset.hoverScale * h);
-      const t = `translate3d(0,${dy.toFixed(2)}px,0) scale(${s.toFixed(4)})`;
+      const t = `translate3d(${it.mx.toFixed(2)}px,${(dy + it.my).toFixed(2)}px,0) scale(${s.toFixed(4)})`;
       if (!it.rectFn && t !== it.lastT) { it.el.style.transform = t; it.lastT = t; }
       const op = a * it.ext * (it.fixed ? 1 : this.pageAlpha);
       const opS = op.toFixed(3);
@@ -116,8 +117,8 @@ export class GlassLayer {
       } else {
         const b = it.base;
         w = b.w * s; hh = b.h * s;
-        x = b.x + (b.w - w) / 2;
-        y = b.y - (it.fixed ? 0 : scrollY) + dy + (b.h - hh) / 2;
+        x = b.x + (b.w - w) / 2 + it.mx;
+        y = b.y - (it.fixed ? 0 : scrollY) + dy + it.my + (b.h - hh) / 2;
       }
       const p = it.preset;
       let fill = (dark ? p.dfill : p.fill).slice();

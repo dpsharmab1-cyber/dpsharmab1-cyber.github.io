@@ -1,7 +1,7 @@
 // After the intro (Figma "Cover Intro Splash screen _Loading 2"): DEEPAK SHARMA
 // and a big black -> red PORTFOLIO up top, See more under it, the wheel turning
 // below while the red + blue comet sweeps down behind both. Nothing scrolls. See more plays a calm three-step hand-over:
-//   1. the comet drifts up and out while the wheel and the wordmark sink away
+//   1. the comet fades up and out while the wheel and the wordmark sink away
 //   2. a short, completely white beat
 //   3. About rises from the bottom, the wheel in its place and PORTFOLIO
 //      settling into the nav.
@@ -17,7 +17,7 @@ export class Splash {
   constructor(app) {
     this.app = app;
     this.active = false;
-    this.blob = new Spring(0, 1.25);  // entry: the comet lowers in, slowly
+    this.blob = new Spring(0, 1.1);   // entry: the comet fades in where it rests, slowly
     this.boost = new Spring(0, 1.0);  // the wheel turns a touch faster meanwhile
     this.phase = 0;                   // 0 rest, 1 out, 2 white beat, 3 About rising
     this.t = 0;
@@ -89,8 +89,12 @@ export class Splash {
     const w = (bb[2] - bb[0]) * k, h = (bb[3] - bb[1]) * k;
     const x = W / 2 + (bb[0] - LOGO_X) * k;
     const y1 = this.restY(H) + (bb[1] - LOGO_Y) * k;      // resting place
-    const e = 1 - Math.pow(1 - show, 3);
-    blobs.push({ tex: m.tex || 'splash', x, y: y1 - (1 - e) * (y1 + h), w, h, alpha: Math.min(1, show * 1.4), seed: 0.31 });
+    // it appears where it rests: a slow fade, a slight grow and a short rise;
+    // on See more it fades the same way while drifting up
+    const e = show * show * (3 - 2 * show);
+    const g = 0.9 + 0.1 * e;
+    const cx = x + w / 2, cy = y1 + h / 2 + (1 - e) * H * (this.phase === 1 ? -0.08 : 0.05);
+    blobs.push({ tex: m.tex || 'splash', x: cx - w * g / 2, y: cy - h * g / 2, w: w * g, h: h * g, alpha: e, seed: 0.31 });
   }
 
   size(W, H) { return this.app.logo.aboutSize() || LOGO_D * Math.min(W / 1280, H / 832); }

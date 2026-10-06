@@ -28,7 +28,11 @@ export class ChapterPage {
       <div class="chp-scroll"></div>`;
     document.body.append(el);
     this.scroller = el.querySelector('.chp-scroll');
-    this.smooth = new InnerSmooth(this.scroller);
+    // Lenis watches this inner box, so late images re-measure the scroll
+    this.inner = document.createElement('div');
+    this.inner.className = 'chp-inner';
+    this.scroller.append(this.inner);
+    this.smooth = new InnerSmooth(this.scroller, this.inner);
     // Figma "folders section-1": every chapter opens on a full-screen cover, its
     // name in the black -> red display type over the blue + red strokes
     this.cover = document.createElement('section');
@@ -36,7 +40,7 @@ export class ChapterPage {
     this.cover.innerHTML = `<div class="chp-cover-bg" aria-hidden="true"></div>
       <h2 class="chp-cover-title grad-v"></h2>
       <button class="chp-more" type="button"><span>SEE MORE</span><i class="seemore-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></i></button>`;
-    this.scroller.append(this.cover);
+    this.inner.append(this.cover);
     this.cover.querySelector('.chp-more').addEventListener('click', () => {
       this.smooth.to(this.cover.offsetHeight - 8);
     });
@@ -67,10 +71,10 @@ export class ChapterPage {
 
   // phones keep the showcase in the sheet, larger screens keep it in the page
   place() {
-    if (this.phone && this.work.parentNode !== this.scroller) {
-      this.scroller.append(this.work);
+    if (this.phone && this.work.parentNode !== this.inner) {
+      this.inner.append(this.work);
       this.work.querySelectorAll('[data-rise]').forEach((r) => { r.style.transform = 'none'; r.style.opacity = ''; });
-    } else if (!this.phone && this.work.parentNode === this.scroller) {
+    } else if (!this.phone && this.work.parentNode === this.inner) {
       if (this.isOpen) this.close();
       this.home.after(this.work);
     }

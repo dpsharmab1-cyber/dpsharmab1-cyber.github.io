@@ -71,24 +71,38 @@ export class Folders {
     return card;
   }
 
+  // drag or swipe with momentum (a quick flick travels up to two folders, the
+  // way Embla-style carousels feel), plus sideways trackpad swipes
   bindDrag() {
-    let sx = 0, sp = 0, down = false;
+    let sx = 0, sp = 0, down = false, lx = 0, lt = 0, vel = 0;
     this.root.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.arrow')) return;
-      down = true; this.dragged = false; sx = e.clientX; sp = this.pos.t;
+      down = true; this.dragged = false; sx = lx = e.clientX; sp = this.pos.t; lt = performance.now(); vel = 0;
     });
     window.addEventListener('pointermove', (e) => {
       if (!down) return;
       const dx = e.clientX - sx;
       if (Math.abs(dx) > 6) this.dragged = true;
       if (this.dragged) this.pos.set(sp - dx / 230);
+      const now = performance.now(), dt = Math.max(now - lt, 1) / 1000;
+      vel = vel * 0.6 + (-(e.clientX - lx) / 230 / dt) * 0.4;      // folders per second
+      lx = e.clientX; lt = now;
     });
     window.addEventListener('pointerup', () => {
       if (!down) return;
       down = false;
-      this.pos.set(Math.round(this.pos.t));
+      const fling = performance.now() - lt < 90 ? clamp(vel * 0.22, -2, 2) : 0;
+      this.pos.set(Math.round(this.pos.t + fling));
       setTimeout(() => { this.dragged = false; }, 0);
     });
+    let acc = 0, lock = 0;
+    this.root.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      if (performance.now() < lock) return;
+      acc += e.deltaX;
+      if (Math.abs(acc) > 50) { this.go(Math.sign(acc)); acc = 0; lock = performance.now() + 420; }
+    }, { passive: false });
   }
 
   measure(scrollY) {
