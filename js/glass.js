@@ -32,7 +32,7 @@ export class GlassItem {
     const rad = (el.dataset.radius || '').trim().split(/\s+/).filter(Boolean).map(Number);
     this.radius = rad.length === 1 ? rad[0] : null;
     if (rad.length === 4) this.radius4 = [rad[2], rad[1], rad[3], rad[0]]; // tl tr br bl -> br tr bl tl
-    this.fixed = !!el.closest('[data-fixed], #nav, #seemore, #workbar, #tip');
+    this.fixed = !!el.closest('[data-fixed], #nav, #seemore, #tip');
     this.base = { x: 0, y: 0, w: 0, h: 0 };
     this.appear = new Spring(0, 7);
     this.hover = new Spring(0, 14);

@@ -86,7 +86,7 @@ export class LogoCtl {
   aboutSize() { return this.list.find((a) => a.mode === 'about')?.size || 0; }
   measure(scrollY) {
     const prev = this.list;
-    this.list = [...document.querySelectorAll('[data-logo]')].filter((el) => !el.closest('.chpage')).map((el, i) => {
+    this.list = [...document.querySelectorAll('[data-logo]')].map((el, i) => {
       const r = el.getBoundingClientRect();
       const mode = el.dataset.logo;
       const it = { mode, level: +(el.dataset.level || 1), top: r.top + scrollY, h: r.height,
@@ -106,13 +106,13 @@ export class LogoCtl {
   update(dt, scrollY, W, H, out, pageAlpha) {
     const s = Math.min(W / 1280, H / 832);
     const sy = H / 832;
-    // very slow, steady spin: ring ~2 min per turn, inner text the other way
-    // ~2.7 min, petals ~4 min
-    // the splash turns it a little faster, easing back once it settles
-    const bo = 1 + 1.2 * (this.splash?.boost.v || 0);
-    this.ang[0] += dt * (Math.PI * 2 / 120) * bo;
-    this.ang[1] -= dt * (Math.PI * 2 / 160) * bo;
-    this.ang[2] += dt * (Math.PI * 2 / 240) * bo;
+    // very slow, steady spin: ring ~5 min per turn, inner text the other way
+    // ~6.7 min, petals ~10 min
+    // the splash turns it a touch faster, easing back once it settles
+    const bo = 1 + 0.6 * (this.splash?.boost.v || 0);
+    this.ang[0] += dt * (Math.PI * 2 / 300) * bo;
+    this.ang[1] -= dt * (Math.PI * 2 / 400) * bo;
+    this.ang[2] += dt * (Math.PI * 2 / 600) * bo;
     for (const a of this.list) {
       const top = a.top - scrollY, bottom = top + a.h;
       const size = a.size || 485 * Math.max(s, 0.62);

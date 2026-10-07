@@ -35,11 +35,3 @@ html.motion-v2 .stat-num number-flow {
 }
 html.vt-lb::view-transition-old(root), html.vt-lb::view-transition-new(root) { animation-duration: .45s; }
 html.vt-lb .lightbox, html.vt-lb .lb-stage img { transition: none !important; }
-
-/* folder pages: JS animates a circle clip on the snapshots */
-html.vt-ch .chpage, html.vt-ch .chp-scroll { transition: none !important; }
-html.vt-ch::view-transition-old(root), html.vt-ch::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-html.vt-ch-close::view-transition-old(root) { z-index: 2; }
-/* "Next": the top bar stays put while the folders slide */
-html.vt-ch-next .chp-bar { view-transition-name: chp-bar; }
-::view-transition-group(chp-bar) { animation-duration: .5s; }
