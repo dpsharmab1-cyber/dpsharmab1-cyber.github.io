@@ -158,7 +158,8 @@ export class Reveal {
     this.scan(root);
   }
   scan(root) {
-    root.querySelectorAll('[data-split]').forEach((el) => split(el));
+    // with motion v2 on, js/motion.js splits these with GSAP SplitText instead
+    if (!document.documentElement.classList.contains('motion-v2')) root.querySelectorAll('[data-split]').forEach((el) => split(el));
     root.querySelectorAll('[data-split], [data-reveal], [data-glass]').forEach((el) => {
       if (el.dataset.revealBound) return;
       el.dataset.revealBound = '1';

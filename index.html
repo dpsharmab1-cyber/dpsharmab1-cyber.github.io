@@ -28,6 +28,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/motion.css">
+<script>
+// Motion v2 switch (js/motion.js: GSAP text reveals, view transitions,
+// NumberFlow, Flip). Set MOTION_V2 to false to go back to the classic motion.
+// Visitors can compare with ?motion=classic or ?motion=new (remembered).
+(function () {
+  var MOTION_V2 = true;
+  var on = MOTION_V2;
+  try {
+    var q = new URLSearchParams(location.search).get('motion');
+    if (q === 'classic' || q === 'new') localStorage.setItem('motion', q);
+    var saved = localStorage.getItem('motion');
+    if (saved) on = saved === 'new';
+  } catch (e) {}
+  if (on && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('motion-v2');
+})();
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
