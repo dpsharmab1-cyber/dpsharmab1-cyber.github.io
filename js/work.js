@@ -193,7 +193,7 @@ export class Work {
     this.barCount = this.bar.querySelector('.wb-count');
     this.bar.querySelector('.wb-next').addEventListener('click', () => {
       const i = this.cur ?? -1;
-      const next = this.items[i + 1]?.el || document.getElementById('connect');
+      const next = this.items[i + 1]?.el || document.getElementById('home');
       this.app.scrollToEl(next);
     });
   }

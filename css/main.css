@@ -71,20 +71,20 @@ html.folder-open #app { pointer-events: none; }
 
 /* ---------- type ---------- */
 /* Figma type: section titles in Montserrat Bold; the big display words
-   (GREAT DESIGN, LET'S CONNECT, PORTFOLIO) in Black, stacked tight */
-.display, .title, .foot-title, .connect-title, .proj-title {
+   (GREAT DESIGN, PORTFOLIO) in Black, stacked tight */
+.display, .title, .foot-title, .proj-title {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: -.005em;
   line-height: .98;
 }
-.display, .connect-title { font-weight: 900; line-height: .79; letter-spacing: -.01em; }
+.display { font-weight: 900; line-height: .79; letter-spacing: -.01em; }
 .title { font-size: clamp(30px, min(3.8vw, 5.9vh), 54px); letter-spacing: -.03em; }
 /* black -> red, top to bottom (display) or left to right (titles); split
    letters get their slice from gradText() in core.js */
 .grad-ch { -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 .grad-v:not([data-split]) { background: linear-gradient(180deg, #000, #f00); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.display .red, .title .red, .foot-title .red, .connect-title .red, .proj-title .red { color: inherit; }
+.display .red, .title .red, .foot-title .red, .proj-title .red { color: inherit; }
 .eyebrow {
   font-size: 16px;
   font-weight: 400;
@@ -454,19 +454,6 @@ html.work-sheet-mode #workbar { display: none; }
 .chp-cover.is-in .chp-more { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .chp-cover.is-in .chp-cover-bg { animation: none; } }
 
-/* connect */
-.sec-connect { display: grid; place-items: center; padding: 100px 0; }
-.connect-title { font-size: min(10.3vw, 15.8vh); white-space: nowrap; color: var(--ink); margin: 2.6vh 0 4.6vh; }
-.connect-lead { margin: 0 auto; font-size: 13px; line-height: 1.25; color: var(--ink); }
-.connect-cta { display: flex; justify-content: center; margin-top: 2.6vh; }
-.connect-go { height: 40px; padding: 0 4px 0 16px; gap: 10px; font-size: 13px; letter-spacing: .01em; }
-.connect-go .send-dot { width: 33px; height: 33px; }
-@media (max-width: 720px) {
-  .sec-connect { padding: 110px 0 120px; }
-  .connect-title { font-size: 15.5vw; }
-  .connect-lead br { display: none; }
-  .connect-lead { max-width: 34ch; }
-}
 
 /* contact (Figma "contact page 2"): three full-bleed glass sheets stacked 43 px
    apart; the info card and the message box share one row and one height */

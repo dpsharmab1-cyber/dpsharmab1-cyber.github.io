@@ -3,7 +3,7 @@
 //    tip; paragraphs and small labels slide up line by line from a mask.
 //    The page's own Reveal observer still decides when (data-state below / in /
 //    above); GSAP only replaces the CSS transitions.
-//  - scroll read: the two lead lines fill in word by word as they scroll past
+//  - scroll read: the Great Design lead line fills in word by word as it scrolls past
 //    (ScrollTrigger, scrubbed).
 //  - view transitions: a work image grows out of its thumbnail into the viewer
 //    and back; a folder page opens as a circle from the click and closes into
@@ -16,7 +16,7 @@ import { gsap, SplitText, ScrollTrigger, Flip } from './vendor/motion-libs.mjs';
 gsap.registerPlugin(SplitText, ScrollTrigger, Flip);
 
 const root = document.documentElement;
-const SCROLL_READ = '.hero-lead, .connect-lead';
+const SCROLL_READ = '.hero-lead';
 
 export function initMotion(app) {
   textReveals(app);
