@@ -1,0 +1,45 @@
+/* Motion v2 (js/motion.js). Every rule here is scoped to html.motion-v2 or to a
+   running view transition, so with the switch off this file changes nothing. */
+
+/* GSAP drives the split letters and lines: no CSS transitions underneath */
+html.motion-v2 [data-split] .ch, html.motion-v2 [data-split] .wi,
+html.motion-v2 [data-split][data-state] .ch, html.motion-v2 [data-split][data-state] .wi { transition: none; transform: none; opacity: 1; }
+html.motion-v2 [data-split] .ln { will-change: transform; }
+/* line masks: a little room below so descenders are not clipped */
+html.motion-v2 [data-split] .ln-mask { padding-bottom: .14em; margin-bottom: -.14em; }
+
+/* scroll read: words fade in place, no layout change */
+html.motion-v2 .wr { will-change: opacity; }
+
+/* NumberFlow sits in the stat numbers and takes their type */
+/* (NumberFlow pads itself by its mask height above and below; the negative
+   margin, same formula, keeps the line as tall as the plain number) */
+html.motion-v2 .stat-num number-flow {
+  font: inherit; letter-spacing: inherit; vertical-align: top;
+  --number-flow-mask-height: .2em;
+  margin-block: calc(round(nearest, calc(var(--number-flow-mask-height) / 2), 1px) * -2);
+}
+
+/* ---------- view transitions ---------- */
+/* image viewer: the thumbnail grows into the full image (and back) */
+::view-transition-group(lb-photo) {
+  animation-duration: .7s;
+  animation-timing-function: cubic-bezier(.2, .8, .2, 1);
+  border-radius: 6px;
+  overflow: clip;
+}
+::view-transition-old(lb-photo), ::view-transition-new(lb-photo) {
+  height: 100%;
+  object-fit: cover;
+  animation-duration: .7s;
+}
+html.vt-lb::view-transition-old(root), html.vt-lb::view-transition-new(root) { animation-duration: .45s; }
+html.vt-lb .lightbox, html.vt-lb .lb-stage img { transition: none !important; }
+
+/* folder pages: JS animates a circle clip on the snapshots */
+html.vt-ch .chpage, html.vt-ch .chp-scroll { transition: none !important; }
+html.vt-ch::view-transition-old(root), html.vt-ch::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+html.vt-ch-close::view-transition-old(root) { z-index: 2; }
+/* "Next": the top bar stays put while the folders slide */
+html.vt-ch-next .chp-bar { view-transition-name: chp-bar; }
+::view-transition-group(chp-bar) { animation-duration: .5s; }

@@ -1,5 +1,5 @@
 // Boot: wires the stage, scroll, reveals, glass and modules into one rAF loop.
-import { SmoothScroll, Reveal, Spring, gradText } from './core.js';
+import { SmoothScroll, Reveal, Spring, gradText, split } from './core.js';
 import { hydrateIcons } from './icons.js';
 import { Stage } from './gl/stage.js';
 import { GlassLayer } from './glass.js';
@@ -79,6 +79,17 @@ app.cursor = new Cursor();
 app.magnet = new Magnet();
 app.fx = new Fx();
 counters(app);
+
+// motion v2 (switch in index.html): GSAP text, view transitions, NumberFlow,
+// Flip. If it can't load, the classic split and reveals take over.
+if (document.documentElement.classList.contains('motion-v2')) {
+  import('./motion.js').then((m) => m.initMotion(app)).catch((e) => {
+    console.warn('motion v2 unavailable — classic motion', e);
+    document.documentElement.classList.remove('motion-v2');
+    document.querySelectorAll('[data-split]').forEach((el) => split(el));
+    queue();
+  });
+}
 
 // ---- layout
 let measureQueued = true;
