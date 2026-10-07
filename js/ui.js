@@ -60,9 +60,9 @@ export class Nav {
     let cur = 'about';
     for (const s of this.secs || []) if (s._top <= y + H * 0.45) cur = s.dataset.section;
     this.current = cur;
-    // page order: Home (the About screen) → About me (the quote) → Services →
-    // Projects → Contact
-    const map = { about: 'home', home: 'about', services: 'services', work: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
+    // page order: Home (the About screen) → Services → Projects → About me
+    // (the quote) → Contact
+    const map = { about: 'home', home: 'about', services: 'services', work: 'projects', contact: 'contact', footer: 'contact' };
     const key = map[cur];
     // skip links hidden at this width (Contact sits in the pill on phones only)
     let idx = this.links.findIndex((a, i) => a.dataset.nav === key && this.linkBox?.[i]?.w > 0);
@@ -82,7 +82,7 @@ export class Nav {
     // glass of nav items follows the nav visibility
     const vis = hold ? 0 : 1;
     app.glass.items.forEach((it) => { if (it.el.closest('#nav')) { it.manual = true; it.appear.set(vis); } });
-    const smShow = app.splash?.showing || (!app.introOn && !app.work?.inside && ['home', 'services', 'connect'].includes(cur) && y < app.scroll.max - 10);
+    const smShow = app.splash?.showing || (!app.introOn && !app.work?.inside && ['home', 'services'].includes(cur) && y < app.scroll.max - 10);
     this.sm.appear.set(smShow ? 1 : 0);
     this.seemore.style.pointerEvents = smShow ? '' : 'none';
   }
