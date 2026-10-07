@@ -1,12 +1,12 @@
 /* Motion v2 (js/motion.js). Every rule here is scoped to html.motion-v2 or to a
    running view transition, so with the switch off this file changes nothing. */
 
-/* GSAP drives the split letters and lines: no CSS transitions underneath */
-html.motion-v2 [data-split] .ch, html.motion-v2 [data-split] .wi,
-html.motion-v2 [data-split][data-state] .ch, html.motion-v2 [data-split][data-state] .wi { transition: none; transform: none; opacity: 1; }
-html.motion-v2 [data-split] .ln { will-change: transform; }
+/* GSAP drives the letters and lines it split (.gs): no CSS transitions or
+   state poses underneath. The intro keeps its classic CSS split. */
+html.motion-v2 [data-split].gs .ch, html.motion-v2 [data-split].gs[data-state] .ch { transition: none; transform: none; opacity: 1; }
+html.motion-v2 .gs .ln { will-change: transform; }
 /* line masks: a little room below so descenders are not clipped */
-html.motion-v2 [data-split] .ln-mask { padding-bottom: .14em; margin-bottom: -.14em; }
+html.motion-v2 .gs .ln-mask { padding-bottom: .14em; margin-bottom: -.14em; }
 
 /* scroll read: words fade in place, no layout change */
 html.motion-v2 .wr { will-change: opacity; }

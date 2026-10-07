@@ -1,6 +1,6 @@
 js/vendor/motion-libs.mjs is a single ES module bundled with esbuild from:
 
-  gsap 3.15.0 (gsap, SplitText, ScrollTrigger, ScrambleTextPlugin, Flip)
+  gsap 3.15.0 (gsap, SplitText, ScrollTrigger, Flip)
     Copyright (c) 2008-2026, GreenSock. All rights reserved.
     GreenSock "Standard No Charge" license: https://gsap.com/standard-license
 
@@ -8,7 +8,7 @@ js/vendor/motion-libs.mjs is a single ES module bundled with esbuild from:
     Copyright (c) Maxwell Barvian
 
 Rebuild: npm i gsap number-flow esbuild, then bundle an entry that re-exports
-{ gsap, SplitText, ScrollTrigger, ScrambleTextPlugin, Flip } and number-flow's
+{ gsap, SplitText, ScrollTrigger, Flip } and number-flow's
 default export (NumberFlow) with:
   esbuild entry.mjs --bundle --format=esm --minify --legal-comments=inline --outfile=motion-libs.mjs
 
