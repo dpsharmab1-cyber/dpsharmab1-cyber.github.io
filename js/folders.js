@@ -1,5 +1,5 @@
 // Services: a carousel of glass folders (Figma "folders section"). Opening one
-// shows its chapter as a page (js/chpage.js). DOM labels and the GL folder
+// opens its chapter right below the carousel (js/chapters.js). DOM labels and the GL folder
 // share one matrix3d per card so they stay locked together.
 import { Spring, clamp } from './core.js';
 

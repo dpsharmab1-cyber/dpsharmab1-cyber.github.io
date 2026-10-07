@@ -49,8 +49,8 @@ export class SmoothScroll {
       document.documentElement.classList.add('smooth');
       this.lenis = new Lenis({
         autoRaf: false, autoResize: false, lerp: 0.085, smoothWheel: true, syncTouch: false,
-        // the folder pages and the lightbox scroll on their own
-        prevent: (n) => n.classList?.contains('chpage') || n.id === 'lightbox',
+        // the lightbox scrolls on its own
+        prevent: (n) => n.id === 'lightbox',
       });
     }
     this.resize();
@@ -164,13 +164,22 @@ export class Reveal {
       if (el.dataset.revealBound) return;
       el.dataset.revealBound = '1';
       if (!el.dataset.state) el.dataset.state = 'below';
-      if (el.hasAttribute('data-fixed') || el.closest('#nav, #workbar, #seemore, #tip, #lightbox')) return;
+      if (el.hasAttribute('data-fixed') || el.closest('#nav, #seemore, #tip, #lightbox')) return;
       this.io.observe(el);
     });
   }
   on(fn) { this.listeners.add(fn); }
   force(root, st) {
     root.querySelectorAll('[data-split], [data-reveal]').forEach((el) => { el.dataset.state = st; });
+  }
+  // content that was hidden (display: none) and is shown again: start it below
+  // the view, so it plays in as it scrolls into sight
+  reset(root) {
+    root.querySelectorAll('[data-split], [data-reveal], [data-glass]').forEach((el) => {
+      if (el.dataset.state === 'below') return;
+      el.dataset.state = 'below';
+      this.listeners.forEach((fn) => fn(el, 'below'));
+    });
   }
 }
 

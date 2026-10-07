@@ -42,6 +42,25 @@ export const ICONS = {
   aitools: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 3l1.8 4.9L16.7 9.7l-4.9 1.8L10 16.4l-1.8-4.9L3.3 9.7l4.9-1.8z" fill="#ff1f3d"/><path d="M18 13l.9 2.4 2.4.9-2.4.9L18 19.6l-.9-2.4-2.4-.9 2.4-.9z" fill="#ff7a59"/><circle cx="18.5" cy="5" r="1.4" fill="#ffb199"/></svg>`,
   aiflow: line('<circle cx="5" cy="6" r="2.2"/><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="12" r="2.2"/><path d="M7.2 6.4c4 .4 5.5 2.6 9.6 5M7.2 17.6c4-.4 5.5-2.6 9.6-5"/><path d="M12 3.5l.7 1.6 1.6.7-1.6.7L12 8.1l-.7-1.6-1.6-.7 1.6-.7z" fill="currentColor"/>'),
   team: line('<circle cx="9" cy="8" r="3.2"/><path d="M3 19.5c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.6c2.6-.2 4.6 1.4 5.2 4.2"/>'),
+
+  // ---- techniques (folder chips, line, tinted red by css)
+  research: line('<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/>'),
+  wireframe: line('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 13h4M8 16h8"/>'),
+  prototype: line('<path d="M5 3l12 7-5.2 1.4L9.5 17z"/><path d="M12.4 12.6l5.6 5.6"/>'),
+  layers: line('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>'),
+  devices: line('<rect x="2.5" y="5" width="13" height="10" rx="1.5"/><path d="M6 19h6"/><rect x="17" y="8" width="4.5" height="11" rx="1.2"/>'),
+  palette: line('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.8 0-1.4-1.3-1.8-1.3-3 0-1 .8-1.7 1.8-1.7H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7" r="1.1"/><circle cx="15" cy="7.5" r="1.1"/>'),
+  tag: line('<path d="M3 12V4.5A1.5 1.5 0 0 1 4.5 3H12l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.4"/>'),
+  doc: line('<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'),
+  megaphone: line('<path d="M3 10v4l11 5V5z"/><path d="M14 9a3 3 0 0 1 0 6M6 14.5 7.5 20"/>'),
+  calendar: line('<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>'),
+  gamepad: line('<path d="M7 7h10a5 5 0 0 1 4.6 7l-.9 2.1a2.2 2.2 0 0 1-3.6.6L15 14.5H9l-2.1 2.2a2.2 2.2 0 0 1-3.6-.6L2.4 14A5 5 0 0 1 7 7z"/><path d="M7.5 10v3M6 11.5h3M15.5 11h.01M17.5 12.5h.01"/>'),
+  character: line('<circle cx="12" cy="8" r="4"/><path d="M4.5 21c.8-4 3.8-6 7.5-6s6.7 2 7.5 6"/>'),
+  mountain: line('<path d="M2.5 19.5l6.5-11 4 6.5 2.5-3.5 6 8z"/><circle cx="17.5" cy="6" r="1.8"/>'),
+  star: line('<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>'),
+  cube: line('<path d="M12 2.5l8.5 4.8v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M3.5 7.3 12 12l8.5-4.7M12 12v9.5"/>'),
+  camera: line('<path d="M4 7.5h3l1.8-2.5h6.4L17 7.5h3a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.8"/>'),
+  chart: line('<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>'),
 };
 
 export const SKILLS = {

@@ -6,7 +6,7 @@ import { GlassLayer } from './glass.js';
 import { Blobs, LogoCtl } from './scene.js';
 import { Folders } from './folders.js';
 import { Work } from './work.js';
-import { ChapterPage } from './chpage.js';
+import { Chapters } from './chapters.js';
 import { Splash } from './splash.js';
 import { Lightbox } from './lightbox.js';
 import { Nav, Theme, Skills, Contact, Cursor, Magnet, counters } from './ui.js';
@@ -33,13 +33,13 @@ app.blobs = new Blobs({});
 app.logo = new LogoCtl();
 app.splash = app.logo.splash = new Splash(app);
 app.lightbox = new Lightbox();
-app.lightbox.onToggle = (open) => app.scroll.lock(open || !!app.chOpen);
+app.lightbox.onToggle = (open) => app.scroll.lock(open);
 
 // long jumps use the same language as the splash hand-over: the page sinks
 // and fades, a white beat, then the destination rises from below
 let curtain = null;
 app.scrollToEl = (el) => {
-  if (app.chpage?.route(el)) return;
+  app.chapters?.route(el);
   const pad = el.matches('.proj') ? 120 : el.matches('.chapter') ? 10 : 0;
   const y = el.id === 'about' ? 0 : el.getBoundingClientRect().top + app.scroll.y - pad;
   const far = Math.abs(y - app.scroll.y) > innerHeight * 1.2;
@@ -68,11 +68,11 @@ function runCurtain(dt) {
 }
 
 app.folders = new Folders(document.querySelector('.folders'), {
-  // phones open the chapter as its own page; larger screens scroll down to it
-  onOpen: (id) => app.chpage.open(id) || app.scrollToEl(document.getElementById(`work-${id}`)),
+  // a folder opens its chapter right below the carousel
+  onOpen: (id) => app.chapters.open(id),
 });
 app.work = new Work(app);
-app.chpage = new ChapterPage(app);
+app.chapters = new Chapters(app);
 app.nav = new Nav(app);
 app.contact = new Contact(app);
 app.cursor = new Cursor();
@@ -154,7 +154,6 @@ const frame = (now) => {
   if (measureQueued) measure();
   runCurtain(dt);
   app.scroll.update(dt);
-  if (app.chpage.isOpen) app.chpage.smooth.update(dt);
   const y = app.scroll.y;
   app.nav.update(dt);
   app.skills.update(dt);
@@ -175,8 +174,7 @@ const frame = (now) => {
     app.folders.update(dt, y, st.folders, pa, W);
     app.work.update(dt, y, st.folders, pa, W, H);
     app.glass.update(dt, y, st.glass);
-    // the chapter page covers the stage completely: keep the last frame
-    if (!app.chpage.settled) st.render(t);
+    st.render(t);
   } else {
     app.folders.update(dt, y, [], pa, W);
     app.work.update(dt, y, [], pa, W, H);

@@ -1,15 +1,19 @@
-// After the intro (Figma "Cover Intro Splash screen _Loading 2"): DEEPAK SHARMA
-// and a big black -> red PORTFOLIO up top, See more under it, the wheel turning
-// below while the red + blue comet sweeps down behind both. Nothing scrolls. See more plays a calm three-step hand-over:
+// The first screen (Figma "New UI"): DESIGNER'S PORTFOLIO up top, the wheel
+// turning while the red + blue comet sweeps behind it, See more at the bottom.
+// Nothing scrolls. See more plays a calm hand-over:
 //   1. the comet fades up and out while the wheel and the wordmark sink away
 //   2. a short, completely white beat
+//   4. the intro: HI! I'M DEEPAK SHARMA rises in and holds; it can't be
+//      skipped, See more only comes back once it has played
+//   5. on See more the words leave upward
 //   3. About rises from the bottom, the wheel in its place and PORTFOLIO
 //      settling into the nav.
 import { Spring } from './core.js';
 
 const LOGO_X = 640.5, LOGO_Y = 527.5;   // frame: wheel centre (1280 x 832)
 const LOGO_D = 485;                     // frame: wheel diameter
-const OUT = 2.0, BEAT = 0.6, RISE = 2.2; // seconds
+const OUT = 2.0, BEAT = 0.6, RISE = 2.2;  // seconds
+const INTRO = 2.6, INTRO_OUT = 0.9;      // intro: words in + hold, words out
 const inOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const outCubic = (t) => 1 - Math.pow(1 - t, 3);
 
@@ -19,14 +23,15 @@ export class Splash {
     this.active = false;
     this.blob = new Spring(0, 1.1);   // entry: the comet fades in where it rests, slowly
     this.boost = new Spring(0, 1.0);  // the wheel turns a touch faster meanwhile
-    this.phase = 0;                   // 0 rest, 1 out, 2 white beat, 3 About rising
+    this.phase = 0;                   // 0 rest, 1 out, 2 white beat, 4 intro, 5 intro out, 3 About rising
+    this.introReady = false;
     this.t = 0;
     this.mark = document.getElementById('splash-mark');
   }
-  // See more is offered only while the splash rests
-  get showing() { return this.active && this.phase === 0; }
+  // See more is offered while the splash rests and once the intro has played
+  get showing() { return this.active && (this.phase === 0 || (this.phase === 4 && this.introReady)); }
 
-  // called as the intro hands over; returns false when the splash is skipped
+  // called once the page is ready; returns false when the splash is skipped
   begin({ skip = false } = {}) {
     if (skip) return false;
     this.active = true;
@@ -40,11 +45,17 @@ export class Splash {
   }
 
   exit() {
-    if (!this.active || this.phase) return;
-    this.phase = 1;
-    this.t = 0;
-    this.boost.set(0);
-    this.mark?.classList.add('is-leaving');
+    if (!this.active) return;
+    if (this.phase === 0) {
+      this.phase = 1;
+      this.t = 0;
+      this.boost.set(0);
+      this.mark?.classList.add('is-leaving');
+    } else if (this.phase === 4 && this.introReady) {
+      this.phase = 5;
+      this.t = 0;
+      this.app.intro?.set('above');
+    }
   }
 
   step(dt) {
@@ -56,6 +67,15 @@ export class Splash {
       this.phase = 2; this.t = 0;
       this.app.scroll.shift = innerHeight;
     } else if (this.phase === 2 && this.t >= BEAT) {
+      // the intro words rise on the white screen
+      this.phase = 4; this.t = 0;
+      this.introReady = false;
+      root.classList.add('intro-on');
+      this.app.intro?.set('in');
+    } else if (this.phase === 4 && !this.introReady && this.t >= INTRO) {
+      this.introReady = true;                    // See more comes back
+    } else if (this.phase === 5 && this.t >= INTRO_OUT) {
+      root.classList.remove('intro-on');
       this.phase = 3; this.t = 0;
       this.active = false;                       // nav + page glass fade in
       root.classList.remove('splash-on');
@@ -68,7 +88,7 @@ export class Splash {
         this.phase = 0;
         this.app.scroll.shift = 0;
         root.classList.remove('splash-rise');
-        this.app.scroll.lock(!!this.app.chOpen);
+        this.app.scroll.lock(false);
       }
     }
   }
@@ -104,7 +124,7 @@ export class Splash {
   wheelY(slotY, H, size) {
     if (this.active && this.phase === 0) return this.restY(H);
     if (this.phase === 1) return this.restY(H) + (H + size * 0.6 - this.restY(H)) * inOut(Math.min(1, this.t / OUT));
-    if (this.phase === 2) return H + size;
+    if (this.phase === 2 || this.phase >= 4) return H + size;
     return slotY;
   }
   get steering() { return this.active || this.phase === 1 || this.phase === 2; }

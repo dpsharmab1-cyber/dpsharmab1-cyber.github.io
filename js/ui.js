@@ -36,8 +36,7 @@ export class Nav {
     this.current = 'about';
   }
   sections() {
-    // the showcase lives in the chapter page, not in the page flow
-    return [...document.querySelectorAll('[data-section]')].filter((el) => !el.closest('.chpage'));
+    return [...document.querySelectorAll('[data-section]')];
   }
   next() {
     const y = this.app.scroll.y, H = innerHeight;
@@ -82,7 +81,7 @@ export class Nav {
     // glass of nav items follows the nav visibility
     const vis = hold ? 0 : 1;
     app.glass.items.forEach((it) => { if (it.el.closest('#nav')) { it.manual = true; it.appear.set(vis); } });
-    const smShow = app.splash?.showing || (!app.introOn && !app.work?.inside && ['home', 'services'].includes(cur) && y < app.scroll.max - 10);
+    const smShow = app.splash?.showing || (!app.introOn && ['home', 'services'].includes(cur) && y < app.scroll.max - 10);
     this.sm.appear.set(smShow ? 1 : 0);
     this.seemore.style.pointerEvents = smShow ? '' : 'none';
   }
@@ -313,7 +312,7 @@ export class Cursor {
 // at most 14 px) and its round icon leans a touch further, then eases back on
 // leave. Glass buttons hand the offset to their glass item, so the WebGL glass
 // moves with them. Mouse and trackpad only.
-const MAGNETIC = '#seemore, .nav-contact, .send, .to-top, .arrow, .cta-red, .chp-more, .chp-next, .chp-back, .wb-next';
+const MAGNETIC = '#seemore, .nav-contact, .send, .to-top, .arrow, .cta-red';
 export class Magnet {
   constructor() {
     this.items = [];

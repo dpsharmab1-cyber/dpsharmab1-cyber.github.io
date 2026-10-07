@@ -5,15 +5,14 @@
 //    above); GSAP only replaces the CSS transitions.
 //  - scroll read: the Great Design lead line fills in word by word as it scrolls past
 //    (ScrollTrigger, scrubbed).
-//  - view transitions: a work image grows out of its thumbnail into the viewer
-//    and back; a folder page opens as a circle from the click and closes into
-//    it; "Next" slides one folder out and the next one in.
-//  - NumberFlow rolls the stat counters; GSAP Flip animates the social filter.
+//  - view transition: a work image grows out of its thumbnail into the viewer
+//    and back.
+//  - NumberFlow rolls the stat counters.
 // The switch is the small script at the top of index.html (?motion=classic or
 // ?motion=new to compare). With it off this file never loads.
-import { gsap, SplitText, ScrollTrigger, Flip } from './vendor/motion-libs.mjs';
+import { gsap, SplitText, ScrollTrigger } from './vendor/motion-libs.mjs';
 
-gsap.registerPlugin(SplitText, ScrollTrigger, Flip);
+gsap.registerPlugin(SplitText, ScrollTrigger);
 
 const root = document.documentElement;
 const SCROLL_READ = '.hero-lead';
@@ -22,7 +21,6 @@ export function initMotion(app) {
   textReveals(app);
   scrollRead(app);
   numberFlow(app);
-  socialFlip(app);
   viewTransitions(app);
 }
 
@@ -129,34 +127,11 @@ function numberFlow(app) {
 }
 
 // ---------------------------------------------------------------------------
-// social wall filter: posts that stay glide to their new place, the others
-// fade out and the new ones scale in (GSAP Flip)
-function socialFlip(app) {
-  const work = app.work;
-  if (!work) return;
-  work.filterSocial = (id) => {
-    const wall = document.getElementById('p-social-all');
-    if (!wall) return;
-    wall.querySelectorAll('.sfilter [data-filter]').forEach((b) => b.classList.toggle('is-on', b.dataset.filter === id));
-    const cells = [...wall.querySelectorAll('.sgrid [data-set]')];
-    const state = Flip.getState(cells, { props: 'opacity' });
-    cells.forEach((c) => { c.hidden = id !== 'all' && c.dataset.set !== id; });
-    Flip.from(state, {
-      duration: 0.75, ease: 'expo.inOut', absolute: true, stagger: 0.008, simple: true,
-      onEnter: (els) => gsap.fromTo(els, { opacity: 0, scale: 0.86 }, { opacity: 1, scale: 1, duration: 0.6, delay: 0.25, ease: 'expo.out' }),
-      onLeave: (els) => gsap.to(els, { opacity: 0, scale: 0.86, duration: 0.35, ease: 'power2.in' }),
-      onComplete: () => app.queueMeasure?.(),
-    });
-  };
-}
-
-// ---------------------------------------------------------------------------
 // view transitions (Chrome, Edge, Safari 18+, Firefox 144+; others keep the
 // classic motion)
 function viewTransitions(app) {
   if (typeof document.startViewTransition !== 'function') return;
-  let px = innerWidth / 2, py = innerHeight / 2, lastThumb = null;
-  addEventListener('pointerdown', (e) => { px = e.clientX; py = e.clientY; }, true);
+  let lastThumb = null;
   // the gallery handler opens the viewer during this same click
   document.addEventListener('click', (e) => {
     lastThumb = e.target.closest?.('[data-k], [data-p]')?.querySelector('img') || null;
@@ -205,38 +180,5 @@ function viewTransitions(app) {
       thumb.style.viewTransitionName = 'lb-photo';
     });
     t.finished.finally(() => { thumb.style.viewTransitionName = ''; });
-  };
-
-  // ---- folder pages: open as a circle from the click, close back into it
-  const ch = app.chpage;
-  const chOpen = ch.open.bind(ch), chClose = ch.close.bind(ch), chShow = ch.show.bind(ch);
-  const circle = (pseudo, grow) => {
-    const r = Math.hypot(Math.max(px, innerWidth - px), Math.max(py, innerHeight - py));
-    const kf = [`circle(0px at ${px}px ${py}px)`, `circle(${r}px at ${px}px ${py}px)`];
-    root.animate({ clipPath: grow ? kf : kf.reverse() }, { duration: grow ? 900 : 700, easing: 'cubic-bezier(.7, 0, .2, 1)', fill: 'both', pseudoElement: pseudo });
-  };
-  ch.open = (id) => {
-    if (ch.isOpen || !ch.phone) return chOpen(id);
-    const t = transition(['vt-ch'], () => {
-      chOpen(id);
-      ch.el.classList.add('is-open');
-    });
-    t.ready.then(() => circle('::view-transition-new(root)', true)).catch(() => {});
-    return true;
-  };
-  ch.close = () => {
-    if (!ch.isOpen) return chClose();
-    const t = transition(['vt-ch', 'vt-ch-close'], () => chClose());
-    t.ready.then(() => circle('::view-transition-old(root)', false)).catch(() => {});
-  };
-  ch.show = (id, animate) => {
-    if (!animate || !ch.isOpen) return chShow(id, animate);
-    // "Next": the bar stays, the folder slides out to the left, the next one in
-    const t = transition(['vt-ch', 'vt-ch-next'], () => chShow(id, false));
-    t.ready.then(() => {
-      const ease = 'cubic-bezier(.7, 0, .2, 1)';
-      root.animate({ transform: ['none', 'translateX(-14%)'], opacity: [1, 0] }, { duration: 520, easing: ease, fill: 'both', pseudoElement: '::view-transition-old(root)' });
-      root.animate({ transform: ['translateX(14%)', 'none'], opacity: [0, 1] }, { duration: 700, delay: 140, easing: 'cubic-bezier(.2, .8, .2, 1)', fill: 'both', pseudoElement: '::view-transition-new(root)' });
-    }).catch(() => {});
   };
 }
