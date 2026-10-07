@@ -1,11 +1,8 @@
 // Small interaction touches (mouse and trackpad only, off for reduced motion):
-//  - scramble: nav and button labels shuffle through letters and resolve on hover
 //  - tilt: work tiles lean toward the pointer in 3D with a soft light sheen
 //  - ripple: a gentle liquid wobble runs over a work image while it is hovered
-import { clamp, finePointer, reduced } from './core.js';
+import { finePointer, reduced } from './core.js';
 
-const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const SCRAMBLE = '.nav-pill a, .nav-contact, .seemore-text, .send > span, .to-top > span, .chp-more > span, .foot-links a';
 const TILT = '.prod, .mood .m-img, .mood .m-logo, .agrid button, .ggrid button, .sgrid button';
 const RIPPLE = '.mood .m-img img, .agrid img, .prod-img img';
 
@@ -13,32 +10,8 @@ export class Fx {
   constructor(root = document) {
     this.on = finePointer && !reduced;
     if (!this.on) return;
-    root.querySelectorAll(SCRAMBLE).forEach((el) => this.scramble(el));
     root.querySelectorAll(TILT).forEach((el) => this.tilt(el));
     this.rippleSetup(root);
-  }
-
-  // ---- letter scramble: left to right, each letter settles after a few swaps
-  scramble(el) {
-    const text = el.textContent;
-    if (!text.trim() || el.children.length) return;
-    let raf = 0;
-    el.addEventListener('pointerenter', () => {
-      cancelAnimationFrame(raf);
-      const w = el.getBoundingClientRect().width;
-      if (getComputedStyle(el).display === 'inline') el.style.display = 'inline-block';
-      el.style.width = w + 'px';                      // no layout shift while it shuffles
-      el.style.justifyContent = 'center';
-      const t0 = performance.now(), dur = 420;
-      const tick = (now) => {
-        const p = clamp((now - t0) / dur);
-        const done = Math.floor(p * text.length);
-        el.textContent = [...text].map((c, i) => (i < done || c === ' ' ? c : GLYPHS[(Math.random() * 26) | 0])).join('');
-        if (p < 1) raf = requestAnimationFrame(tick);
-        else { el.textContent = text; el.style.width = ''; el.style.justifyContent = ''; el.style.display = ''; }
-      };
-      raf = requestAnimationFrame(tick);
-    });
   }
 
   // ---- 3D tilt with a sheen that follows the pointer

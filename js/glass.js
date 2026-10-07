@@ -52,7 +52,14 @@ export class GlassItem {
   }
   measure(scrollY) {
     const r = this.el.getBoundingClientRect();
-    this.base = { x: r.left, y: r.top + (this.fixed ? 0 : scrollY), w: r.width, h: r.height };
+    // a [data-reveal] wrapper may still sit in its entrance offset (28 px
+    // down until it scrolls in): the glass belongs where the element ends up
+    let dx = 0, dy = 0;
+    for (let p = this.el.parentElement?.closest('[data-reveal]'); p; p = p.parentElement?.closest('[data-reveal]')) {
+      const t = getComputedStyle(p).transform;
+      if (t && t !== 'none') { const m = new DOMMatrixReadOnly(t); dx += m.m41; dy += m.m42; }
+    }
+    this.base = { x: r.left - dx, y: r.top - dy + (this.fixed ? 0 : scrollY), w: r.width, h: r.height };
     // CSS border-radius is the single source for glass corners (per breakpoint)
     const cs = getComputedStyle(this.el);
     const v = [cs.borderBottomRightRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderTopLeftRadius].map((x) => parseFloat(x) || 0);

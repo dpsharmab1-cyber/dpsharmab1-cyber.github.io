@@ -1,6 +1,6 @@
 // Motion v2, layered over the classic site:
 //  - text: GSAP SplitText reveals. Headlines rise letter by letter with a 3D
-//    tip, paragraphs slide up line by line from a mask, small labels scramble in.
+//    tip; paragraphs and small labels slide up line by line from a mask.
 //    The page's own Reveal observer still decides when (data-state below / in /
 //    above); GSAP only replaces the CSS transitions.
 //  - scroll read: the two lead lines fill in word by word as they scroll past
@@ -11,9 +11,9 @@
 //  - NumberFlow rolls the stat counters; GSAP Flip animates the social filter.
 // The switch is the small script at the top of index.html (?motion=classic or
 // ?motion=new to compare). With it off this file never loads.
-import { gsap, SplitText, ScrollTrigger, ScrambleTextPlugin, Flip } from './vendor/motion-libs.mjs';
+import { gsap, SplitText, ScrollTrigger, Flip } from './vendor/motion-libs.mjs';
 
-gsap.registerPlugin(SplitText, ScrollTrigger, ScrambleTextPlugin, Flip);
+gsap.registerPlugin(SplitText, ScrollTrigger, Flip);
 
 const root = document.documentElement;
 const SCROLL_READ = '.hero-lead, .connect-lead';
@@ -37,17 +37,19 @@ function textReveals(app) {
   const items = new Map();
   document.querySelectorAll('[data-split]').forEach((el) => {
     if (el.matches(SCROLL_READ) || el.closest('#intro')) return;
-    const mode = el.dataset.split;
     const it = { el, tween: null, targets: [] };
-    if (mode === 'chars') {
+    // css/motion.css styles only what carries .gs: the intro keeps the classic split
+    el.classList.add('gs');
+    if (el.dataset.split === 'chars') {
       // the classes match the classic split, so the per-letter gradient
       // (gradText) and the word masks keep working
       it.kind = 'chars';
       const s = SplitText.create(el, { type: 'words,chars', wordsClass: 'wd', charsClass: 'ch', tag: 'span', aria: 'auto' });
       it.targets = s.chars;
       gsap.set(s.chars, { x: 0, y: 0, rotation: 0, transformPerspective: 700, transformOrigin: '50% 100%' });
-    } else if (mode === 'words') {
-      // lines only exist once laid out: autoSplit re-splits on width or font changes
+    } else {
+      // paragraphs and labels: lines only exist once laid out, so autoSplit
+      // re-splits on width or font changes
       it.kind = 'lines';
       SplitText.create(el, {
         type: 'lines', mask: 'lines', linesClass: 'ln', aria: 'auto', autoSplit: true,
@@ -58,9 +60,6 @@ function textReveals(app) {
           app.queueMeasure?.();
         },
       });
-    } else {
-      it.kind = 'scramble';
-      it.text = el.textContent;
     }
     items.set(el, it);
     if (it.kind !== 'lines') show(it, el.dataset.state || 'below', true);
@@ -71,17 +70,6 @@ function textReveals(app) {
 
 function show(it, st, instant) {
   it.tween?.kill();
-  if (it.kind === 'scramble') {
-    if (instant || st !== 'in') {
-      it.tween = gsap.to(it.el, { opacity: st === 'in' ? 1 : 0, duration: instant ? 0 : 0.3, overwrite: true });
-      if (st !== 'in') it.el.textContent = it.text;
-      return;
-    }
-    it.tween = gsap.timeline()
-      .to(it.el, { opacity: 1, duration: 0.25 })
-      .to(it.el, { duration: 0.9, scrambleText: { text: it.text, chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', speed: 0.6, revealDelay: 0.2 } }, 0);
-    return;
-  }
   if (!it.targets.length) return;
   if (st === 'in') {
     const vars = { yPercent: 0, rotationX: 0, opacity: 1, overwrite: true };
