@@ -188,3 +188,54 @@ details p { color: var(--muted); margin-top: 10px; }
   html { scroll-behavior: auto; }
   .float { animation: none; }
 }
+
+/* ---------- legal pages ---------- */
+.legal-hero { background: linear-gradient(160deg, #0b1a5c 0%, #13288a 60%, #1a36b4 100%); color: #fff; padding: 56px 0 48px; }
+.legal-hero .eyebrow { color: var(--mustard-400); }
+.legal-hero h1 { font-size: clamp(32px, 4.4vw, 50px); font-weight: 800; line-height: 1.08; }
+.legal-hero .lead { margin-top: 14px; font-size: 18px; color: rgba(255, 255, 255, .82); max-width: 680px; }
+.legal-hero .meta { margin-top: 16px; font-size: 14px; color: rgba(255, 255, 255, .7); }
+.legal-wrap { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 48px; padding: 48px 0 80px; align-items: start; }
+.toc { position: sticky; top: 92px; }
+.toc p { font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.toc ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; border-left: 2px solid var(--line); }
+.toc a { display: block; padding: 5px 12px; margin-left: -2px; border-left: 2px solid transparent; color: var(--muted); text-decoration: none; font-size: 14px; }
+.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+.legal { max-width: 760px; }
+.legal section { padding-bottom: 8px; scroll-margin-top: 90px; }
+.legal h2 { font-size: 22px; margin: 28px 0 10px; }
+.legal section:first-child h2 { margin-top: 0; }
+.legal p, .legal li { color: var(--text); font-size: 16px; line-height: 1.7; }
+.legal p + p { margin-top: 12px; }
+.legal ul { padding-left: 20px; display: grid; gap: 6px; }
+.legal a { color: var(--accent); }
+.ticks-list { list-style: none; padding: 18px 20px !important; background: var(--accent-soft); border-radius: 14px; }
+.ticks-list li { position: relative; padding-left: 26px; }
+.ticks-list li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 12px; height: 7px; border-left: 2.5px solid var(--accent); border-bottom: 2.5px solid var(--accent); transform: rotate(-45deg); }
+.data-table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 6px 0 14px; }
+.data-table th, .data-table td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.data-table th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.todo { background: var(--gold-soft); color: var(--mustard-600); border-radius: 4px; padding: 0 4px; font-weight: 600; }
+.legal-hero .todo { background: rgba(229, 169, 18, .2); color: var(--mustard-400); }
+.foot .todo { background: transparent; color: var(--mustard-400); }
+.todo-banner { margin-top: 18px; padding: 10px 14px; border-radius: 10px; background: rgba(229, 169, 18, .16); border: 1px solid rgba(229, 169, 18, .45); color: #fff; font-size: 14px; max-width: 680px; }
+.todo-banner code { background: rgba(255, 255, 255, .12); padding: 1px 5px; border-radius: 4px; }
+.links a[aria-current="page"] { color: var(--gold); }
+.contact-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.ccard { border: 1px solid var(--line); border-radius: 16px; padding: 18px; background: var(--panel); }
+.ccard > .ic { width: 26px; height: 26px; color: var(--gold); }
+.ccard h3 { font-size: 16px; margin: 10px 0 4px; }
+.ccard p { font-size: 15px; word-break: break-word; }
+.contact-form { display: grid; gap: 14px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); }
+.cf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cf-field { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: var(--muted); }
+.cf-field input, .cf-field select, .cf-field textarea { font: 15px var(--font); color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; }
+.cf-field :focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.contact-form .btn { justify-self: start; }
+.contact-form .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+@media (max-width: 900px) {
+  .legal-wrap { grid-template-columns: 1fr; gap: 20px; padding-top: 28px; }
+  .toc { position: static; }
+  .contact-cards, .cf-row { grid-template-columns: 1fr; }
+  .data-table { display: block; overflow-x: auto; }
+}

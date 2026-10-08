@@ -31,6 +31,8 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
 - **Accounts and payments** (switch on with [backend/SETUP.md](backend/SETUP.md)): email-link and Google
   sign-in via Supabase, projects in your account, Pro and Business plans paid through Razorpay
   (UPI, cards, netbanking), with server-side price and signature checks.
+- **Policy pages**: Terms, Privacy, Refund and Contact (`terms.html`, `privacy.html`, `refund.html`, `contact.html`),
+  filled from the `BUSINESS` block in `assets/config.js`.
 - mm/inch units, material presets with thickness, flat size, board area and the smallest standard sheet it fits.
 
 Everything runs client-side, so serving a user costs almost nothing. That is what makes low pricing sustainable.
