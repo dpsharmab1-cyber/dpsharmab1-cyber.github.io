@@ -287,3 +287,7 @@ select { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 9p
 .plan-box.pro .eyebrow, .plan-box.business .eyebrow { color: var(--mustard-400); }
 .dlg a { color: var(--accent); }
 .legal-note { margin-top: 2px !important; }
+
+.presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
+.presets .muted { margin-right: 2px; }
+.presets .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }

@@ -5,6 +5,10 @@ import { drawDesign } from '../studio/js/dieline.js';
 
 hydrateIcons();
 
+// keep the headline numbers in step with the template registry
+document.getElementById('statTemplates').textContent = TEMPLATES.length;
+document.getElementById('statCategories').textContent = CATEGORIES.filter((c) => !c.soon).length;
+
 // mobile menu
 const menu = document.getElementById('menuBtn'), links = document.querySelector('.links');
 menu.addEventListener('click', () => {
@@ -63,6 +67,9 @@ renderGallery();
 const SHOWCASE = [
   { id: 'mailer', v: { L: 250, W: 180, H: 70 }, color: '#2547d0' },
   { id: 'standup', v: { W: 140, H: 220, G: 80 }, color: '#e5a912' },
+  { id: 'sweet2pc', v: { L: 200, W: 150, H: 50 }, color: '#13288a' },
+  { id: 'milkpouch', v: { W: 150, H: 220 }, color: '#2547d0' },
+  { id: 'curdcup', v: { D1: 95, D2: 75, Hc: 80 }, color: '#e5a912' },
   { id: 'shopbag', v: { L: 260, W: 120, H: 330 }, color: '#13288a' },
   { id: 'rte', v: { L: 70, W: 45, H: 130 }, color: '#e5a912' },
   { id: 'bottle', v: { D: 72, bottleH: 240 }, color: '#2547d0' },

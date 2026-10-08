@@ -19,6 +19,8 @@ export const MATERIALS = {
   kraftpaper: { name: 'Kraft paper 120 gsm', t: 0.2, inside: '#b98b5d', edge: '#8f6a45' },
   artpaper: { name: 'White art paper 170 gsm', t: 0.2, inside: '#f4f2ee', edge: '#cfcac0' },
   laminate: { name: 'Laminate tube (ABL/PBL)', t: 0.3, inside: '#efefed', edge: '#d6d6d4' },
+  milkfilm: { name: 'Milk film (LDPE, white)', t: 0.06, inside: '#f4f4f2', edge: '#dcdcd8' },
+  duplex: { name: 'Duplex board (grey back)', t: 0.45, inside: '#cfd0cc', edge: '#b7b8b3' },
 };
 
 export const CATEGORIES = [
@@ -29,8 +31,11 @@ export const CATEGORIES = [
   { id: 'bags',     name: 'Paper bags' },
   { id: 'tubes',    name: 'Tubes' },
   { id: 'bottles',  name: 'Bottles & jars' },
+  { id: 'dairy',    name: 'Dairy & milk' },
+  { id: 'snacks',   name: 'Snacks' },
+  { id: 'sweets',   name: 'Sweets & mithai' },
   { id: 'labels',   name: 'Labels & wraps' },
-  { id: 'soon',     name: 'Coming next', soon: ['Rigid boxes', 'Displays & POS', 'Cups & food', 'Blister & clamshell'] },
+  { id: 'soon',     name: 'Coming next', soon: ['Rigid boxes', 'Displays & POS', 'Blister & clamshell'] },
 ];
 
 const P = (k, label, def, min, max, extra = {}) => ({ k, label, def, min, max, step: 1, unit: 'mm', adv: false, ...extra });
@@ -165,6 +170,80 @@ function paperBag(p, shopping) {
     guides.push({ seg: [[0, H - T], [L, H - T]], label: 'Handle patch' });
   }
   return { panels, creases, zones, guides, extras, orient: 'tube', front: { panel: 'p0', up: [0, 1] } };
+}
+
+// Pillow pack (vertical form-fill-seal): one web printed as
+//   fin | back (left half) | front | back (right half) | fin
+// The fins seal together down the back; top and bottom are sealed across.
+// Used for milk pouches and chips bags.
+function pillow(p, puff) {
+  const { W, H, fin, es } = p, total = 2 * fin + 2 * W;
+  const fx = fin + W / 2;
+  const panels = [
+    { id: 'front', name: 'Front', pts: rect(fx, 0, W, H) },
+    { id: 'backL', name: 'Back', pts: rect(fin, 0, W / 2, H), parent: 'front', hinge: [[fx, 0], [fx, H]], angle: 180 },
+    { id: 'backR', name: 'Back', pts: rect(fx + W, 0, W / 2, H), parent: 'front', hinge: [[fx + W, 0], [fx + W, H]], angle: 180 },
+    { id: 'finL', name: '', pts: rect(0, 0, fin, H), parent: 'backL', hinge: [[fin, 0], [fin, H]], angle: 90 },
+    { id: 'finR', name: '', pts: rect(total - fin, 0, fin, H), parent: 'backR', hinge: [[total - fin, 0], [total - fin, H]], angle: 90 },
+  ];
+  const zones = [rect(0, 0, total, es), rect(0, H - es, total, es), rect(0, es, fin, H - 2 * es), rect(total - fin, es, fin, H - 2 * es)];
+  const notchY = H - es - Math.min(12, H * 0.05);
+  const guides = [
+    { seg: [[fx - 4, notchY], [fx, notchY]], label: 'Tear notch' },
+    { seg: [[fin + 4, H - es - 18], [fin + 4 + Math.min(14, W / 4), H - es - 18]], label: 'Eye mark' },
+  ];
+  return { kind: 'pillow', W, H, fin, es, puff, panels, zones, guides, front: { rect: [fx, es, W, H - 2 * es], up: [0, 1] } };
+}
+
+// Tapered cup sleeve: a conical label unrolls into a ring sector. Built from thin
+// convex strips so the usual bleed and texture machinery applies.
+function cupSleeve(p) {
+  const R1 = p.D1 / 2, R2 = Math.min(p.D2 / 2, R1 - 2), H = p.Hc;
+  const s = Math.hypot(H, R1 - R2);                 // slant height of the wall
+  const Ro = (R1 * s) / (R1 - R2);                  // apex to rim, along the slant
+  const Ri = Ro - s;                                // apex to base
+  const k = s / H;                                  // vertical mm -> slant mm
+  const rOut = Ro - p.gapTop * k, rIn = Ri + p.gapBottom * k;
+  const theta = (2 * Math.PI * R1) / Ro;            // opening angle of the unrolled wall
+  const olap = p.overlap / rOut;
+  const N = 28, P = (r, a) => [r * Math.sin(a), r * Math.cos(a)];
+  const panels = [];
+  for (let i = 0; i < N; i++) {
+    const a0 = -theta / 2 + (theta * i) / N, a1 = -theta / 2 + (theta * (i + 1)) / N;
+    panels.push({ id: 's' + i, name: i === N >> 1 ? 'Sleeve' : '', pts: ccw([P(rIn, a0), P(rIn, a1), P(rOut, a1), P(rOut, a0)]),
+      ...(i ? { parent: 's' + (i - 1), hinge: [P(rIn, a0), P(rOut, a0)], angle: 0 } : {}) });
+  }
+  if (olap > 0) {
+    const a0 = theta / 2, a1 = theta / 2 + olap;
+    panels.push({ id: 'glue', name: '', glue: true, pts: ccw([P(rIn, a0), P(rIn, a1), P(rOut, a1), P(rOut, a0)]), parent: 's' + (N - 1), hinge: [P(rIn, a0), P(rOut, a0)], angle: 0 });
+  }
+  const fw = Math.min(R1 * 1.25, rIn * Math.sin(theta / 2) * 2), fh = (rOut - rIn) * 0.8;
+  return {
+    kind: 'cup', R1, R2, H, s, Ro, rIn, rOut, theta, olap, panels,
+    front: { rect: [-fw / 2, (rIn + rOut) / 2 - fh / 2, fw, fh], up: [0, 1] },
+  };
+}
+
+// Open tray net with glued corners; ox shifts it sideways (for two-piece boxes).
+function trayNet(L, W, H, c, prefix = '', ox = 0, rootExtra = {}) {
+  const id = (x) => prefix + x, m = Math.min(1.5, H * 0.05);
+  const panels = [
+    { id: id('base'), name: prefix ? 'Lid top' : 'Base', pts: rect(ox, 0, L, W), ...rootExtra },
+    { id: id('front'), name: 'Front', pts: rect(ox, -H, L, H), parent: id('base'), hinge: [[ox, 0], [ox + L, 0]], angle: 90, seq: 0 },
+    { id: id('back'), name: 'Back', pts: rect(ox, W, L, H), parent: id('base'), hinge: [[ox, W], [ox + L, W]], angle: 90, seq: 0 },
+    { id: id('left'), name: 'Side', pts: rect(ox - H, 0, H, W), parent: id('base'), hinge: [[ox, 0], [ox, W]], angle: 90, seq: 1 },
+    { id: id('right'), name: 'Side', pts: rect(ox + L, 0, H, W), parent: id('base'), hinge: [[ox + L, 0], [ox + L, W]], angle: 90, seq: 1 },
+  ];
+  for (const [wall, y0, y1] of [['front', -H, 0], ['back', W, W + H]]) {
+    for (const [x, dir] of [[ox, -1], [ox + L, 1]]) {
+      const a = y0 + m, b = y1 - m, taper = Math.min(c * 0.5, (b - a) * 0.3);
+      const far = wall === 'front' ? [b - taper * 0.3, a + taper] : [b - taper, a + taper * 0.3];
+      panels.push({ id: id(wall + (dir < 0 ? 'L' : 'R')), name: 'Glue', glue: true,
+        pts: ccw([[x, a], [x, b], [x + c * dir, far[0]], [x + c * dir, far[1]]]),
+        parent: id(wall), hinge: [[x, a], [x, b]], angle: 90, layer: 1, seq: 2 });
+    }
+  }
+  return panels;
 }
 
 // ---------- templates ----------
@@ -434,6 +513,142 @@ export const TEMPLATES = [
     ],
     dims: ['D', 'H'], material: 'kraft',
     build: (p) => wrap({ ...p, cover: 100, labelY: 3, labelH: p.H }, 'papertube', p.H),
+  },
+  {
+    id: 'milkpouch', category: 'dairy', name: 'Milk pouch',
+    desc: 'Centre-sealed pillow pouch for milk, buttermilk and curd. 200 ml to 1 litre.',
+    keywords: ['milk pouch', 'milk', 'doodh', 'milk packet', 'buttermilk', 'chaas', 'lassi pouch', 'pillow pack', 'liquid pouch'],
+    params: [
+      P('W', 'Lay-flat width', 150, 70, 300), P('H', 'Length', 220, 100, 400),
+      P('fin', 'Fin (back) seal', 10, 6, 20, { adv: true }), P('es', 'End seals', 12, 6, 25, { adv: true }),
+    ],
+    presets: [
+      { label: '200 ml', q: { ml: 200 }, v: { W: 110, H: 170 } },
+      { label: '500 ml', q: { ml: 500 }, v: { W: 150, H: 220 } },
+      { label: '1 litre', q: { ml: 1000 }, v: { W: 180, H: 300 } },
+    ],
+    dims: ['W', 'H'], material: 'milkfilm',
+    build: (p) => pillow(p, 0.3),
+  },
+  {
+    id: 'curdcup', category: 'dairy', name: 'Curd & ice-cream cup',
+    desc: 'Tapered cup with a printed wrap sleeve and foil lid. Dahi, yogurt, ice cream, raita.',
+    keywords: ['curd', 'dahi', 'yogurt', 'yoghurt', 'ice cream', 'ice-cream', 'cup', 'tub', 'shrikhand', 'raita', 'paper cup'],
+    params: [
+      P('D1', 'Top diameter', 95, 40, 200), P('D2', 'Bottom diameter', 75, 30, 190), P('Hc', 'Cup height', 70, 25, 200),
+      P('gapTop', 'Gap below rim', 6, 0, 30, { adv: true }), P('gapBottom', 'Gap above base', 4, 0, 30, { adv: true }),
+      P('overlap', 'Glue overlap', 8, 0, 20, { adv: true }),
+    ],
+    presets: [
+      { label: '100 g', q: { g: 100 }, v: { D1: 70, D2: 55, Hc: 50 } },
+      { label: '200 g', q: { g: 200 }, v: { D1: 85, D2: 65, Hc: 60 } },
+      { label: '400 g', q: { g: 400 }, v: { D1: 95, D2: 75, Hc: 80 } },
+      { label: '1 kg tub', q: { g: 1000 }, v: { D1: 130, D2: 105, Hc: 110 } },
+    ],
+    dims: ['D1', 'D2', 'Hc'], material: 'paper',
+    build: (p) => cupSleeve(p),
+  },
+  {
+    id: 'dairycarton', category: 'dairy', name: 'Butter & paneer carton',
+    desc: 'Low straight-tuck carton for butter, paneer, cheese and ghee blocks.',
+    keywords: ['butter', 'paneer', 'cheese', 'ghee', 'butter box', 'paneer box', 'cheese box', 'dairy box'],
+    params: [
+      P('L', 'Length', 110, 30, 300), P('W', 'Width', 60, 20, 200), P('H', 'Height', 40, 15, 200),
+      P('tuck', 'Tuck flap', 14, 5, 60, { adv: true }), P('dust', 'Dust flap', 30, 5, 150, { adv: true }),
+      P('glue', 'Glue flap', 12, 6, 40, { adv: true }),
+    ],
+    presets: [
+      { label: '100 g', q: { g: 100 }, v: { L: 75, W: 45, H: 35 } },
+      { label: '200 g', q: { g: 200 }, v: { L: 110, W: 60, H: 40 } },
+      { label: '500 g', q: { g: 500 }, v: { L: 140, W: 75, H: 55 } },
+    ],
+    dims: ['L', 'W', 'H'], material: 'sbs',
+    build: (p) => tuckEnd(p, false),
+  },
+  {
+    id: 'chips', category: 'snacks', name: 'Chips & snack bag',
+    desc: 'Nitrogen-filled pillow bag with crimp seals. Chips, namkeen, puffs and wafers.',
+    keywords: ['chips', 'crisps', 'snack bag', 'snacks', 'namkeen', 'wafers', 'puffs', 'bhujia', 'nitrogen', 'pillow bag', 'snack'],
+    params: [
+      P('W', 'Lay-flat width', 160, 70, 320), P('H', 'Length', 230, 100, 450),
+      P('fin', 'Fin (back) seal', 10, 6, 20, { adv: true }), P('es', 'Crimp seals', 15, 8, 30, { adv: true }),
+    ],
+    presets: [
+      { label: 'Small ~20 g', q: { g: 20 }, v: { W: 120, H: 170 } },
+      { label: 'Medium ~50 g', q: { g: 50 }, v: { W: 160, H: 230 } },
+      { label: 'Large ~100 g', q: { g: 100 }, v: { W: 210, H: 300 } },
+      { label: 'Party ~200 g', q: { g: 200 }, v: { W: 250, H: 360 } },
+    ],
+    dims: ['W', 'H'], material: 'film',
+    build: (p) => pillow(p, 0.22),
+  },
+  {
+    id: 'canister', category: 'snacks', name: 'Chips canister',
+    desc: 'Tall stackable-chips can with full-wrap label and clear overcap.',
+    keywords: ['chips canister', 'chips can', 'chips tube', 'stackable chips', 'snack canister', 'snack can'],
+    params: [
+      P('D', 'Diameter', 75, 40, 140), P('H', 'Height', 235, 80, 350),
+      P('lidH', 'Overcap height', 18, 8, 40, { adv: true }), P('overlap', 'Glue overlap', 10, 0, 30, { adv: true }),
+    ],
+    presets: [
+      { label: 'Mini', q: { g: 40 }, v: { D: 70, H: 110 } },
+      { label: 'Regular', q: { g: 110 }, v: { D: 75, H: 235 } },
+      { label: 'Large', q: { g: 160 }, v: { D: 80, H: 270 } },
+    ],
+    dims: ['D', 'H'], material: 'paper',
+    build: (p) => wrap({ ...p, cover: 100, labelY: 3, labelH: p.H }, 'canister', p.H),
+  },
+  {
+    id: 'sweetbox', category: 'sweets', name: 'Sweet box (hinged lid)',
+    desc: 'Classic mithai box: glued tray with a hinged lid that tucks shut.',
+    keywords: ['sweet box', 'mithai', 'mithai box', 'sweets', 'barfi', 'laddu', 'ladoo', 'kaju katli', 'peda', 'sweet', 'halwai'],
+    params: [
+      P('L', 'Length', 190, 80, 400), P('W', 'Width', 140, 60, 300), P('H', 'Height', 45, 20, 120),
+      P('corner', 'Corner flap', 22, 8, 60, { adv: true }),
+    ],
+    presets: [
+      { label: '250 g', q: { g: 250 }, v: { L: 150, W: 110, H: 40 } },
+      { label: '500 g', q: { g: 500 }, v: { L: 190, W: 140, H: 45 } },
+      { label: '1 kg', q: { g: 1000 }, v: { L: 240, W: 180, H: 50 } },
+    ],
+    dims: ['L', 'W', 'H'], material: 'duplex',
+    build: (p) => {
+      const { L, W, H } = p, t = p.t, c = Math.min(p.corner, W * 0.45, H * 0.9);
+      const panels = trayNet(L, W, H, c);
+      const ly = W + H, lw = W + t, flap = Math.max(10, H * 0.55), ear = Math.max(8, H - 2 * t - 2);
+      panels.push(
+        { id: 'lid', name: 'Lid', pts: rect(0, ly, L, lw), parent: 'back', hinge: [[0, ly], [L, ly]], angle: 90, seq: 5 },
+        { id: 'lidFlap', name: 'Lid tuck', pts: tuckFlap(t, L - t, ly + lw, flap, 1), parent: 'lid', hinge: [[t, ly + lw], [L - t, ly + lw]], angle: 90, layer: 2, seq: 6 },
+        { id: 'earL', name: 'Ear', pts: ccw([[0, ly + 3], [0, ly + lw - 3], [-ear, ly + lw - ear * 0.6], [-ear, ly + ear * 0.3]]), parent: 'lid', hinge: [[0, ly + 3], [0, ly + lw - 3]], angle: 90, layer: 2, seq: 6 },
+        { id: 'earR', name: 'Ear', pts: ccw([[L, ly + 3], [L, ly + lw - 3], [L + ear, ly + lw - ear * 0.6], [L + ear, ly + ear * 0.3]]), parent: 'lid', hinge: [[L, ly + 3], [L, ly + lw - 3]], angle: 90, layer: 2, seq: 6 },
+      );
+      return { panels, orient: 'tray', front: { panel: 'lid', up: [0, -1] } };
+    },
+  },
+  {
+    id: 'sweet2pc', category: 'sweets', name: 'Two-piece sweet box',
+    desc: 'Premium lid-and-base box. The lid slides over the base; ideal for gifting and festivals.',
+    keywords: ['two piece', '2 piece', 'two-piece', 'lid and base', 'telescope', 'premium sweet', 'gift sweet', 'diwali box', 'festive box', 'dry fruit box'],
+    params: [
+      P('L', 'Length', 200, 80, 400), P('W', 'Width', 150, 60, 300), P('H', 'Base height', 50, 20, 120),
+      P('lidH', 'Lid depth', 30, 10, 120, { adv: true }), P('corner', 'Corner flap', 22, 8, 60, { adv: true }),
+    ],
+    presets: [
+      { label: '250 g', q: { g: 250 }, v: { L: 150, W: 110, H: 40, lidH: 25 } },
+      { label: '500 g', q: { g: 500 }, v: { L: 200, W: 150, H: 50, lidH: 30 } },
+      { label: '1 kg', q: { g: 1000 }, v: { L: 250, W: 190, H: 55, lidH: 35 } },
+    ],
+    dims: ['L', 'W', 'H'], material: 'duplex',
+    build: (p) => {
+      const { L, W, H } = p, t = p.t, gap = 1 + 2 * t;              // lid clears the base walls
+      const Ll = L + 2 * gap, Wl = W + 2 * gap, Hl = Math.min(p.lidH, H);
+      const c = Math.min(p.corner, W * 0.45, Hl * 0.9);
+      const ox = L + H + 24 + Math.max(Hl, c);
+      // the lid net sits beside the base on the sheet; when folded it flips over onto the base
+      const place = { from: [ox + Ll / 2, Wl / 2], to: [L / 2, W / 2, -(H + 0.8)] };
+      const panels = [...trayNet(L, W, H, Math.min(p.corner, W * 0.45, H * 0.9)), ...trayNet(Ll, Wl, Hl, c, 'lid_', ox, { place })];
+      return { panels, orient: 'tray', front: { panel: 'lid_base', up: [0, -1] } };
+    },
   },
   {
     id: 'bottle', category: 'bottles', name: 'Bottle label',
