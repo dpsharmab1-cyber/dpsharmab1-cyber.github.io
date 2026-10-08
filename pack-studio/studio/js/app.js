@@ -5,6 +5,8 @@ import { exportSVG, exportPDF, exportDXF, download, fileBase } from './exporters
 import { Viewer } from './viewer.js';
 import { Editor, newLayer, pinToPanel, panelAt, layerCenter, FONTS } from './editor.js';
 import { hydrateIcons, icon } from '../../assets/icons.js';
+import { createCloud } from './cloud.js';
+import { setupAccount } from './account.js';
 
 const $ = (s) => document.querySelector(s);
 const SWATCHES = ['#2547d0', '#e5a912', '#0b1a5c', '#ffffff', '#f4efe6', '#1b1d21', '#e8553e', '#2f9e6b', '#c9a27e', '#f6c7d3'];
@@ -21,6 +23,7 @@ const state = {
   design: { color: '#2547d0', pattern: 'Solid', brand: 'Your Brand', tagline: 'Made with care', logo: null, art: null, layers: [] },
   layersByTpl: {},     // artwork layers are kept per template
 };
+let account = null;
 let model = null, viewer = null, editor = null, showArt = true, vb = null, userZoomed = false, activePanel = null;
 
 // ---------- library ----------
@@ -208,6 +211,7 @@ function layersChanged(kind) {
     cancelAnimationFrame(live3D); live3D = 0;
     viewer.setArtwork(drawDesign(model, state.design, 2048));
     renderLayerPanel();
+    account?.markDirty();
   }
 }
 
@@ -359,7 +363,8 @@ function writeHash() {
   q.set('pt', state.design.pattern);
   q.set('b', state.design.brand);
   q.set('tg', state.design.tagline);
-  history.replaceState(null, '', '#' + q.toString());
+  history.replaceState(null, '', location.pathname + location.search + '#' + q.toString());
+  account?.markDirty();
 }
 
 function readHash() {
@@ -395,12 +400,17 @@ async function doExport(kind) {
       const dims = model.tpl.dims.map((k) => `${model.tpl.params.find((p) => p.k === k).label} ${Math.round(model.values[k] * 10) / 10}`).join(', ');
       download(`${base}-dieline.pdf`, exportPDF(model, { title: model.tpl.name, dims: dims + ' mm', material: `${m.name}, ${m.t} mm` }), 'application/pdf');
     }
+    if ((kind === 'glb' || kind === 'dxf') && account && !account.can(kind)) {
+      account.openUpgrade(`${kind.toUpperCase()} export is part of Pro.`);
+      return;
+    }
     if (kind === 'glb') {
       const buf = await viewer.exportGLB();
       download(`${base}.glb`, new Blob([buf], { type: 'model/gltf-binary' }));
     }
     if (kind === 'png') {
-      const blob = await (await fetch(viewer.snapshot(2))).blob();
+      const hd = account ? account.can('hd') : true;
+      const blob = await (await fetch(hd ? viewer.snapshot(2) : await watermark(viewer.snapshot(1)))).blob();
       download(`${base}-mockup.png`, blob);
     }
     toast(`Downloaded ${kind.toUpperCase()}`);
@@ -602,6 +612,93 @@ function syncProps(L, skip) {
 
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
+
+// ---------- saved projects ----------
+
+function loadImageURL(src) {
+  return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src; });
+}
+
+function imgToDataURL(img, max = 1600) {
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.naturalWidth * k));
+  c.height = Math.max(1, Math.round(img.naturalHeight * k));
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/webp', 0.9); // keeps transparency; falls back to PNG where WebP isn't supported
+}
+
+function thumbnail() {
+  const src = viewer.renderer.domElement, w = 360, h = Math.round((w * src.height) / Math.max(1, src.width)) || 270;
+  viewer.renderer.render(viewer.scene, viewer.camera);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f3f5ff'; g.fillRect(0, 0, w, h);
+  g.drawImage(src, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.78);
+}
+
+async function snapshotProject() {
+  const d = state.design;
+  const layers = d.layers.map(({ img, ...L }) => (L.type === 'image' ? { ...L, src: imgToDataURL(img) } : L));
+  return {
+    template: state.tpl,
+    thumb: thumbnail(),
+    state: {
+      v: 1, tpl: state.tpl, values: { ...state.values[state.tpl] }, mat: state.mat, thick: state.thick, units: state.units,
+      design: {
+        color: d.color, pattern: d.pattern, brand: d.brand, tagline: d.tagline,
+        logo: d.logo ? imgToDataURL(d.logo, 1200) : null,
+        art: d.art ? imgToDataURL(d.art, 2400) : null,
+        layers,
+      },
+    },
+  };
+}
+
+async function restoreProject(s) {
+  const tpl = byId[s?.tpl];
+  if (!tpl) throw new Error('This project uses a template that no longer exists.');
+  const d = s.design || {};
+  const [logo, art, layers] = await Promise.all([
+    d.logo ? loadImageURL(d.logo) : null,
+    d.art ? loadImageURL(d.art) : null,
+    Promise.all((d.layers || []).map(async (L) => (L.type === 'image' ? { ...L, img: await loadImageURL(L.src) } : { ...L }))),
+  ]);
+  state.values[tpl.id] = { ...defaults(tpl), ...s.values };
+  state.mat = MATERIALS[s.mat] ? s.mat : tpl.material;
+  state.thick = s.thick ?? null;
+  if (s.units && s.units !== state.units) document.querySelector(`#units [data-u="${s.units}"]`)?.click();
+  Object.assign(state.design, {
+    color: d.color || state.design.color, pattern: PATTERNS.includes(d.pattern) ? d.pattern : 'Solid',
+    brand: d.brand ?? '', tagline: d.tagline ?? '', logo, art,
+  });
+  $('#brand').value = state.design.brand;
+  $('#tagline').value = state.design.tagline;
+  for (const [key, label, empty] of [['logo', '#logoLabel', 'Add logo'], ['art', '#artLabel', 'Upload full artwork']]) {
+    $(label).textContent = state.design[key] ? (key === 'logo' ? 'Logo' : 'Artwork') : empty;
+    $(label).parentElement.classList.toggle('has', !!state.design[key]);
+  }
+  state.layersByTpl[tpl.id] = layers;
+  markDesign();
+  selectTemplate(tpl.id, { fromHash: true });
+}
+
+async function watermark(dataURL) {
+  const img = await loadImageURL(dataURL);
+  const c = document.createElement('canvas');
+  c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  const s = Math.max(12, Math.round(c.width / 60));
+  g.font = `700 ${s}px Inter, system-ui, sans-serif`;
+  g.fillStyle = 'rgba(19, 40, 138, .55)';
+  g.textAlign = 'right';
+  g.fillText('Made with Pack Studio', c.width - s, c.height - s);
+  return c.toDataURL('image/png');
+}
+
 // ---------- boot (last, so every module-level binding exists) ----------
 
 readHash();
@@ -622,9 +719,18 @@ selectTemplate(state.tpl, { fromHash: true });
 setView(state.view);
 wireUI();
 
+createCloud().then((cloud) => {
+  account = setupAccount({
+    cloud, toast,
+    snapshot: snapshotProject,
+    restore: restoreProject,
+    templateName: (id) => byId[id]?.name || id,
+  });
+});
+
 // arriving from the site's hero box: /studio/?q=mailer box 250x180x70
 const askQ = new URLSearchParams(location.search).get('q');
 if (askQ) { $('#askInput').value = askQ; runAsk(askQ); history.replaceState(null, '', location.pathname + location.hash); }
 
 // handy for debugging in the console
-window.packStudio = { state, get model() { return model; }, viewer, parseAsk, runAsk, selectTemplate, doExport };
+window.packStudio = { state, get model() { return model; }, get account() { return account; }, viewer, parseAsk, runAsk, selectTemplate, doExport, snapshotProject, restoreProject };

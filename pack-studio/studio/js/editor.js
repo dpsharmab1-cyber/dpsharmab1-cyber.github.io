@@ -12,11 +12,10 @@ export const FONTS = {
 };
 
 const NS = 'http://www.w3.org/2000/svg';
-let uid = 0;
 const measureCtx = document.createElement('canvas').getContext('2d');
 
 export function newLayer(type, props) {
-  return { id: 'L' + ++uid, type, rot: 0, opacity: 1, ...props };
+  return { id: 'L' + crypto.randomUUID().slice(0, 8), type, rot: 0, opacity: 1, ...props };
 }
 
 export function layerCenter(model, L) {
