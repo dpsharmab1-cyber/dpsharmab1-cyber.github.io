@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pack Studio · prototype</title>
+  <meta name="description" content="Type your dimensions, get a print-ready dieline and a folding 3D mockup. SVG, PDF, DXF, GLB and PNG exports.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 28 9.5v13L16 29 4 22.5v-13z' fill='%230f766e'/%3E%3Cpath d='M4 9.5 16 16l12-6.5M16 16v13' stroke='%23fff' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./" aria-label="Pack Studio home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="currentColor"/><path d="M4 9.5 16 16l12-6.5M16 16v13" stroke="var(--bg)" stroke-width="1.6" fill="none"/></svg>
+      <span>Pack Studio</span><em>Prototype</em>
+    </a>
+    <form class="ask" id="ask" autocomplete="off">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="currentColor"/></svg>
+      <input id="askInput" type="text" aria-label="Describe your pack" placeholder="Describe it: “mailer box 250x180x70”, “hexagon box 8 sides”, “jar label 85 x 110”">
+      <button type="submit">Generate</button>
+    </form>
+    <div class="top-actions">
+      <div class="seg" id="units" role="group" aria-label="Units">
+        <button type="button" data-u="mm" aria-pressed="true">mm</button>
+        <button type="button" data-u="in" aria-pressed="false">in</button>
+      </div>
+      <button type="button" class="ghost" id="share">Copy link</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <nav class="library" id="library" aria-label="Packaging templates"></nav>
+
+    <section class="stage" aria-label="Preview">
+      <div class="stage-bar">
+        <div class="seg" id="viewTabs" role="tablist" aria-label="View">
+          <button type="button" data-view="3d" role="tab">3D</button>
+          <button type="button" data-view="split" role="tab">Split</button>
+          <button type="button" data-view="2d" role="tab">Dieline</button>
+        </div>
+        <p class="stats" id="stats"></p>
+      </div>
+      <div class="views" id="views" data-view="split">
+        <div class="pane pane-3d" id="view3d">
+          <button type="button" class="pane-btn" id="fit3d" title="Reset camera">Reset view</button>
+        </div>
+        <div class="pane pane-2d" id="view2d">
+          <div class="svg-host" id="svgHost"></div>
+          <div class="legend">
+            <span><i class="sw cut"></i>Cut</span><span><i class="sw crease"></i>Crease</span>
+            <span><i class="sw bleed"></i>Bleed 3 mm</span><span><i class="sw glue"></i>Glue</span>
+            <label class="check"><input type="checkbox" id="showArt" checked> Artwork</label>
+          </div>
+          <button type="button" class="pane-btn" id="fit2d" title="Fit dieline">Fit</button>
+        </div>
+      </div>
+      <div class="fold-bar">
+        <button type="button" class="play" id="play" aria-label="Play fold animation">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+        </button>
+        <span class="fold-label">Flat</span>
+        <input type="range" id="fold" min="0" max="1" step="0.001" value="1" aria-label="Fold amount">
+        <span class="fold-label">Folded</span>
+      </div>
+    </section>
+
+    <aside class="inspector" aria-label="Settings">
+      <section class="card" id="tplCard">
+        <p class="eyebrow" id="tplCat"></p>
+        <h2 id="tplName"></h2>
+        <p class="muted" id="tplDesc"></p>
+      </section>
+
+      <section class="card">
+        <h3>Size <span class="muted small">inner dimensions</span></h3>
+        <div id="dims" class="fields"></div>
+        <details class="adv">
+          <summary>Advanced structure</summary>
+          <div id="adv" class="fields"></div>
+        </details>
+      </section>
+
+      <section class="card">
+        <h3>Material</h3>
+        <div class="row">
+          <select id="material" aria-label="Material"></select>
+          <label class="thick">
+            <input type="number" id="thick" step="0.05" min="0.05" max="10" aria-label="Board thickness"><span>mm</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3>Design</h3>
+        <div class="swatches" id="swatches" role="radiogroup" aria-label="Print colour"></div>
+        <div class="chips" id="patterns" role="radiogroup" aria-label="Pattern"></div>
+        <label class="field"><span>Brand name</span><input type="text" id="brand" maxlength="32"></label>
+        <label class="field"><span>Tagline</span><input type="text" id="tagline" maxlength="48"></label>
+        <div class="uploads">
+          <label class="upload"><input type="file" id="logo" accept="image/*"><span id="logoLabel">Add logo</span><button type="button" class="clear" aria-label="Remove logo">×</button></label>
+          <label class="upload"><input type="file" id="art" accept="image/*"><span id="artLabel">Upload full artwork</span><button type="button" class="clear" aria-label="Remove artwork">×</button></label>
+        </div>
+        <p class="hint">Full artwork: download the dieline SVG, design on it at 1:1, export a PNG of the same artboard and upload it here. It maps straight onto the 3D model.</p>
+      </section>
+
+      <section class="card">
+        <h3>Export</h3>
+        <div class="exports">
+          <button type="button" data-export="svg"><b>SVG</b><span>Dieline</span></button>
+          <button type="button" data-export="pdf"><b>PDF</b><span>Print 1:1</span></button>
+          <button type="button" data-export="dxf"><b>DXF</b><span>Cutting table</span></button>
+          <button type="button" data-export="glb"><b>GLB</b><span>3D model</span></button>
+          <button type="button" data-export="png"><b>PNG</b><span>Mockup render</span></button>
+          <button type="button" data-export="proof"><b>Proof</b><span>SVG + artwork</span></button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
