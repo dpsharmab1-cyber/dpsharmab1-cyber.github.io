@@ -14,7 +14,7 @@ Live (after merge): `https://dpsharmab1-cyber.github.io/pack-studio/`
   - Bottles & jars: bottle label (glass bottle, partial or full wrap), jar label (clear jar with lid)
   - Labels & wraps: can label
 - **Smart input**: "mailer box 250x180x70", "shipping box 40x30x30 cm", "coffee pouch 150x230x90", "wine bottle 75 x 300".
-- **Live dieline**: cut, crease, 3 mm bleed and glue zones, with pan/zoom.
+- **Live dieline**: cut, crease, 3 mm bleed, glue and heat-seal zones, zipper and tear-notch marks, with pan/zoom.
 - **Folding 3D preview**: panels fold in a realistic order. Print stays outside and the board colour shows inside.
 - **Design**: colours, patterns, brand name and tagline, logo, or full artwork mapped 1:1 from the dieline.
 - **Exports**: SVG dieline, PDF (1:1 with `CutContour` and `Crease` spot colours), DXF (R12, mm),
@@ -51,13 +51,13 @@ From that one description the engine derives everything else:
 
 **Adding a new category means writing one `build()` function, about 20–60 lines.** No new 3D, export or UI code is needed.
 
+Three kinds of template share the engine today: `net` (folding board), `pouch` (flexible film that
+inflates from the flat print layout) and `wrap` (labels on turned containers built from lathe profiles).
+
 ## Roadmap toward the full product
 
 1. **Template library at scale**: more FEFCO/ECMA styles (crash-lock bottom, auto-bottom, gable, pillow, two-piece rigid),
    more flexibles (side-gusset and flat-bottom bags, spouted pouches), plus tubes, cups and paper bags.
-
-Three kinds of template share the engine today: `net` (folding board), `pouch` (flexible film that
-inflates from the flat print layout) and `wrap` (labels on turned containers built from lathe profiles).
 2. **Print accuracy**: per-material thickness compensation on every panel, and a printer-verified test pack for each template.
 3. **Accounts and projects**: saved designs, team sharing, version history (e.g. Supabase).
 4. **Editor**: place, move and scale artwork per panel directly on the 3D model or dieline, plus text tools.
