@@ -88,6 +88,16 @@ function unitLabel(p) { return p.unit === 'mm' ? state.units : p.unit === '#' ? 
 function buildParams() {
   const tpl = byId[state.tpl], vals = state.values[tpl.id];
   for (const host of [$('#dims'), $('#adv')]) host.innerHTML = '';
+  // one-tap common sizes (approximate starting points, e.g. 500 ml milk pouch)
+  const presets = $('#presets');
+  presets.hidden = !tpl.presets;
+  presets.innerHTML = tpl.presets ? `<span class="muted small">Quick sizes</span>${tpl.presets.map((pr, i) =>
+    `<button type="button" class="chip" data-preset="${i}" aria-pressed="${Object.entries(pr.v).every(([k, v]) => vals[k] === v)}">${pr.label}</button>`).join('')}` : '';
+  presets.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+    Object.assign(vals, tpl.presets[+b.dataset.preset].v);
+    buildParams();
+    scheduleRebuild();
+  }));
   for (const p of tpl.params) {
     const row = document.createElement('div');
     row.className = 'param';
@@ -327,13 +337,20 @@ export function parseAsk(text) {
   let sides = (s.match(/(\d+)\s*-?\s*(?:sides|sided|side)\b/) || [])[1];
   for (const [w, n] of Object.entries(NGON)) if (s.includes(w)) sides = sides || n;
   if (sides && !best) best = byId.hexbox;
-  return { tpl: best, dims, sides: sides ? +sides : null };
+  // amounts like "500 ml", "1 litre", "50 g", "1kg" pick the nearest quick size
+  const qm = s.match(/(\d+(?:\.\d+)?)\s*(ml|l|ltr|litre|liter|g|gm|gms|gram|grams|kg|kgs)\b/);
+  let qty = null;
+  if (qm) {
+    const n = parseFloat(qm[1]), u = qm[2];
+    qty = /^(ml)$/.test(u) ? { ml: n } : /^(l|ltr|litre|liter)$/.test(u) ? { ml: n * 1000 } : /^kgs?$/.test(u) ? { g: n * 1000 } : { g: n };
+  }
+  return { tpl: best, dims, sides: sides ? +sides : null, qty };
 }
 
 function runAsk(text) {
-  const { tpl: found, dims, sides } = parseAsk(text);
+  const { tpl: found, dims, sides, qty } = parseAsk(text);
   const tpl = found || byId[state.tpl];
-  if (!found && !dims.length) {
+  if (!found && !dims.length && !qty) {
     toast('Try something like “tuck box 70x45x130” or “shipping box 40x30x30 cm”.');
     return;
   }
@@ -346,6 +363,11 @@ function runAsk(text) {
     if (Math.abs(v - dims[i]) > 0.05) clamped = true;
     vals[k] = v;
   });
+  if (qty && tpl.presets && !dims.length) {
+    const [unit, want] = Object.entries(qty)[0];
+    const near = tpl.presets.filter((pr) => pr.q?.[unit] != null).sort((a, b) => Math.abs(a.q[unit] - want) - Math.abs(b.q[unit] - want))[0];
+    if (near) Object.assign(vals, near.v);
+  }
   if (sides && tpl.id === 'hexbox') vals.N = Math.min(12, Math.max(5, sides));
   selectTemplate(tpl.id);
   const v = state.values[tpl.id];

@@ -7,7 +7,7 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
 
 ## What works today
 
-- **16 parametric templates in 8 categories**:
+- **23 parametric templates in 11 categories**:
   - Folding cartons: reverse and straight tuck end boxes, polygon gift box (5–12 sides)
   - Mailers & shipping: mailer box, shipping carton (FEFCO 0201 style)
   - Trays & sleeves: open tray, sleeve
@@ -15,8 +15,14 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
   - Paper bags: shopping bag (turn-over top, rope handles), SOS food bag
   - Tubes: squeeze tube (crimp seal, flip-top cap), paper tube with lid
   - Bottles & jars: bottle label (glass bottle, partial or full wrap), jar label (clear jar with lid)
+  - Dairy & milk: milk pouch (centre-seal pillow pack, 200 ml to 1 L), curd and ice-cream cup (tapered sleeve
+    unrolled as a ring sector), butter and paneer carton
+  - Snacks: chips and snack bag (pillow pack with crimp seals), chips canister
+  - Sweets & mithai: sweet box with hinged lid, two-piece lid-and-base sweet box (the lid flips onto the base)
   - Labels & wraps: can label
-- **Smart input**: "mailer box 250x180x70", "shipping box 40x30x30 cm", "coffee pouch 150x230x90", "wine bottle 75 x 300".
+- **Smart input**: "mailer box 250x180x70", "shipping box 40x30x30 cm", "coffee pouch 150x230x90", "wine bottle 75 x 300",
+  and amounts: "milk pouch 500 ml", "chips 100 g", "mithai box 1kg" pick the nearest **Quick size**.
+- **Quick sizes**: one-tap common sizes per template (approximate starting points; confirm with your converter).
 - **Live dieline**: cut, crease, 3 mm bleed, glue and heat-seal zones, zipper and tear-notch marks, with pan/zoom.
 - **Folding 3D preview**: panels fold in a realistic order. Print stays outside and the board colour shows inside.
 - **Design**: colours, patterns, brand name and tagline, logo, or full artwork mapped 1:1 from the dieline.
@@ -71,9 +77,11 @@ From that one description the engine derives everything else:
 
 **Adding a new category means writing one `build()` function, about 20–60 lines.** No new 3D, export or UI code is needed.
 
-Four kinds of template share the engine today: `net` (folding board and paper), `pouch` (flexible film that
-inflates from the flat print layout), `tube` (printed laminate that wraps into a cylinder and flattens to a
-crimp) and `wrap` (labels on turned containers built from lathe profiles).
+Six kinds of template share the engine today: `net` (folding board and paper, including two-piece boxes
+whose second net flips into place), `pouch` (gusseted flexible film that inflates from the flat print
+layout), `pillow` (centre-seal pillow packs), `tube` (printed laminate that wraps into a cylinder and
+flattens to a crimp), `cup` (tapered sleeves unrolled as ring sectors) and `wrap` (labels on turned
+containers built from lathe profiles).
 
 ## Roadmap toward the full product
 

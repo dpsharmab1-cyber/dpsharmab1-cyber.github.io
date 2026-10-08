@@ -83,6 +83,8 @@ export class Viewer {
     if (model.kind === 'wrap') this.buildWrap(model);
     else if (model.kind === 'pouch') this.buildPouch(model);
     else if (model.kind === 'tube') this.buildTube(model);
+    else if (model.kind === 'pillow') this.buildPillow(model);
+    else if (model.kind === 'cup') this.buildCup(model);
     else this.buildNet(model);
     this.placeOnGround(refit);
     this.setFold(this.fold);
@@ -253,14 +255,86 @@ export class Viewer {
     this.pouch = { surfaces, H, W, lift: H * 0.28 };
   }
 
+  // Morphing grid surface: each vertex knows its flat (print) position, its
+  // display position while flat, and where it ends up on the filled pack.
+  morphSurface(model, nu, nv, fn, flip) {
+    const flatPts = [], target = [], side = [], uv = [], idx = [];
+    for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) {
+      const o = fn(i / nu, j / nv);
+      flatPts.push(o.show || o.flat); target.push(o.target); side.push(o.side);
+      uv.push((o.flat[0] - model.art.minX) / model.art.w, (o.flat[1] - model.art.minY) / model.art.h);
+    }
+    for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+      const a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1;
+      if (flip) idx.push(a, c, b, b, c, d); else idx.push(a, b, c, b, d, c);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(flatPts.length * 3), 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    const front = new T.Mesh(geo, this.frontMat), back = new T.Mesh(geo, this.backMat);
+    front.castShadow = back.castShadow = true;
+    this.root.add(front, back);
+    return { geo, flatPts, target, side };
+  }
+
+  // Pillow pack: front, two back halves meeting at the fin seal, and the fins.
+  buildPillow(model) {
+    const s = model.spec, { W, H, fin, es } = s, dmax = W * s.puff;
+    const across = (U) => Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, U))), 0.6);
+    const along = (v) => {
+      const k = (v * H - es) / (H - 2 * es);
+      return k <= 0 || k >= 1 ? 0 : Math.pow(Math.sin(Math.PI * k), 0.55);
+    };
+    const d = (U, v) => dmax * across(U) * along(v);
+    const narrow = (v) => 1 - 0.1 * along(v);
+    const fx = fin + W / 2, NX = 30, NY = 40, surfaces = [];
+    surfaces.push(this.morphSurface(model, NX, NY, (u, v) => ({
+      flat: [fx + u * W, v * H], target: [(u - 0.5) * W * narrow(v), v * H, 0.3 + d(u, v)], side: 1 }), false));
+    // left half of the back: from the front's left fold round to the centre seam
+    surfaces.push(this.morphSurface(model, NX / 2, NY, (u, v) => ({
+      flat: [fx - (u * W) / 2, v * H], target: [(-W / 2 + (u * W) / 2) * narrow(v), v * H, -0.3 - d(u / 2, v)], side: -1 }), true));
+    surfaces.push(this.morphSurface(model, NX / 2, NY, (u, v) => ({
+      flat: [fx + W + (u * W) / 2, v * H], target: [(W / 2 - (u * W) / 2) * narrow(v), v * H, -0.3 - d(1 - u / 2, v)], side: -1 }), false));
+    // the two fins seal together and lie flat along the back seam
+    for (const [x0, dir, dz] of [[fin, -1, 0.9], [fin + 2 * W + fin, 1, 1.2]]) {
+      surfaces.push(this.morphSurface(model, 2, NY, (u, v) => ({
+        flat: [dir < 0 ? x0 - u * fin : x0 - fin + u * fin, v * H],
+        target: [u * fin * 0.9, v * H, -0.3 - d(0.5, v) - dz], side: -1 }), true));
+    }
+    this.pouch = { surfaces, H, W, cx: fin + W, lift: H * 0.28 };
+  }
+
+  // Cup with a tapered sleeve: the ring-sector print wraps onto the cone.
+  buildCup(model) {
+    const s = model.spec, { R1, R2, H, Ro } = s;
+    const V = (x, y) => new T.Vector2(x, y);
+    const white = new T.MeshPhysicalMaterial({ color: 0xf6f6f4, roughness: 0.35, clearcoat: 0.4 });
+    const body = new T.Mesh(new T.LatheGeometry([V(0.01, 0), V(R2 - 1.5, 0), V(R2, 1.5), V(R1, H), V(R1 + 1.4, H + 0.6)], 72), white);
+    const rim = new T.Mesh(new T.TorusGeometry(R1 + 0.9, 1.3, 10, 72), white);
+    rim.rotation.x = Math.PI / 2; rim.position.y = H + 0.6;
+    const lid = new T.Mesh(new T.CircleGeometry(R1 + 2.2, 72), new T.MeshStandardMaterial({ color: 0xd9dde2, metalness: 0.85, roughness: 0.3 }));
+    lid.rotation.x = -Math.PI / 2; lid.position.y = H + 1.9;
+    for (const m of [body, rim, lid]) { m.castShadow = true; this.root.add(m); }
+    const slant = s.s, phi0 = -s.theta / 2, span = s.theta + s.olap, yMin = s.rIn * Math.cos(s.theta / 2);
+    const sf = this.morphSurface(model, 96, 6, (u, v) => {
+      const phi = phi0 + u * span, rho = s.rIn + v * (s.rOut - s.rIn);
+      const x = rho * Math.sin(phi), y = rho * Math.cos(phi);
+      const r = (rho * (R1 - R2)) / slant + 0.4 + (phi > s.theta / 2 ? 0.3 : 0);
+      const psi = (phi * Ro) / R1, h = H - ((Ro - rho) * H) / slant;
+      return { flat: [x, y], show: [x, y - yMin], target: [r * Math.sin(psi), h, r * Math.cos(psi)], side: 1 };
+    }, false);
+    this.pouch = { surfaces: [sf], W: 0, cx: 0, lift: H * 0.6 };
+  }
+
   morphPouch(t) {
-    const { surfaces, W, lift } = this.pouch;
+    const { surfaces, W, lift, cx = W / 2 } = this.pouch;
     const e = t * t * (3 - 2 * t), arc = Math.sin(Math.PI * e) * lift;
     for (const sf of surfaces) {
       const pos = sf.geo.attributes.position;
       for (let i = 0; i < sf.flatPts.length; i++) {
         const [fx, fy] = sf.flatPts[i], [tx, ty, tz] = sf.target[i];
-        pos.setXYZ(i, (fx - W / 2) * (1 - e) + tx * e, fy * (1 - e) + ty * e, tz * e + sf.side[i] * arc);
+        pos.setXYZ(i, (fx - cx) * (1 - e) + tx * e, fy * (1 - e) + ty * e, tz * e + sf.side[i] * arc);
       }
       pos.needsUpdate = true;
       sf.geo.computeVertexNormals();
@@ -317,6 +391,7 @@ export class Viewer {
     if (m.kind === 'wrap') return this.bendWrap(t);
     if (m.kind === 'pouch') return this.morphPouch(t);
     if (m.kind === 'tube') return this.morphTube(t);
+    if (m.kind === 'pillow' || m.kind === 'cup') return this.morphPouch(t);
     const R = new T.Matrix4(), A = new T.Matrix4(), B = new T.Matrix4(), L = new T.Matrix4(), axis = new T.Vector3();
     for (const { q, node } of this.nodes) {
       const mat = node.matrix.identity();
@@ -331,6 +406,14 @@ export class Viewer {
       }
       // Stack overlapping flaps toward the inside. Past 90° a panel's printed face turns
       // inward, so "inside" flips from its local -z to +z.
+      if (q.place) {
+        const x = Math.min(1, Math.max(0, (t - 0.55) / 0.45)), e = x * x * (3 - 2 * x);
+        const [fx, fy] = q.place.from, [tx, ty, tz] = q.place.to;
+        A.makeTranslation(fx + (tx - fx) * e, fy + (ty - fy) * e, tz * e);
+        R.makeRotationX(Math.PI * e);
+        B.makeTranslation(-fx, -fy, 0);
+        mat.multiply(A).multiply(R).multiply(B);
+      }
       if (q.layer) mat.multiply(L.makeTranslation(0, 0, (q.angle > 90 ? 1 : -1) * this.eps * q.layer * Math.min(1, t * 4)));
       node.matrixWorldNeedsUpdate = true;
     }
@@ -403,6 +486,16 @@ function containerMeshes(s) {
     const lid = new T.Mesh(new T.CylinderGeometry(r + 1.4, r + 1.4, s.lidH, 72), lidMat);
     lid.position.y = H - s.lidH / 2;
     out.push(body, base, lid);
+  } else if (s.body === 'canister') {
+    const foil = new T.MeshStandardMaterial({ color: 0x2b2f36, metalness: 0.6, roughness: 0.4 });
+    const body = new T.Mesh(new T.CylinderGeometry(r - 0.2, r - 0.2, H - 1, 72, 1, true), foil);
+    body.position.y = H / 2;
+    const ring = new T.Mesh(new T.TorusGeometry(r - 0.3, 1.4, 10, 72), new T.MeshStandardMaterial({ color: 0xc9ced4, metalness: 1, roughness: 0.3 }));
+    ring.rotation.x = Math.PI / 2; ring.position.y = 1;
+    const capMat = new T.MeshPhysicalMaterial({ color: 0xeef2f5, roughness: 0.15, transparent: true, opacity: 0.55, depthWrite: false });
+    const cap = new T.Mesh(new T.CylinderGeometry(r + 1.6, r + 1.6, s.lidH, 72), capMat);
+    cap.position.y = H - s.lidH / 2 + 2;
+    out.push(body, ring, cap);
   } else if (s.body === 'bottle') {
     const shoulder = Math.max(s.labelY + s.labelH + 6, H * 0.5), neckR = Math.max(9, r * 0.3), neck0 = Math.min(H * 0.8, shoulder + r * 1.4), capY = H * 0.9;
     const pts = [V(0, 0), V(r - 3, 0), V(r, 3), V(r, shoulder)];
