@@ -2,7 +2,8 @@
 
 Type dimensions → get a print-ready dieline and a folding 3D mockup, in the browser.
 
-Live (after merge): `https://dpsharmab1-cyber.github.io/pack-studio/`
+- Site: `https://dpsharmab1-cyber.github.io/pack-studio/`
+- Studio (the app): `https://dpsharmab1-cyber.github.io/pack-studio/studio/`
 
 ## What works today
 
@@ -19,6 +20,9 @@ Live (after merge): `https://dpsharmab1-cyber.github.io/pack-studio/`
 - **Live dieline**: cut, crease, 3 mm bleed, glue and heat-seal zones, zipper and tear-notch marks, with pan/zoom.
 - **Folding 3D preview**: panels fold in a realistic order. Print stays outside and the board colour shows inside.
 - **Design**: colours, patterns, brand name and tagline, logo, or full artwork mapped 1:1 from the dieline.
+- **Artwork editor**: add text and image layers on any panel; drag, resize and rotate them on the dieline and see
+  them live on the 3D model. Layers are pinned to their panel, so they follow it when the pack is resized.
+- **Phones**: the previews let the page scroll; tap "Rotate" or "Pan & zoom" to interact with them.
 - **Exports**: SVG dieline, PDF (1:1 with `CutContour` and `Crease` spot colours), DXF (R12, mm),
   GLB 3D model, PNG mockup, and an SVG proof with artwork.
 - **Share link**: the URL holds the template, size, material and design text.
@@ -29,11 +33,15 @@ Everything runs client-side, so serving a user costs almost nothing. That is wha
 ## How the "one system for every category" works
 
 ```
+index.html + assets/   marketing site (royal blue + mustard theme, shared fonts, icons, theme.css)
+studio/                the app
+studio/js/
 templates.js   one entry per packaging style: params + build(params) → flat net of panels
 engine.js      compiles any net: cut lines, creases, bleed, fold axes, stats
 dieline.js     SVG dieline + the artwork canvas (flat coords == dieline coords)
 viewer.js      3D: panels form a parent→child tree; each folds about its hinge
 exporters.js   SVG / PDF / DXF writers (GLB + PNG come from the viewer)
+editor.js      artwork layers: on-dieline editing and painting onto the 3D texture
 app.js         UI, smart input, share links
 ```
 
@@ -63,7 +71,7 @@ crimp) and `wrap` (labels on turned containers built from lathe profiles).
    more flexibles (side-gusset and flat-bottom bags, spouted pouches), rigid boxes, cups and displays.
 2. **Print accuracy**: per-material thickness compensation on every panel, and a printer-verified test pack for each template.
 3. **Accounts and projects**: saved designs, team sharing, version history (e.g. Supabase).
-4. **Editor**: place, move and scale artwork per panel directly on the 3D model or dieline, plus text tools.
+4. **Editor**: place artwork by clicking on the 3D model, more text tools, saved brand kits.
 5. **Rendering**: HDRI scenes, materials (foil, gloss, emboss), turntable video export.
 6. **AI**: describe a product and get structure, size and a first design.
 7. **Business**: free tier (dieline exports) and Pro (commercial 3D/render exports) via Razorpay/Stripe, plus a printer marketplace.
@@ -71,4 +79,6 @@ crimp) and `wrap` (labels on turned containers built from lathe profiles).
 ## Running locally
 
 Any static server works: `python3 -m http.server` in the repo root, then open `/pack-studio/`.
-three.js is vendored in `js/vendor/` (MIT), so there is no build step and nothing is loaded from a CDN.
+Nothing loads from a CDN and there is no build step. Open-source pieces are vendored with their licences:
+three.js (MIT) in `studio/js/vendor/`, Inter and Plus Jakarta Sans (OFL) in `assets/fonts/`, Lucide icons (ISC)
+in `assets/icons.js`.

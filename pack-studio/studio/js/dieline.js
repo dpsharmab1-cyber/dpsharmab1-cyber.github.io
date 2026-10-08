@@ -1,6 +1,7 @@
 // Dieline SVG (screen and print) and the artwork canvas shared by 2D and 3D views.
 
 import { panelLabels } from './engine.js';
+import { drawLayers, FONTS } from './editor.js';
 
 export const INK = { cut: '#e6007e', crease: '#0a84ff', bleed: '#16a34a', glue: '#f59e0b', seal: '#8b5cf6', guide: '#64748b' };
 
@@ -63,7 +64,7 @@ function esc(s) {
 
 export const PATTERNS = ['Solid', 'Stripes', 'Dots', 'Grid', 'Waves'];
 
-export function drawDesign(model, d, maxPx = 2048) {
+export function drawDesign(model, d, maxPx = 2048, { layers = true } = {}) {
   const b = model.art, s = maxPx / Math.max(b.w, b.h);
   const cw = Math.max(2, Math.round(b.w * s)), ch = Math.max(2, Math.round(b.h * s));
   const c = document.createElement('canvas');
@@ -98,16 +99,17 @@ export function drawDesign(model, d, maxPx = 2048) {
   }
   g.fillStyle = ink; g.textAlign = 'center'; g.textBaseline = 'top';
   if (brandSize) {
-    g.font = `700 ${brandSize}px ${d.font || 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'}`;
+    g.font = `700 ${brandSize}px ${FONTS.Display}`;
     g.fillText(d.brand, 0, y);
     y += brandSize + gap * 0.6;
   }
   if (tagSize) {
     g.globalAlpha = 0.78;
-    g.font = `500 ${tagSize}px system-ui, -apple-system, Segoe UI, Roboto, sans-serif`;
+    g.font = `500 ${tagSize}px ${FONTS.Sans}`;
     g.fillText(d.tagline.toUpperCase(), 0, y);
   }
   g.restore();
+  if (layers && d.layers?.length) drawLayers(g, model, d.layers, s);
   return c;
 }
 
