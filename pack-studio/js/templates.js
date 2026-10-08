@@ -16,16 +16,21 @@ export const MATERIALS = {
   paper:  { name: 'Label paper',         t: 0.1,  inside: '#f7f7f4', edge: '#dddddd' },
   film:   { name: 'Metallised film (PET/PE)', t: 0.12, inside: '#c9cdd2', edge: '#b4b8bd' },
   kraftfilm: { name: 'Kraft paper laminate', t: 0.15, inside: '#c9a27e', edge: '#a8835e' },
+  kraftpaper: { name: 'Kraft paper 120 gsm', t: 0.2, inside: '#b98b5d', edge: '#8f6a45' },
+  artpaper: { name: 'White art paper 170 gsm', t: 0.2, inside: '#f4f2ee', edge: '#cfcac0' },
+  laminate: { name: 'Laminate tube (ABL/PBL)', t: 0.3, inside: '#efefed', edge: '#d6d6d4' },
 };
 
 export const CATEGORIES = [
   { id: 'cartons',  name: 'Folding cartons' },
   { id: 'mailers',  name: 'Mailers & shipping' },
   { id: 'trays',    name: 'Trays & sleeves' },
-  { id: 'pouches',  name: 'Pouches & bags' },
+  { id: 'pouches',  name: 'Pouches' },
+  { id: 'bags',     name: 'Paper bags' },
+  { id: 'tubes',    name: 'Tubes' },
   { id: 'bottles',  name: 'Bottles & jars' },
   { id: 'labels',   name: 'Labels & wraps' },
-  { id: 'soon',     name: 'Coming next', soon: ['Tubes', 'Paper bags', 'Displays & POS', 'Cups & food'] },
+  { id: 'soon',     name: 'Coming next', soon: ['Rigid boxes', 'Displays & POS', 'Cups & food', 'Blister & clamshell'] },
 ];
 
 const P = (k, label, def, min, max, extra = {}) => ({ k, label, def, min, max, step: 1, unit: 'mm', adv: false, ...extra });
@@ -81,7 +86,7 @@ function wrap(p, body, H) {
   const r = p.D / 2, circ = Math.PI * p.D;
   const full = p.cover >= 100;
   // keep the label on the straight part of the body
-  const maxTop = body === 'bottle' ? H * 0.62 : body === 'jar' ? H - 14 : H - 2;
+  const maxTop = body === 'bottle' ? H * 0.62 : body === 'jar' ? H - 14 : body === 'papertube' ? H - p.lidH - 2 : H - 2;
   const labelH = Math.max(10, Math.min(p.labelH, maxTop - 2));
   const labelY = Math.max(1, Math.min(p.labelY, maxTop - labelH));
   const labelW = full ? circ : circ * (p.cover / 100);
@@ -89,7 +94,7 @@ function wrap(p, body, H) {
   const xc = full ? circ / 2 : labelW / 2;
   const fw = Math.min(labelW, p.D * 0.84);
   return {
-    kind: 'wrap', body, r, H, labelH, labelY, labelW, circ, overlap, xc,
+    kind: 'wrap', body, r, H, labelH, labelY, labelW, circ, overlap, xc, lidH: p.lidH,
     panels: [
       { id: 'label', name: 'Label', pts: rect(0, 0, labelW, labelH) },
       ...(overlap > 0 ? [{ id: 'overlap', name: 'Glue', glue: true, pts: rect(labelW, 0, overlap, labelH), parent: 'label', hinge: [[labelW, 0], [labelW, labelH]], angle: 0 }] : []),
@@ -127,6 +132,39 @@ function pouch(p, gusset) {
     creases: G ? [[[0, H + G / 2], [W, H + G / 2]]] : [],
     front: { rect: [0, fy, W, H - topSeal], up: [0, 1] },
   };
+}
+
+// Gusseted paper bag: front, gusset, back, gusset + glue, a folded bottom and
+// (for shopping bags) a turned-over top band with rope handles.
+function paperBag(p, shopping) {
+  const { L, W, H, glue } = p, T = shopping ? p.turn : 0;
+  const x = [0, L, L + W, 2 * L + W, 2 * L + 2 * W], widths = [L, W, L, W];
+  const names = ['Front', 'Gusset', 'Back', 'Gusset'], panels = [], creases = [], zones = [], guides = [];
+  const f1 = W / 2 + 12;
+  widths.forEach((w, i) => {
+    const x0 = x[i], major = i % 2 === 0;
+    panels.push({ id: 'p' + i, name: names[i], pts: rect(x0, 0, w, H),
+      ...(i ? { parent: 'p' + (i - 1), hinge: [[x0, 0], [x0, H]], angle: 90, seq: i } : {}) });
+    const fh = major ? f1 : W / 2;
+    panels.push({ id: 'b' + i, name: 'Bottom', pts: rect(x0, -fh, w, fh), parent: 'p' + i, hinge: [[x0, 0], [x0 + w, 0]],
+      angle: 90, layer: i === 0 ? 0 : i === 2 ? 1 : 2, seq: i === 0 ? 7 : i === 2 ? 6 : 5 });
+    if (T) panels.push({ id: 't' + i, name: 'Turn-over', pts: rect(x0, H, w, T), parent: 'p' + i, hinge: [[x0, H], [x0 + w, H]], angle: 180, layer: 1, seq: 0 });
+    if (!major) {
+      const c = x0 + w / 2;
+      creases.push([[c, 0], [c, H]], [[x0, 0], [c, W / 2]], [[x0 + w, 0], [c, W / 2]]);
+    }
+  });
+  panels.push({ id: 'glue', name: 'Glue', glue: true, pts: glueFlap(0, 0, H, glue), parent: 'p0', hinge: [[0, 0], [0, H]], angle: 90, layer: 1, seq: 0 });
+  const extras = [];
+  if (shopping) {
+    const hw = Math.min(L * 0.38, 110), hh = Math.min(hw * 0.75, 90), y = H - Math.min(T * 0.6, 28);
+    for (const [panel, cx] of [['p0', L / 2], ['p2', x[2] + L / 2]]) {
+      extras.push({ type: 'handle', panel, cx, y, w: hw, h: hh });
+      zones.push(rect(cx - hw / 2 - 6, H - T, 12, T), rect(cx + hw / 2 - 6, H - T, 12, T)); // handle patches
+    }
+    guides.push({ seg: [[0, H - T], [L, H - T]], label: 'Handle patch' });
+  }
+  return { panels, creases, zones, guides, extras, orient: 'tube', front: { panel: 'p0', up: [0, 1] } };
 }
 
 // ---------- templates ----------
@@ -343,6 +381,59 @@ export const TEMPLATES = [
     ],
     dims: ['W', 'H'], material: 'film',
     build: (p) => pouch({ ...p, G: 0, zip: 0 }, false),
+  },
+  {
+    id: 'shopbag', category: 'bags', name: 'Shopping bag with handles',
+    desc: 'Gusseted paper carry bag with turn-over top and twisted rope handles.',
+    keywords: ['bag', 'shopping bag', 'carry bag', 'paper bag', 'gift bag', 'tote', 'handle', 'boutique', 'retail bag'],
+    params: [
+      P('L', 'Width', 260, 120, 600), P('W', 'Gusset', 120, 50, 250), P('H', 'Height', 330, 150, 600),
+      P('turn', 'Turn-over top', 40, 20, 80, { adv: true }), P('glue', 'Glue flap', 20, 12, 40, { adv: true }),
+    ],
+    dims: ['L', 'W', 'H'], material: 'kraftpaper',
+    build: (p) => paperBag(p, true),
+  },
+  {
+    id: 'sosbag', category: 'bags', name: 'SOS food bag',
+    desc: 'Flat-bottom paper bag for bakeries, takeaway and groceries. No handles.',
+    keywords: ['sos', 'food bag', 'bakery bag', 'flat bottom bag', 'takeaway', 'grocery bag', 'lunch bag', 'bread bag'],
+    params: [
+      P('L', 'Width', 150, 80, 400), P('W', 'Gusset', 90, 40, 200), P('H', 'Height', 280, 120, 500),
+      P('glue', 'Glue flap', 18, 12, 40, { adv: true }),
+    ],
+    dims: ['L', 'W', 'H'], material: 'kraftpaper',
+    build: (p) => paperBag(p, false),
+  },
+  {
+    id: 'squeeze', category: 'tubes', name: 'Squeeze tube',
+    desc: 'Cosmetic or pharma tube with crimp seal and flip-top cap. Creams, gels, toothpaste.',
+    keywords: ['tube', 'squeeze', 'cream', 'toothpaste', 'lotion', 'cosmetic tube', 'gel', 'ointment', 'face wash', 'sunscreen'],
+    params: [
+      P('D', 'Diameter', 35, 13, 60), P('L', 'Tube length', 140, 50, 250),
+      P('crimp', 'Crimp seal', 8, 4, 15, { adv: true }),
+    ],
+    dims: ['D', 'L'], material: 'laminate',
+    build: (p) => {
+      const r = p.D / 2, C = Math.PI * p.D, { L, crimp } = p;
+      return {
+        kind: 'tube', r, L, C, crimp,
+        panels: [{ id: 'sleeve', name: 'Tube print', pts: rect(0, 0, C, L) }],
+        zones: [rect(0, L - crimp, C, crimp)],
+        guides: [{ seg: [[C - 12, L - crimp - 6], [C - 4, L - crimp - 6]], label: '' }, { seg: [[0, L - crimp], [C, L - crimp]], label: 'Crimp line' }],
+        front: { rect: [C / 2 - p.D * 0.42, 6, p.D * 0.84, L - crimp - 12], up: [0, 1] },
+      };
+    },
+  },
+  {
+    id: 'papertube', category: 'tubes', name: 'Paper tube',
+    desc: 'Kraft cylinder box with lid for tea, candles, apparel and gifts.',
+    keywords: ['paper tube', 'cylinder box', 'poster tube', 'kraft tube', 'canister', 'round box', 'cylinder'],
+    params: [
+      P('D', 'Diameter', 75, 30, 200), P('H', 'Height', 150, 50, 500),
+      P('lidH', 'Lid height', 30, 10, 80, { adv: true }), P('overlap', 'Glue overlap', 10, 0, 30, { adv: true }),
+    ],
+    dims: ['D', 'H'], material: 'kraft',
+    build: (p) => wrap({ ...p, cover: 100, labelY: 3, labelH: p.H }, 'papertube', p.H),
   },
   {
     id: 'bottle', category: 'bottles', name: 'Bottle label',
