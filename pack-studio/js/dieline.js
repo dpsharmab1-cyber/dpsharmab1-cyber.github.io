@@ -2,7 +2,7 @@
 
 import { panelLabels } from './engine.js';
 
-export const INK = { cut: '#e6007e', crease: '#0a84ff', bleed: '#16a34a', glue: '#f59e0b' };
+export const INK = { cut: '#e6007e', crease: '#0a84ff', bleed: '#16a34a', glue: '#f59e0b', seal: '#8b5cf6', guide: '#64748b' };
 
 const f = (n) => +n.toFixed(3);
 
@@ -15,7 +15,7 @@ export function dielineSVG(model, { art = null, screen = false, labels = true } 
 
   const out = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ${screen ? '' : `width="${f(b.w)}mm" height="${f(b.h)}mm" `}viewBox="0 0 ${f(b.w)} ${f(b.h)}">`);
-  out.push(`<defs><pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="${INK.glue}" stroke-width="0.6" opacity="0.6"/></pattern></defs>`);
+  out.push(`<defs><pattern id="hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3" stroke="${INK.glue}" stroke-width="0.6" opacity="0.6"/></pattern><pattern id="hatchSeal" width="2.5" height="2.5" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)"><line x1="0" y1="0" x2="0" y2="2.5" stroke="${INK.seal}" stroke-width="0.5" opacity="0.55"/></pattern></defs>`);
   if (!screen) out.push(`<title>${esc(model.tpl.name)} dieline, 1:1, millimetres</title>`);
 
   if (art) {
@@ -30,6 +30,11 @@ export function dielineSVG(model, { art = null, screen = false, labels = true } 
   const glue = model.panels.filter((q) => q.glue);
   if (glue.length) out.push(`<g id="Glue" stroke="none">${glue.map((q) => `<polygon points="${poly(q.pts)}" fill="url(#hatch)"/>`).join('')}</g>`);
 
+  if (model.zones.length) out.push(`<g id="Seal" stroke="${INK.seal}" ${sw(0.1, 0.6)} fill="url(#hatchSeal)">${model.zones.map((p) => `<polygon points="${poly(p)}"/>`).join('')}</g>`);
+  if (model.guides.length) {
+    out.push(`<g id="Guides" fill="none" stroke="${INK.guide}" ${sw(0.2, 1)} stroke-dasharray="${screen ? '6 3 1 3' : '4 1.5 0.8 1.5'}"><path d="${segPath(model.guides.map((g) => g.seg))}"/></g>`);
+    out.push(`<g id="GuideLabels" fill="${INK.guide}" font-family="Helvetica, Arial, sans-serif" font-size="3">${model.guides.filter((g) => g.label).map((g) => `<text x="${X(Math.max(g.seg[0][0], g.seg[1][0]) + 1.5)}" y="${Y(g.seg[0][1]) - 1}">${esc(g.label)}</text>`).join('')}</g>`);
+  }
   out.push(`<g id="CutContour" fill="none" stroke="${INK.cut}" ${sw(0.25, 1.4)} stroke-linecap="round"><path d="${segPath(model.cut)}"/></g>`);
   out.push(`<g id="Crease" fill="none" stroke="${INK.crease}" ${sw(0.25, 1.2)} stroke-dasharray="${screen ? '3 2' : '3 1.5'}"><path d="${segPath(model.crease)}"/></g>`);
 

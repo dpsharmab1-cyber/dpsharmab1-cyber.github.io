@@ -18,7 +18,7 @@ export function compile(tpl, values, material) {
 
   const hinges = panels.filter((q) => q.hinge).map((q) => q.hinge);
   const cut = dedupeSegments(panels.flatMap((q) => edges(q.pts).flatMap((e) => subtractSegments(e, hinges))));
-  const crease = panels.filter((q) => q.hinge && q.angle !== 0).map((q) => q.hinge);
+  const crease = [...panels.filter((q) => q.hinge && q.angle !== 0).map((q) => q.hinge), ...(spec.creases || [])];
   const bleed = panels.map((q) => offset(q.pts, BLEED));
   const net = bounds(panels.map((q) => q.pts));
   const art = bounds(bleed);
@@ -34,6 +34,7 @@ export function compile(tpl, values, material) {
 
   return {
     tpl, values: p, material, spec, panels, byId, cut, crease, bleed, net, art, frontRect,
+    zones: (spec.zones || []).map(ccw), guides: spec.guides || [],
     kind: spec.kind || 'net',
     orient: spec.orient || 'tube',
     maxSeq: Math.max(0, ...panels.map((q) => q.seq)),
