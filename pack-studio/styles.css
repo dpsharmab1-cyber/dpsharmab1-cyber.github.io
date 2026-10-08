@@ -101,6 +101,9 @@ h2, h3 { margin: 0; }
 .sw.cut { border-color: #e6007e; }
 .sw.crease { border-color: #0a84ff; border-top-style: dashed; }
 .sw.bleed { border-color: #16a34a; border-top-style: dotted; }
+.sw.seal { height: 9px; border: 1px solid #8b5cf6; background: repeating-linear-gradient(-45deg, #8b5cf6 0 1px, transparent 1px 3.5px); }
+.sw.guide { border-color: #64748b; border-top-style: dashed; }
+.legend [hidden] { display: none; }
 .sw.glue { height: 9px; border: 0; background: repeating-linear-gradient(45deg, #f59e0b 0 1.5px, transparent 1.5px 4px); }
 .check { margin-left: auto; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
 .pane-btn { position: absolute; top: 10px; right: 10px; border: 1px solid var(--line); background: var(--panel); border-radius: 9px; padding: 5px 10px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow); }

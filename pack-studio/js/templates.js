@@ -14,14 +14,18 @@ export const MATERIALS = {
   eflute: { name: 'E-flute corrugated',  t: 1.6,  inside: '#c79f70', edge: '#a9845a' },
   bflute: { name: 'B-flute corrugated',  t: 3.0,  inside: '#c79f70', edge: '#a9845a' },
   paper:  { name: 'Label paper',         t: 0.1,  inside: '#f7f7f4', edge: '#dddddd' },
+  film:   { name: 'Metallised film (PET/PE)', t: 0.12, inside: '#c9cdd2', edge: '#b4b8bd' },
+  kraftfilm: { name: 'Kraft paper laminate', t: 0.15, inside: '#c9a27e', edge: '#a8835e' },
 };
 
 export const CATEGORIES = [
   { id: 'cartons',  name: 'Folding cartons' },
   { id: 'mailers',  name: 'Mailers & shipping' },
   { id: 'trays',    name: 'Trays & sleeves' },
+  { id: 'pouches',  name: 'Pouches & bags' },
+  { id: 'bottles',  name: 'Bottles & jars' },
   { id: 'labels',   name: 'Labels & wraps' },
-  { id: 'soon',     name: 'Coming next', soon: ['Pouches & bags', 'Bottles & jars', 'Tubes', 'Displays & POS', 'Cups & food'] },
+  { id: 'soon',     name: 'Coming next', soon: ['Tubes', 'Paper bags', 'Displays & POS', 'Cups & food'] },
 ];
 
 const P = (k, label, def, min, max, extra = {}) => ({ k, label, def, min, max, step: 1, unit: 'mm', adv: false, ...extra });
@@ -70,6 +74,59 @@ function dedupe(pts) {
     const q = pts[(i + 1) % pts.length];
     return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6;
   });
+}
+
+// Wrap-around label on a turned container (can, bottle, jar). The 3D body is a lathe profile.
+function wrap(p, body, H) {
+  const r = p.D / 2, circ = Math.PI * p.D;
+  const full = p.cover >= 100;
+  // keep the label on the straight part of the body
+  const maxTop = body === 'bottle' ? H * 0.62 : body === 'jar' ? H - 14 : H - 2;
+  const labelH = Math.max(10, Math.min(p.labelH, maxTop - 2));
+  const labelY = Math.max(1, Math.min(p.labelY, maxTop - labelH));
+  const labelW = full ? circ : circ * (p.cover / 100);
+  const overlap = full ? p.overlap : 0;
+  const xc = full ? circ / 2 : labelW / 2;
+  const fw = Math.min(labelW, p.D * 0.84);
+  return {
+    kind: 'wrap', body, r, H, labelH, labelY, labelW, circ, overlap, xc,
+    panels: [
+      { id: 'label', name: 'Label', pts: rect(0, 0, labelW, labelH) },
+      ...(overlap > 0 ? [{ id: 'overlap', name: 'Glue', glue: true, pts: rect(labelW, 0, overlap, labelH), parent: 'label', hinge: [[labelW, 0], [labelW, labelH]], angle: 0 }] : []),
+    ],
+    front: { rect: [xc - fw / 2, 0, fw, labelH], up: [0, 1] }, // the part facing the viewer
+  };
+}
+
+// Flexible pouch printed as one web: front, (gusset), back. The back sits upside
+// down on the print, exactly as it does on a real pouch film layout.
+function pouch(p, gusset) {
+  const { W, H, seal, topSeal } = p, G = gusset ? p.G : 0;
+  const fy = H + G; // front panel bottom
+  const panels = [
+    { id: 'front', name: 'Front', pts: rect(0, fy, W, H) },
+    ...(G ? [{ id: 'gusset', name: 'Bottom gusset', pts: rect(0, H, W, G), parent: 'front', hinge: [[0, fy], [W, fy]], angle: 180 }] : []),
+    { id: 'back', name: 'Back', pts: rect(0, 0, W, H), parent: G ? 'gusset' : 'front', hinge: [[0, H], [W, H]], angle: 180 },
+  ];
+  const zones = [
+    rect(0, fy, seal, H), rect(W - seal, fy, seal, H), rect(0, fy + H - topSeal, W, topSeal),
+    rect(0, 0, seal, H), rect(W - seal, 0, seal, H), rect(0, 0, W, topSeal),
+    ...(G ? [rect(0, H, seal, G), rect(W - seal, H, seal, G)] : []),
+  ];
+  const guides = [];
+  if (p.zip) {
+    guides.push({ seg: [[seal, fy + H - p.zip], [W - seal, fy + H - p.zip]], label: 'Zipper' });
+    guides.push({ seg: [[seal, p.zip], [W - seal, p.zip]], label: 'Zipper' });
+  }
+  const notch = Math.max(topSeal + 4, (p.zip || topSeal * 3) * 0.55);
+  for (const y of [fy + H - notch, notch]) {
+    guides.push({ seg: [[0, y], [seal, y]], label: 'Tear notch' }, { seg: [[W - seal, y], [W, y]], label: '' });
+  }
+  return {
+    kind: 'pouch', W, H, G, seal, topSeal, panels, zones, guides,
+    creases: G ? [[[0, H + G / 2], [W, H + G / 2]]] : [],
+    front: { rect: [0, fy, W, H - topSeal], up: [0, 1] },
+  };
 }
 
 // ---------- templates ----------
@@ -265,25 +322,62 @@ export const TEMPLATES = [
     },
   },
   {
-    id: 'canlabel', category: 'labels', name: 'Can & jar label',
-    desc: 'Wrap-around label sized from the container diameter, with glue overlap.',
-    keywords: ['label', 'can', 'jar', 'bottle', 'wrap', 'tin', 'beverage', 'sticker'],
+    id: 'standup', category: 'pouches', name: 'Stand-up pouch',
+    desc: 'Doypack with bottom gusset, zipper and tear notch. Coffee, snacks, pet food.',
+    keywords: ['pouch', 'stand up', 'stand-up', 'standup', 'doypack', 'zipper bag', 'coffee bag', 'snack', 'pet food', 'granola'],
+    params: [
+      P('W', 'Width', 140, 60, 400), P('H', 'Height', 220, 80, 500), P('G', 'Bottom gusset', 80, 20, 200),
+      P('seal', 'Side seal', 6, 3, 15, { adv: true }), P('topSeal', 'Top seal', 12, 5, 30, { adv: true }),
+      P('zip', 'Zipper from top', 32, 15, 80, { adv: true }),
+    ],
+    dims: ['W', 'H', 'G'], material: 'film',
+    build: (p) => pouch(p, true),
+  },
+  {
+    id: 'sachet', category: 'pouches', name: 'Flat pouch (3-side seal)',
+    desc: 'Sachets and pillow packs for samples, spices, sheet masks and tea.',
+    keywords: ['sachet', 'flat pouch', '3 side', 'three side', 'pillow pack', 'sample', 'spice', 'sheet mask', 'packet'],
+    params: [
+      P('W', 'Width', 100, 30, 300), P('H', 'Height', 140, 40, 400),
+      P('seal', 'Side seal', 6, 3, 15, { adv: true }), P('topSeal', 'Top seal', 8, 4, 25, { adv: true }),
+    ],
+    dims: ['W', 'H'], material: 'film',
+    build: (p) => pouch({ ...p, G: 0, zip: 0 }, false),
+  },
+  {
+    id: 'bottle', category: 'bottles', name: 'Bottle label',
+    desc: 'Front or full-wrap label on a beverage, sauce, oil or wine bottle.',
+    keywords: ['bottle', 'wine', 'beer', 'sauce', 'oil', 'kombucha', 'juice', 'cold brew'],
+    params: [
+      P('D', 'Bottle diameter', 72, 30, 140), P('bottleH', 'Bottle height', 240, 120, 400),
+      P('labelH', 'Label height', 90, 20, 200), P('cover', 'Wrap coverage', 60, 20, 100, { unit: '%' }),
+      P('labelY', 'Label from base', 35, 0, 150, { adv: true }), P('overlap', 'Glue overlap', 8, 0, 30, { adv: true }),
+    ],
+    dims: ['D', 'bottleH'], material: 'paper',
+    build: (p) => wrap(p, 'bottle', p.bottleH),
+  },
+  {
+    id: 'jar', category: 'bottles', name: 'Jar label',
+    desc: 'Wrap label for honey, pickle, jam, candle and spread jars with a screw lid.',
+    keywords: ['jar', 'honey', 'pickle', 'candle jar', 'spread', 'jam', 'ghee'],
+    params: [
+      P('D', 'Jar diameter', 85, 30, 200), P('jarH', 'Jar height', 100, 40, 250),
+      P('labelH', 'Label height', 55, 15, 200), P('cover', 'Wrap coverage', 100, 20, 100, { unit: '%' }),
+      P('labelY', 'Label from base', 16, 0, 120, { adv: true }), P('overlap', 'Glue overlap', 8, 0, 30, { adv: true }),
+    ],
+    dims: ['D', 'jarH'], material: 'paper',
+    build: (p) => wrap(p, 'jar', p.jarH),
+  },
+  {
+    id: 'canlabel', category: 'labels', name: 'Can label',
+    desc: 'Full wrap label for beverage and food cans, with glue overlap.',
+    keywords: ['label', 'can', 'tin', 'beverage', 'soda', 'sticker'],
     params: [
       P('D', 'Diameter', 66, 20, 300), P('canH', 'Container height', 122, 30, 400),
       P('labelH', 'Label height', 96, 10, 380), P('overlap', 'Glue overlap', 8, 0, 30, { adv: true }),
     ],
     dims: ['D', 'canH'], material: 'paper',
-    build: (p) => {
-      const labelH = Math.min(p.labelH, p.canH - 4), circ = Math.PI * p.D;
-      return {
-        kind: 'wrap', r: p.D / 2, canH: p.canH, labelH, circ, overlap: p.overlap,
-        panels: [
-          { id: 'label', name: 'Label', pts: rect(0, 0, circ, labelH) },
-          ...(p.overlap > 0 ? [{ id: 'overlap', name: 'Glue', glue: true, pts: rect(circ, 0, p.overlap, labelH), parent: 'label', hinge: [[circ, 0], [circ, labelH]], angle: 0 }] : []),
-        ],
-        front: { rect: [circ / 2 - p.D * 0.42, 0, p.D * 0.84, labelH], up: [0, 1] }, // the part facing the viewer
-      };
-    },
+    build: (p) => wrap({ ...p, cover: 100, labelY: (p.canH - Math.min(p.labelH, p.canH - 4)) / 2 }, 'can', p.canH),
   },
 ];
 

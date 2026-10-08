@@ -48,8 +48,9 @@
         <div class="pane pane-2d" id="view2d">
           <div class="svg-host" id="svgHost"></div>
           <div class="legend">
-            <span><i class="sw cut"></i>Cut</span><span><i class="sw crease"></i>Crease</span>
-            <span><i class="sw bleed"></i>Bleed 3 mm</span><span><i class="sw glue"></i>Glue</span>
+            <span><i class="sw cut"></i>Cut</span><span data-k="crease"><i class="sw crease"></i>Crease</span>
+            <span><i class="sw bleed"></i>Bleed 3 mm</span><span data-k="glue"><i class="sw glue"></i>Glue</span>
+            <span data-k="seal"><i class="sw seal"></i>Heat seal</span><span data-k="guide"><i class="sw guide"></i>Zipper / notch</span>
             <label class="check"><input type="checkbox" id="showArt" checked> Artwork</label>
           </div>
           <button type="button" class="pane-btn" id="fit2d" title="Fit dieline">Fit</button>
@@ -73,7 +74,7 @@
       </section>
 
       <section class="card">
-        <h3>Size <span class="muted small">inner dimensions</span></h3>
+        <h3>Size <span class="muted small">finished dimensions</span></h3>
         <div id="dims" class="fields"></div>
         <details class="adv">
           <summary>Advanced structure</summary>

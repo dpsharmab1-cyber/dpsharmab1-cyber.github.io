@@ -75,6 +75,7 @@ export class Viewer {
     this.edgeMat.color.set(model.material.edge);
     this.eps = Math.max(0.3, model.material.t);
     if (model.kind === 'wrap') this.buildWrap(model);
+    else if (model.kind === 'pouch') this.buildPouch(model);
     else this.buildNet(model);
     this.placeOnGround(refit);
     this.setFold(this.fold);
@@ -113,17 +114,9 @@ export class Viewer {
 
   buildWrap(model) {
     const s = model.spec, r = s.r;
-    const metal = new T.MeshStandardMaterial({ color: 0xd5d9de, metalness: 1, roughness: 0.32 });
-    const body = new T.Mesh(new T.CylinderGeometry(r, r, s.canH, 72, 1, true), metal);
-    body.position.y = s.canH / 2;
-    const capGeo = new T.CircleGeometry(r, 72);
-    const top = new T.Mesh(capGeo, new T.MeshStandardMaterial({ color: 0xc4c9cf, metalness: 1, roughness: 0.25 }));
-    top.rotation.x = -Math.PI / 2; top.position.y = s.canH;
-    const rim = new T.Mesh(new T.TorusGeometry(r - 0.8, 1.2, 12, 72), metal);
-    rim.rotation.x = Math.PI / 2; rim.position.y = s.canH;
-    for (const m of [body, top, rim]) { m.castShadow = true; this.root.add(m); }
+    for (const m of containerMeshes(s)) { m.castShadow = true; this.root.add(m); }
 
-    const W = s.circ + s.overlap, segs = 120;
+    const W = s.labelW + s.overlap, segs = 120;
     const geo = new T.PlaneGeometry(W, s.labelH, segs, 1);
     const pos = geo.attributes.position, uv = geo.attributes.uv, flat = [];
     for (let i = 0; i < pos.count; i++) {
@@ -132,12 +125,80 @@ export class Viewer {
       uv.setXY(i, (x - model.art.minX) / model.art.w, (y - model.art.minY) / model.art.h);
     }
     const label = new T.Group();
-    label.position.y = (s.canH - s.labelH) / 2;
+    label.position.y = s.labelY;
     const front = new T.Mesh(geo, this.frontMat), back = new T.Mesh(geo, this.backMat);
     front.castShadow = true;
     label.add(front, back);
     this.root.add(label);
-    this.wrap = { geo, flat, r, circ: s.circ };
+    this.wrap = { geo, flat, r, xc: s.xc, seam: s.labelW };
+  }
+
+  // Pouch surfaces as grids. Each vertex knows its spot on the flat film and on
+  // the filled pouch; the fold slider morphs between the two.
+  buildPouch(model) {
+    const s = model.spec, { W, H, G, seal, topSeal } = s;
+    const dmax = G ? G / 2 : Math.min(W, H) * 0.09;
+    const sideS = (u) => Math.pow(Math.sin(Math.PI * Math.min(1, Math.max(0, (u * W - seal) / (W - 2 * seal)))), 0.55);
+    const topR = 1 - topSeal / H;
+    const prof = (r) => {
+      if (r >= topR) return 0;
+      const k = r / topR;
+      if (G) return Math.pow(Math.cos(k * Math.PI / 2), 0.7) * (0.82 + 0.18 * (1 - k));
+      return Math.pow(Math.sin(Math.PI * k), 0.6);
+    };
+    const pinch = (u, r) => 1 - 0.06 * sideS(u) * prof(r);
+    const surfaces = [];
+    const NX = 36, NY = 44, NQ = 10;
+    const grid = (nu, nv, fn, flip) => {
+      const flatPts = [], target = [], side = [];
+      for (let j = 0; j <= nv; j++) for (let i = 0; i <= nu; i++) {
+        const o = fn(i / nu, j / nv);
+        flatPts.push(o.flat); target.push(o.target); side.push(o.side);
+      }
+      const idx = [];
+      for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+        const a = j * (nu + 1) + i, b = a + 1, c = a + nu + 1, d = c + 1;
+        if (flip) idx.push(a, c, b, b, c, d); else idx.push(a, b, c, b, d, c);
+      }
+      const geo = new T.BufferGeometry();
+      geo.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(flatPts.length * 3), 3));
+      geo.setAttribute('uv', new T.Float32BufferAttribute(flatPts.flatMap(([x, y]) => [(x - model.art.minX) / model.art.w, (y - model.art.minY) / model.art.h]), 2));
+      geo.setIndex(idx);
+      surfaces.push({ geo, flatPts, target, side });
+    };
+    // front: u across, v = r (bottom → top)
+    grid(NX, NY, (u, r) => ({ flat: [u * W, H + G + r * H], target: [(u - 0.5) * W * pinch(u, r), r * H, 0.3 + dmax * sideS(u) * prof(r)], side: 1 }), false);
+    // back: same surface mirrored behind; on the film it runs from the gusset downward
+    grid(NX, NY, (u, r) => ({ flat: [u * W, H - r * H], target: [(u - 0.5) * W * pinch(u, r), r * H, -0.3 - dmax * sideS(u) * prof(r)], side: -1 }), true);
+    if (G) {
+      grid(NX, NQ, (u, q) => ({
+        flat: [u * W, H + q * G],
+        target: [(u - 0.5) * W * pinch(u, 0), G * 0.1 * Math.sin(Math.PI * q) * sideS(u), (2 * q - 1) * dmax * sideS(u) * prof(0)],
+        side: -0.5,
+      }), false);
+    }
+    for (const sf of surfaces) {
+      const front = new T.Mesh(sf.geo, this.frontMat), back = new T.Mesh(sf.geo, this.backMat);
+      front.castShadow = back.castShadow = true;
+      this.root.add(front, back);
+    }
+    this.pouch = { surfaces, H, W, lift: H * 0.28 };
+  }
+
+  morphPouch(t) {
+    const { surfaces, W, lift } = this.pouch;
+    const e = t * t * (3 - 2 * t), arc = Math.sin(Math.PI * e) * lift;
+    for (const sf of surfaces) {
+      const pos = sf.geo.attributes.position;
+      for (let i = 0; i < sf.flatPts.length; i++) {
+        const [fx, fy] = sf.flatPts[i], [tx, ty, tz] = sf.target[i];
+        pos.setXYZ(i, (fx - W / 2) * (1 - e) + tx * e, fy * (1 - e) + ty * e, tz * e + sf.side[i] * arc);
+      }
+      pos.needsUpdate = true;
+      sf.geo.computeVertexNormals();
+      sf.geo.computeBoundingSphere();
+      sf.geo.computeBoundingBox();
+    }
   }
 
   placeOnGround(refit) {
@@ -186,6 +247,7 @@ export class Viewer {
     const m = this.model;
     if (!m) return;
     if (m.kind === 'wrap') return this.bendWrap(t);
+    if (m.kind === 'pouch') return this.morphPouch(t);
     const R = new T.Matrix4(), A = new T.Matrix4(), B = new T.Matrix4(), L = new T.Matrix4(), axis = new T.Vector3();
     for (const { q, node } of this.nodes) {
       const mat = node.matrix.identity();
@@ -206,11 +268,11 @@ export class Viewer {
   }
 
   bendWrap(t) {
-    const { geo, flat, r, circ } = this.wrap;
-    const pos = geo.attributes.position, xc = circ / 2, k = Math.max(1e-5, t) / r;
+    const { geo, flat, r, xc, seam } = this.wrap;
+    const pos = geo.attributes.position, k = Math.max(1e-5, t) / r;
     for (let i = 0; i < flat.length; i++) {
       const [x, y] = flat[i];
-      const rr = r + 0.35 + (x > circ ? 0.3 : 0);
+      const rr = r + 0.35 + (x > seam ? 0.3 : 0);
       if (t < 1e-4) { pos.setXYZ(i, x - xc, y, rr); continue; }
       const R = 1 / k + (rr - r), th = (x - xc) / R;
       pos.setXYZ(i, R * Math.sin(th), y, R * Math.cos(th) - R + rr);
@@ -248,6 +310,43 @@ export class Viewer {
       new T.GLTFExporter().parse(this.root, resolve, reject, { binary: true, onlyVisible: true });
     });
   }
+}
+
+// Turned container bodies from lathe profiles (radius, height).
+function containerMeshes(s) {
+  const { r, H } = s, V = (x, y) => new T.Vector2(Math.max(0, x), y), out = [];
+  if (s.body === 'can') {
+    const metal = new T.MeshStandardMaterial({ color: 0xd5d9de, metalness: 1, roughness: 0.32 });
+    const body = new T.Mesh(new T.CylinderGeometry(r, r, H, 72, 1, true), metal);
+    body.position.y = H / 2;
+    const top = new T.Mesh(new T.CircleGeometry(r, 72), new T.MeshStandardMaterial({ color: 0xc4c9cf, metalness: 1, roughness: 0.25 }));
+    top.rotation.x = -Math.PI / 2; top.position.y = H;
+    const rim = new T.Mesh(new T.TorusGeometry(r - 0.8, 1.2, 12, 72), metal);
+    rim.rotation.x = Math.PI / 2; rim.position.y = H;
+    out.push(body, top, rim);
+  } else if (s.body === 'bottle') {
+    const shoulder = Math.max(s.labelY + s.labelH + 6, H * 0.5), neckR = Math.max(9, r * 0.3), neck0 = Math.min(H * 0.8, shoulder + r * 1.4), capY = H * 0.9;
+    const pts = [V(0, 0), V(r - 3, 0), V(r, 3), V(r, shoulder)];
+    for (let i = 1; i <= 12; i++) {
+      const k = i / 12, e = (1 - Math.cos(Math.PI * k)) / 2;
+      pts.push(V(r + (neckR - r) * e, shoulder + (neck0 - shoulder) * k));
+    }
+    pts.push(V(neckR, capY + 1), V(neckR - 1.5, capY + 1), V(0.01, capY));
+    const glass = new T.MeshPhysicalMaterial({ color: 0x5a2a0c, roughness: 0.12, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.05 });
+    out.push(new T.Mesh(new T.LatheGeometry(pts, 72), glass));
+    const cap = new T.Mesh(new T.CylinderGeometry(neckR + 1.2, neckR + 1.2, H - capY, 48), new T.MeshStandardMaterial({ color: 0xb08d57, metalness: 0.9, roughness: 0.35 }));
+    cap.position.y = capY + (H - capY) / 2;
+    out.push(cap);
+  } else {
+    const lidH = Math.min(16, H * 0.16), neckY = H - lidH - 2;
+    const pts = [V(0, 0), V(r - 4, 0), V(r, 4), V(r, neckY - 4), V(r - 3, neckY), V(r - 3, H - lidH), V(0.01, H - lidH)];
+    const glass = new T.MeshPhysicalMaterial({ color: 0xe6eeec, roughness: 0.08, metalness: 0, clearcoat: 1, transparent: true, opacity: 0.5, depthWrite: false });
+    out.push(new T.Mesh(new T.LatheGeometry(pts, 72), glass));
+    const lid = new T.Mesh(new T.CylinderGeometry(r + 0.6, r + 0.6, lidH, 64), new T.MeshStandardMaterial({ color: 0x1f2a2e, metalness: 0.4, roughness: 0.4 }));
+    lid.position.y = H - lidH / 2;
+    out.push(lid);
+  }
+  return out;
 }
 
 function polyGeometry(pts, art) {

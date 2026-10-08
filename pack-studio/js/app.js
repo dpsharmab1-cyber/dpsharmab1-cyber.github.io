@@ -72,7 +72,7 @@ function selectTemplate(id, { fromHash = false } = {}) {
 
 function toUnit(p, mm) { return p.unit === 'mm' && state.units === 'in' ? +(mm / IN).toFixed(3) : mm; }
 function fromUnit(p, v) { return p.unit === 'mm' && state.units === 'in' ? v * IN : v; }
-function unitLabel(p) { return p.unit === '#' ? '' : state.units; }
+function unitLabel(p) { return p.unit === 'mm' ? state.units : p.unit === '#' ? '' : p.unit; }
 
 function buildParams() {
   const tpl = byId[state.tpl], vals = state.values[tpl.id];
@@ -192,7 +192,7 @@ function redrawArt() {
 function updateStats() {
   const v = model.values, tpl = model.tpl;
   const dims = tpl.dims.map((k) => fmtLen(v[k])).join(' × ');
-  $('#stats').innerHTML = `<b>${dims} ${state.units}</b> · flat ${fmtLen(model.art.w)} × ${fmtLen(model.art.h)} ${state.units} · ${model.boardArea.toFixed(3)} m² board · fits <b>${sheetFit(model)}</b>`;
+  $('#stats').innerHTML = `<b>${dims} ${state.units}</b> · flat ${fmtLen(model.art.w)} × ${fmtLen(model.art.h)} ${state.units} · ${model.boardArea.toFixed(3)} m² material · fits <b>${sheetFit(model)}</b>`;
 }
 
 function fmtLen(mm) { return state.units === 'in' ? (mm / IN).toFixed(2) : Math.round(mm * 10) / 10; }
@@ -204,6 +204,8 @@ function render2D() {
   const host = $('#svgHost');
   host.innerHTML = dielineSVG(model, { art: showArt ? art2D : null, screen: true, labels: !showArt });
   const svg = host.firstElementChild;
+  const has = { crease: model.crease.length, glue: model.panels.some((q) => q.glue), seal: model.zones.length, guide: model.guides.length };
+  document.querySelectorAll('.legend [data-k]').forEach((el) => (el.hidden = !has[el.dataset.k]));
   if (!vb || !userZoomed) fit2D();
   svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');

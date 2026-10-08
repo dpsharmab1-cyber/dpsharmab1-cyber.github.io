@@ -30,7 +30,7 @@ export function exportDXF(model) {
   const L = [];
   const add = (...kv) => { for (const x of kv) L.push(String(x)); };
   add(0, 'SECTION', 2, 'HEADER', 9, '$ACADVER', 1, 'AC1009', 9, '$INSUNITS', 70, 4, 0, 'ENDSEC');
-  const layers = [['CUT', 6], ['CREASE', 5], ['BLEED', 3]];
+  const layers = [['CUT', 6], ['CREASE', 5], ['BLEED', 3], ['SEAL', 200], ['GUIDE', 8]];
   add(0, 'SECTION', 2, 'TABLES', 0, 'TABLE', 2, 'LAYER', 70, layers.length);
   for (const [n, c] of layers) add(0, 'LAYER', 2, n, 70, 0, 62, c, 6, 'CONTINUOUS');
   add(0, 'ENDTAB', 0, 'ENDSEC', 0, 'SECTION', 2, 'ENTITIES');
@@ -39,6 +39,8 @@ export function exportDXF(model) {
   for (const [a, b] of model.cut) line('CUT', a, b);
   for (const [a, b] of model.crease) line('CREASE', a, b);
   for (const p of model.bleed) p.forEach((pt, i) => line('BLEED', pt, p[(i + 1) % p.length]));
+  for (const p of model.zones) p.forEach((pt, i) => line('SEAL', pt, p[(i + 1) % p.length]));
+  for (const g of model.guides) line('GUIDE', g.seg[0], g.seg[1]);
   add(0, 'ENDSEC', 0, 'EOF');
   return L.join('\n') + '\n';
 }
@@ -57,6 +59,10 @@ export function exportPDF(model, meta) {
   const c = [];
   c.push('q 0.3 w 0 0.6 0.25 RG [1.5 1.5] 0 d');
   for (const p of model.bleed) c.push(p.map(([x, y], i) => `${X(x)} ${Y(y)} ${i ? 'l' : 'm'}`).join(' ') + ' h S');
+  c.push('Q q 0.3 w 0.55 0.36 0.96 RG');
+  for (const p of model.zones) c.push(p.map(([x, y], i) => `${X(x)} ${Y(y)} ${i ? 'l' : 'm'}`).join(' ') + ' h S');
+  c.push('[3 1.5 0.8 1.5] 0 d 0.4 0.45 0.55 RG 0.5 w');
+  c.push(seg(model.guides.map((g) => g.seg)));
   c.push('Q q /CS1 CS 1 SCN 0.6 w [4 2.5] 0 d 1 J');
   c.push(seg(model.crease));
   c.push('Q q /CS0 CS 1 SCN 0.7 w 1 J 1 j');
