@@ -3,123 +3,188 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Pack Studio · prototype</title>
-  <meta name="description" content="Type your dimensions, get a print-ready dieline and a folding 3D mockup. SVG, PDF, DXF, GLB and PNG exports.">
+  <title>Pack Studio · Packaging dielines and 3D mockups in seconds</title>
+  <meta name="description" content="Type your size and get a print-ready dieline and a folding 3D mockup. Design on it, then export SVG, PDF, DXF, GLB and PNG. Boxes, mailers, pouches, bags, tubes, bottles and labels.">
   <meta name="robots" content="noindex">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 28 9.5v13L16 29 4 22.5v-13z' fill='%230f766e'/%3E%3Cpath d='M4 9.5 16 16l12-6.5M16 16v13' stroke='%23fff' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#13288a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232547d0'/%3E%3Cpath d='M16 6 25 11v10l-9 5-9-5V11z' fill='%23e5a912'/%3E%3Cpath d='M7 11l9 5 9-5M16 16v10' stroke='%232547d0' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/jakarta.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="assets/site.css">
+  <script>
+    // old share links pointed here with the design in the hash; send them to the studio
+    if (/[#&]t=/.test(location.hash)) location.replace('studio/' + location.hash);
+  </script>
 </head>
 <body>
-  <header class="top">
-    <a class="brand" href="./" aria-label="Pack Studio home">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3 28 9.5v13L16 29 4 22.5v-13z" fill="currentColor"/><path d="M4 9.5 16 16l12-6.5M16 16v13" stroke="var(--bg)" stroke-width="1.6" fill="none"/></svg>
-      <span>Pack Studio</span><em>Prototype</em>
-    </a>
-    <form class="ask" id="ask" autocomplete="off">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" fill="currentColor"/></svg>
-      <input id="askInput" type="text" aria-label="Describe your pack" placeholder="Describe it: “mailer box 250x180x70”, “hexagon box 8 sides”, “jar label 85 x 110”">
-      <button type="submit">Generate</button>
-    </form>
-    <div class="top-actions">
-      <div class="seg" id="units" role="group" aria-label="Units">
-        <button type="button" data-u="mm" aria-pressed="true">mm</button>
-        <button type="button" data-u="in" aria-pressed="false">in</button>
-      </div>
-      <button type="button" class="ghost" id="share">Copy link</button>
+  <header class="nav" id="nav">
+    <div class="wrap nav-in">
+      <a class="logo" href="./" aria-label="Pack Studio home">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2547d0"/><path d="M16 6 25 11v10l-9 5-9-5V11z" fill="#e5a912"/><path d="M7 11l9 5 9-5M16 16v10" stroke="#2547d0" stroke-width="1.6" fill="none"/></svg>
+        Pack Studio <em>Beta</em>
+      </a>
+      <nav class="links" aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#templates">Templates</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn btn-gold btn-sm" href="studio/">Open studio <i data-icon="arrow-right"></i></a>
+      <button class="menu" id="menuBtn" aria-label="Menu" aria-expanded="false"><i data-icon="menu"></i></button>
     </div>
   </header>
 
-  <main class="app">
-    <nav class="library" id="library" aria-label="Packaging templates"></nav>
-
-    <section class="stage" aria-label="Preview">
-      <div class="stage-bar">
-        <div class="seg" id="viewTabs" role="tablist" aria-label="View">
-          <button type="button" data-view="3d" role="tab">3D</button>
-          <button type="button" data-view="split" role="tab">Split</button>
-          <button type="button" data-view="2d" role="tab">Dieline</button>
+  <main>
+    <section class="hero">
+      <div class="wrap hero-in">
+        <div class="hero-copy">
+          <p class="pill"><i data-icon="sparkles"></i> Packaging design studio, now in beta</p>
+          <h1>From size to <span class="hl">print-ready</span> pack in seconds.</h1>
+          <p class="lead">Type your dimensions. Get a production dieline and a folding 3D mockup, design right on it, and export files your printer can cut. Boxes, mailers, pouches, bags, tubes, bottles and labels.</p>
+          <form class="ask" id="heroAsk" action="studio/" autocomplete="off">
+            <i data-icon="wand-sparkles"></i>
+            <input name="q" id="heroQ" type="text" aria-label="Describe your pack" placeholder="Try “mailer box 250x180x70”">
+            <button class="btn btn-gold" type="submit">Generate</button>
+          </form>
+          <ul class="ticks">
+            <li><i data-icon="check"></i> No sign-up</li>
+            <li><i data-icon="check"></i> Any size, not fixed templates</li>
+            <li><i data-icon="check"></i> SVG · PDF · DXF · GLB</li>
+          </ul>
         </div>
-        <p class="stats" id="stats"></p>
-      </div>
-      <div class="views" id="views" data-view="split">
-        <div class="pane pane-3d" id="view3d">
-          <button type="button" class="pane-btn" id="fit3d" title="Reset camera">Reset view</button>
-        </div>
-        <div class="pane pane-2d" id="view2d">
-          <div class="svg-host" id="svgHost"></div>
-          <div class="legend">
-            <span><i class="sw cut"></i>Cut</span><span data-k="crease"><i class="sw crease"></i>Crease</span>
-            <span><i class="sw bleed"></i>Bleed 3 mm</span><span data-k="glue"><i class="sw glue"></i>Glue</span>
-            <span data-k="seal"><i class="sw seal"></i>Heat seal</span><span data-k="guide"><i class="sw guide"></i>Zipper / notch</span>
-            <label class="check"><input type="checkbox" id="showArt" checked> Artwork</label>
+        <div class="hero-stage">
+          <div class="stage-card">
+            <div id="hero3d" class="hero3d" aria-label="Rotating 3D packaging preview"></div>
+            <div class="stage-foot">
+              <span class="dot"></span><b id="heroName">Mailer box</b>
+              <span class="muted" id="heroDims">250 × 180 × 70 mm</span>
+              <a href="studio/" id="heroOpen" class="mini">Customise <i data-icon="arrow-right"></i></a>
+            </div>
           </div>
-          <button type="button" class="pane-btn" id="fit2d" title="Fit dieline">Fit</button>
+          <div class="float f1"><i data-icon="scissors"></i> Cut &amp; crease lines</div>
+          <div class="float f2"><i data-icon="move-3d"></i> Folds in 3D</div>
         </div>
-      </div>
-      <div class="fold-bar">
-        <button type="button" class="play" id="play" aria-label="Play fold animation">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
-        </button>
-        <span class="fold-label">Flat</span>
-        <input type="range" id="fold" min="0" max="1" step="0.001" value="1" aria-label="Fold amount">
-        <span class="fold-label">Folded</span>
       </div>
     </section>
 
-    <aside class="inspector" aria-label="Settings">
-      <section class="card" id="tplCard">
-        <p class="eyebrow" id="tplCat"></p>
-        <h2 id="tplName"></h2>
-        <p class="muted" id="tplDesc"></p>
-      </section>
+    <section class="strip">
+      <div class="wrap strip-in">
+        <div><b>16</b><span>parametric templates</span></div>
+        <div><b>8</b><span>packaging categories</span></div>
+        <div><b>6</b><span>export formats</span></div>
+        <div><b>₹0</b><span>during beta</span></div>
+      </div>
+    </section>
 
-      <section class="card">
-        <h3>Size <span class="muted small">finished dimensions</span></h3>
-        <div id="dims" class="fields"></div>
-        <details class="adv">
-          <summary>Advanced structure</summary>
-          <div id="adv" class="fields"></div>
-        </details>
-      </section>
-
-      <section class="card">
-        <h3>Material</h3>
-        <div class="row">
-          <select id="material" aria-label="Material"></select>
-          <label class="thick">
-            <input type="number" id="thick" step="0.05" min="0.05" max="10" aria-label="Board thickness"><span>mm</span>
-          </label>
+    <section class="sec" id="features">
+      <div class="wrap">
+        <p class="eyebrow">Features</p>
+        <h2>Everything from the first idea to the print file.</h2>
+        <p class="sub">One engine builds the dieline, the 3D model and every export from your dimensions, so they always match.</p>
+        <div class="grid3">
+          <article class="feat"><span class="fi"><i data-icon="ruler"></i></span><h3>Any size, instantly</h3><p>Type millimetres or inches. Panels, flaps, tucks and glue tabs recalculate live, including board thickness.</p></article>
+          <article class="feat"><span class="fi"><i data-icon="box"></i></span><h3>Real folding 3D</h3><p>Watch the flat sheet fold into the finished pack, panel by panel. Pouches inflate, tubes crimp, labels wrap.</p></article>
+          <article class="feat"><span class="fi"><i data-icon="pen-tool"></i></span><h3>Artwork editor</h3><p>Place text and images on any panel. Drag, scale and rotate on the dieline and see it on the 3D model straight away.</p></article>
+          <article class="feat"><span class="fi"><i data-icon="printer"></i></span><h3>Print-ready files</h3><p>True-scale PDF with CutContour and Crease spot colours, DXF for cutting tables, SVG for Illustrator.</p></article>
+          <article class="feat"><span class="fi"><i data-icon="layers-3"></i></span><h3>Mockups to share</h3><p>Export a PNG render or a GLB 3D model, or send a link that opens your exact size and design.</p></article>
+          <article class="feat"><span class="fi"><i data-icon="zap"></i></span><h3>Fast and private</h3><p>Everything runs in your browser. Your artwork never leaves your computer, and it works on phones too.</p></article>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="card">
-        <h3>Design</h3>
-        <div class="swatches" id="swatches" role="radiogroup" aria-label="Print colour"></div>
-        <div class="chips" id="patterns" role="radiogroup" aria-label="Pattern"></div>
-        <label class="field"><span>Brand name</span><input type="text" id="brand" maxlength="32"></label>
-        <label class="field"><span>Tagline</span><input type="text" id="tagline" maxlength="48"></label>
-        <div class="uploads">
-          <label class="upload"><input type="file" id="logo" accept="image/*"><span id="logoLabel">Add logo</span><button type="button" class="clear" aria-label="Remove logo">×</button></label>
-          <label class="upload"><input type="file" id="art" accept="image/*"><span id="artLabel">Upload full artwork</span><button type="button" class="clear" aria-label="Remove artwork">×</button></label>
-        </div>
-        <p class="hint">Full artwork: download the dieline SVG, design on it at 1:1, export a PNG of the same artboard and upload it here. It maps straight onto the 3D model.</p>
-      </section>
+    <section class="sec alt" id="templates">
+      <div class="wrap">
+        <p class="eyebrow">Templates</p>
+        <h2>Pick a style. Set any size.</h2>
+        <p class="sub">Each template is a parametric model, not a fixed file, so one template covers every size you need.</p>
+        <div class="cats" id="cats" role="tablist" aria-label="Template categories"></div>
+        <div class="tgrid" id="tgrid"></div>
+      </div>
+    </section>
 
-      <section class="card">
-        <h3>Export</h3>
-        <div class="exports">
-          <button type="button" data-export="svg"><b>SVG</b><span>Dieline</span></button>
-          <button type="button" data-export="pdf"><b>PDF</b><span>Print 1:1</span></button>
-          <button type="button" data-export="dxf"><b>DXF</b><span>Cutting table</span></button>
-          <button type="button" data-export="glb"><b>GLB</b><span>3D model</span></button>
-          <button type="button" data-export="png"><b>PNG</b><span>Mockup render</span></button>
-          <button type="button" data-export="proof"><b>Proof</b><span>SVG + artwork</span></button>
+    <section class="sec" id="how">
+      <div class="wrap">
+        <p class="eyebrow">How it works</p>
+        <h2>Three steps to a pack you can print.</h2>
+        <div class="steps">
+          <div class="step"><span class="num">1</span><h3>Describe it</h3><p>Choose a style or just type “stand-up pouch 150x230x90”. The dieline appears with cut, crease, bleed and glue marks.</p></div>
+          <div class="step"><span class="num">2</span><h3>Design it</h3><p>Pick colours, add your logo, text and images on the panels, and check it folding in 3D from every angle.</p></div>
+          <div class="step"><span class="num">3</span><h3>Print it</h3><p>Download the 1:1 PDF or DXF for your printer and a mockup for your store, deck or social posts.</p></div>
         </div>
-      </section>
-    </aside>
+      </div>
+    </section>
+
+    <section class="sec alt">
+      <div class="wrap">
+        <p class="eyebrow">Who it's for</p>
+        <h2>Built for the people who make packaging happen.</h2>
+        <div class="grid3">
+          <article class="who"><i data-icon="shopping-bag"></i><h3>D2C brands</h3><p>Go from product idea to a pack you can show investors and order from a printer, without waiting on an agency.</p></article>
+          <article class="who"><i data-icon="printer"></i><h3>Printers and converters</h3><p>Send customers an accurate dieline and a 3D proof in minutes, and cut back-and-forth before production.</p></article>
+          <article class="who"><i data-icon="pen-tool"></i><h3>Designers</h3><p>Start every packaging job from a correct structure, then take the SVG into Illustrator for final artwork.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec" id="pricing">
+      <div class="wrap">
+        <p class="eyebrow">Pricing</p>
+        <h2>Simple, affordable pricing in rupees.</h2>
+        <p class="sub">Everything is free while we are in beta. These are the plans we intend to launch; they may change.</p>
+        <div class="plans">
+          <div class="plan">
+            <h3>Free</h3><p class="price">₹0</p><p class="muted">For trying ideas</p>
+            <ul><li><i data-icon="check"></i> All templates, any size</li><li><i data-icon="check"></i> Dieline SVG and PDF</li><li><i data-icon="check"></i> 3D preview and share links</li></ul>
+            <a class="btn btn-line" href="studio/">Start free</a>
+          </div>
+          <div class="plan featured">
+            <span class="tag">Most popular</span>
+            <h3>Pro</h3><p class="price">₹399<small>/month</small></p><p class="muted">For brands and freelancers</p>
+            <ul><li><i data-icon="check"></i> Everything in Free</li><li><i data-icon="check"></i> HD renders and GLB, no watermark</li><li><i data-icon="check"></i> Saved projects, commercial use</li><li><i data-icon="check"></i> DXF for cutting tables</li></ul>
+            <a class="btn btn-gold" href="studio/">Try it free in beta</a>
+          </div>
+          <div class="plan">
+            <h3>Business</h3><p class="price">₹999<small>/month</small></p><p class="muted">For printers and teams</p>
+            <ul><li><i data-icon="check"></i> Everything in Pro</li><li><i data-icon="check"></i> Team seats and shared library</li><li><i data-icon="check"></i> Your own branded configurator</li></ul>
+            <a class="btn btn-line" href="studio/">Try it free in beta</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec alt" id="faq">
+      <div class="wrap narrow">
+        <p class="eyebrow">FAQ</p>
+        <h2>Questions, answered.</h2>
+        <details><summary>Are the dielines accurate enough to print?</summary><p>They are drawn at true 1:1 scale with cut, crease, bleed and glue marks, and account for board thickness. We are still test-printing every template with partner printers, so ask your printer to check the file before a large run.</p></details>
+        <details><summary>Which file formats can I download?</summary><p>SVG and PDF dielines (PDF uses CutContour and Crease spot colours), DXF for CAD and cutting tables, GLB 3D models, PNG mockup renders, and an SVG proof with your artwork.</p></details>
+        <details><summary>Do I need to install anything or sign up?</summary><p>No. It runs in any modern browser on desktop or phone. Your designs stay on your device.</p></details>
+        <details><summary>Can I use my own artwork?</summary><p>Yes. Add text, logos and images on any panel with the artwork editor, or download the dieline, design it in your own tools at 1:1 and upload the full artwork back.</p></details>
+        <details><summary>What is coming next?</summary><p>Rigid boxes, displays and cups, saved projects, AI design suggestions, and ordering prints from partner printers.</p></details>
+      </div>
+    </section>
+
+    <section class="cta">
+      <div class="wrap cta-in">
+        <div>
+          <h2>Your next pack, ready to print today.</h2>
+          <p>Open the studio and have a dieline and 3D mockup in under a minute.</p>
+        </div>
+        <a class="btn btn-royal btn-lg" href="studio/">Open the studio <i data-icon="arrow-right"></i></a>
+      </div>
+    </section>
   </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js"></script>
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2547d0"/><path d="M16 6 25 11v10l-9 5-9-5V11z" fill="#e5a912"/><path d="M7 11l9 5 9-5M16 16v10" stroke="#2547d0" stroke-width="1.6" fill="none"/></svg> Pack Studio</a>
+      <nav aria-label="Footer"><a href="#features">Features</a><a href="#templates">Templates</a><a href="#pricing">Pricing</a><a href="studio/">Studio</a></nav>
+      <p class="muted small">© 2026 Pack Studio · Beta. Built with open source: three.js, Inter, Plus Jakarta Sans and Lucide icons.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="assets/site.js"></script>
 </body>
 </html>

@@ -11,8 +11,8 @@ export class Viewer {
     r.setPixelRatio(Math.min(devicePixelRatio, 2));
     r.shadowMap.enabled = true;
     r.shadowMap.type = T.PCFSoftShadowMap;
-    r.toneMapping = T.ACESFilmicToneMapping;
-    r.toneMappingExposure = 1.05;
+    r.toneMapping = 7; // THREE.NeutralToneMapping: keeps brand colours true (ACES washes blues out)
+    r.toneMappingExposure = 1.0;
     el.appendChild(r.domElement);
 
     this.scene = new T.Scene();
@@ -53,6 +53,12 @@ export class Viewer {
       if (this.controls.update() || this.dirty) { this.dirty = false; r.render(this.scene, this.camera); }
     };
     loop();
+  }
+
+  // On touch screens the canvas lets the page scroll until the user opts in to rotating.
+  setInteractive(on) {
+    this.controls.enabled = on;
+    this.renderer.domElement.style.touchAction = on ? 'none' : 'pan-y';
   }
 
   resize() {

@@ -1,11 +1,15 @@
 import { TEMPLATES, CATEGORIES, MATERIALS, byId, defaults } from './templates.js';
 import { compile, sheetFit } from './engine.js';
-import { dielineSVG, drawDesign, PATTERNS } from './dieline.js';
+import { dielineSVG, drawDesign, PATTERNS, contrastInk } from './dieline.js';
 import { exportSVG, exportPDF, exportDXF, download, fileBase } from './exporters.js';
 import { Viewer } from './viewer.js';
+import { Editor, newLayer, pinToPanel, panelAt, layerCenter, FONTS } from './editor.js';
+import { hydrateIcons, icon } from '../../assets/icons.js';
 
 const $ = (s) => document.querySelector(s);
-const SWATCHES = ['#f4efe6', '#ffffff', '#1b1d21', '#0f766e', '#e8553e', '#f2c14e', '#3a5ccc', '#c9a27e', '#f6c7d3'];
+const SWATCHES = ['#2547d0', '#e5a912', '#0b1a5c', '#ffffff', '#f4efe6', '#1b1d21', '#e8553e', '#2f9e6b', '#c9a27e', '#f6c7d3'];
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+const NARROW = () => matchMedia('(max-width: 900px)').matches;
 const IN = 25.4;
 
 const state = {
@@ -14,9 +18,10 @@ const state = {
   mat: null, thick: null,
   units: 'mm',
   view: matchMedia('(min-width: 1180px)').matches ? 'split' : '3d',
-  design: { color: '#0f766e', pattern: 'Solid', brand: 'Your Brand', tagline: 'Made with care', logo: null, art: null },
+  design: { color: '#2547d0', pattern: 'Solid', brand: 'Your Brand', tagline: 'Made with care', logo: null, art: null, layers: [] },
+  layersByTpl: {},     // artwork layers are kept per template
 };
-let model = null, viewer = null, showArt = true, vb = null, userZoomed = false;
+let model = null, viewer = null, editor = null, showArt = true, vb = null, userZoomed = false, activePanel = null;
 
 // ---------- library ----------
 
@@ -56,6 +61,9 @@ function selectTemplate(id, { fromHash = false } = {}) {
   const tpl = byId[id] || byId.rte;
   state.tpl = tpl.id;
   if (!state.values[tpl.id]) state.values[tpl.id] = defaults(tpl);
+  state.design.layers = state.layersByTpl[tpl.id] || (state.layersByTpl[tpl.id] = []);
+  activePanel = null;
+  editor?.select(null);
   if (!fromHash || !state.mat) { state.mat = tpl.material; state.thick = null; }
   document.querySelectorAll('.tpl').forEach((b) => b.setAttribute('aria-current', String(b.dataset.tpl === tpl.id)));
   $('#tplCat').textContent = CATEGORIES.find((c) => c.id === tpl.category).name;
@@ -185,8 +193,22 @@ let art2D = null;
 function redrawArt() {
   if (!model) return;
   viewer.setArtwork(drawDesign(model, state.design, 2048));
-  art2D = drawDesign(model, state.design, 1100).toDataURL('image/jpeg', 0.86);
+  // layers are drawn live on the dieline by the editor, so leave them out here
+  art2D = drawDesign(model, state.design, 1100, { layers: false }).toDataURL('image/jpeg', 0.86);
   render2D();
+}
+
+// 3D texture refresh while dragging layers: smaller canvas, at most once per frame
+let live3D = 0;
+function layersChanged(kind) {
+  if (kind === 'live') {
+    if (live3D) return;
+    live3D = requestAnimationFrame(() => { live3D = 0; viewer.setArtwork(drawDesign(model, state.design, 1024)); });
+  } else {
+    cancelAnimationFrame(live3D); live3D = 0;
+    viewer.setArtwork(drawDesign(model, state.design, 2048));
+    renderLayerPanel();
+  }
 }
 
 function updateStats() {
@@ -209,6 +231,8 @@ function render2D() {
   if (!vb || !userZoomed) fit2D();
   svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  if (activePanel) svg.querySelector(`#Hit [data-panel="${activePanel}"]`)?.classList.add('active');
+  editor.mount(svg);
 }
 
 function fit2D() {
@@ -221,7 +245,7 @@ function fit2D() {
 
 function wire2DPanZoom() {
   const host = $('#svgHost');
-  const apply = () => host.firstElementChild?.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  const apply = () => { host.firstElementChild?.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); editor.render(); };
   host.addEventListener('wheel', (e) => {
     if (!vb) return;
     e.preventDefault();
@@ -232,15 +256,29 @@ function wire2DPanZoom() {
     userZoomed = true; apply();
   }, { passive: false });
   let drag = null;
-  host.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, vb: { ...vb } }; host.setPointerCapture(e.pointerId); });
+  host.addEventListener('pointerdown', (e) => {
+    drag = { x: e.clientX, y: e.clientY, vb: { ...vb }, moved: false, pan: !(TOUCH && e.pointerType === 'touch' && !pane2dLive) };
+    if (drag.pan) host.setPointerCapture(e.pointerId);
+  });
   host.addEventListener('pointermove', (e) => {
-    if (!drag) return;
+    if (!drag || !drag.pan) return;
     const r = host.getBoundingClientRect();
     vb = { ...drag.vb, x: drag.vb.x - ((e.clientX - drag.x) / r.width) * vb.w, y: drag.vb.y - ((e.clientY - drag.y) / r.height) * vb.h };
-    if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) userZoomed = true;
+    if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 3) { userZoomed = true; drag.moved = true; }
     apply();
   });
-  host.addEventListener('pointerup', () => (drag = null));
+  host.addEventListener('pointerup', (e) => {
+    // a tap (no drag) picks the panel new layers go on, and clears the selection
+    if (drag && !drag.moved && editor.svg && model) {
+      const [x, y] = editor.toFlat(e);
+      activePanel = panelAt(model, x, y)?.id || null;
+      host.querySelectorAll('#Hit .active').forEach((n) => n.classList.remove('active'));
+      if (activePanel) host.querySelector(`#Hit [data-panel="${activePanel}"]`)?.classList.add('active');
+      editor.select(null);
+    }
+    drag = null;
+  });
+  host.addEventListener('pointercancel', () => (drag = null));
   host.addEventListener('dblclick', () => { userZoomed = false; fit2D(); apply(); });
   new ResizeObserver(() => { if (model && !userZoomed && state.view !== '3d') { fit2D(); apply(); } }).observe(host);
 }
@@ -428,15 +466,165 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
 
+
+// ---------- touch: let the page scroll past the previews on phones ----------
+
+let pane2dLive = false;
+function setupTouchLocks() {
+  if (!TOUCH) return;
+  document.body.classList.add('touch');
+  viewer.setInteractive(false);
+  for (const [btn, pane] of [['#lock3d', '#view3d'], ['#lock2d', '#view2d']]) {
+    $(btn).hidden = false;
+    $(btn).addEventListener('click', () => {
+      const on = !$(pane).classList.contains('live');
+      $(pane).classList.toggle('live', on);
+      $(btn).innerHTML = on ? `${icon('check')} Done` : `${icon('hand')} ${pane === '#view3d' ? 'Rotate' : 'Pan & zoom'}`;
+      if (pane === '#view3d') viewer.setInteractive(on); else pane2dLive = on;
+    });
+  }
+}
+
+// ---------- artwork editor panel ----------
+
+function wireEditorUI() {
+  const fonts = $('#lpFont');
+  for (const f of Object.keys(FONTS)) fonts.add(new Option(f, f));
+  $('#addText').addEventListener('click', () => addLayer('text'));
+  $('#addImage').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const img = await loadImage(file);
+      addLayer('image', { img, src: img.src, name: file.name });
+    } catch { toast('Could not read that image.'); }
+  });
+  const bind = (id, key, conv = (v) => v, evt = 'input') => $(id).addEventListener(evt, (e) => {
+    const L = selectedLayer();
+    if (!L) return;
+    L[key] = conv(e.target.value);
+    syncProps(L, id);
+    editor.render();
+    layersChanged('live');
+  });
+  bind('#lpText', 'text');
+  bind('#lpFont', 'font', String, 'change');
+  bind('#lpColor', 'color');
+  bind('#lpRot', 'rot', Number); bind('#lpRotR', 'rot', Number);
+  bind('#lpOpacityR', 'opacity', Number);
+  const setSize = (v) => { const L = selectedLayer(); if (!L) return; if (L.type === 'image') L.w = v; else L.size = v; syncProps(L); editor.render(); layersChanged('live'); };
+  $('#lpSize').addEventListener('input', (e) => { const v = parseFloat(e.target.value); if (v > 0) setSize(v); });
+  $('#lpSizeR').addEventListener('input', (e) => setSize(+e.target.value));
+  for (const id of ['#lpText', '#lpColor', '#lpRotR', '#lpSizeR', '#lpOpacityR', '#lpSize', '#lpRot']) $(id).addEventListener('change', () => layersChanged('commit'));
+  $('#lpBold').addEventListener('click', () => { const L = selectedLayer(); if (!L) return; L.weight = L.weight >= 700 ? 400 : 800; syncProps(L); editor.render(); layersChanged('commit'); });
+  $('#layerProps').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    const L = selectedLayer();
+    if (!b || !L) return;
+    const list = state.design.layers, i = list.indexOf(L);
+    if (b.dataset.act === 'center') { const q = model.byId[L.panel]; if (q) { L.u = 0.5; L.v = 0.5; } }
+    if (b.dataset.act === 'up' && i < list.length - 1) [list[i], list[i + 1]] = [list[i + 1], list[i]];
+    if (b.dataset.act === 'down' && i > 0) [list[i], list[i - 1]] = [list[i - 1], list[i]];
+    if (b.dataset.act === 'dup') { const c = { ...L, id: newLayer(L.type).id, u: Math.min(0.95, L.u + 0.06), v: Math.max(0.05, L.v - 0.06) }; list.splice(i + 1, 0, c); editor.select(c.id); }
+    if (b.dataset.act === 'del') { list.splice(i, 1); editor.select(null); }
+    editor.render();
+    layersChanged('commit');
+  });
+  document.addEventListener('keydown', (e) => {
+    const L = selectedLayer();
+    if (!L || /input|select|textarea/i.test(document.activeElement?.tagName)) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') { state.design.layers.splice(state.design.layers.indexOf(L), 1); editor.select(null); layersChanged('commit'); e.preventDefault(); return; }
+    const step = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const [x, y] = layerCenter(model, L);
+    pinToPanel(model, L, x + d[0], y + d[1]);
+    editor.render();
+    layersChanged('commit');
+  });
+  renderLayerPanel();
+}
+
+function selectedLayer() { return state.design.layers.find((L) => L.id === editor.selected) || null; }
+
+function addLayer(type, extra = {}) {
+  if (!model) return;
+  // place on the tapped panel, else on the front face
+  let x, y, rot = 0;
+  const fr = model.frontRect;
+  const q = activePanel && model.byId[activePanel];
+  if (q) {
+    const xs = q.pts.map((p) => p[0]), ys = q.pts.map((p) => p[1]);
+    x = (Math.min(...xs) + Math.max(...xs)) / 2; y = (Math.min(...ys) + Math.max(...ys)) / 2;
+  } else {
+    x = fr.x + fr.w / 2; y = fr.y + fr.h / 2;
+    rot = Math.round((Math.atan2(-fr.up[0], fr.up[1]) * 180) / Math.PI);
+  }
+  const span = q ? Math.min(...['w', 'h'].map((k) => { const v = q.pts.map((p) => p[k === 'w' ? 0 : 1]); return Math.max(...v) - Math.min(...v); })) : Math.min(fr.w, fr.h);
+  const L = type === 'text'
+    ? newLayer('text', { text: 'Your text', size: Math.max(3, Math.min(40, Math.round(span * 0.12))), font: 'Display', weight: 800, color: contrastInk(state.design.color) === '#ffffff' ? '#e5a912' : '#0b1a5c', rot })
+    : newLayer('image', { w: Math.max(8, span * 0.5), rot, ...extra });
+  pinToPanel(model, L, x, y);
+  state.design.layers.push(L);
+  if (state.view === '3d') setView(NARROW() ? '2d' : 'split');
+  requestAnimationFrame(() => { editor.select(L.id); layersChanged('commit'); if (type === 'text') $('#lpText').select(); });
+}
+
+function renderLayerPanel() {
+  const list = $('#layerList'), L = selectedLayer();
+  list.innerHTML = state.design.layers.slice().reverse().map((x) => `<li><button type="button" data-id="${x.id}" aria-current="${x.id === editor.selected}">
+    ${icon(x.type === 'text' ? 'type' : 'image-plus')}<span>${x.type === 'text' ? esc(x.text || 'Text') : esc(x.name || 'Image')}</span><small>${esc(model?.byId[x.panel]?.name || '')}</small></button></li>`).join('')
+    || '<li class="empty">No layers yet. Tap a panel on the dieline, then add text or an image.</li>';
+  list.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', () => {
+    if (state.view === '3d') setView(NARROW() ? '2d' : 'split');
+    editor.select(b.dataset.id);
+  }));
+  $('#layerProps').hidden = !L;
+  if (L) syncProps(L);
+}
+
+function syncProps(L, skip) {
+  const set = (id, v) => { if (id !== skip) $(id).value = v; };
+  document.querySelectorAll('#layerProps [data-for="text"]').forEach((n) => (n.hidden = L.type !== 'text'));
+  set('#lpText', L.text || '');
+  set('#lpFont', L.font || 'Sans');
+  set('#lpColor', L.color || '#000000');
+  $('#lpBold').setAttribute('aria-pressed', String(L.weight >= 700));
+  const size = L.type === 'image' ? L.w : L.size;
+  set('#lpSize', +size.toFixed(1)); set('#lpSizeR', size);
+  $('#lpSizeLabel').textContent = L.type === 'image' ? 'Width' : 'Text size';
+  set('#lpRot', Math.round(L.rot)); set('#lpRotR', Math.round(L.rot));
+  set('#lpOpacityR', L.opacity ?? 1);
+  const item = $(`#layerList [data-id="${L.id}"] span`);
+  if (item && L.type === 'text') item.textContent = L.text || 'Text';
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
 // ---------- boot (last, so every module-level binding exists) ----------
 
 readHash();
 buildLibrary();
 buildDesignControls();
 viewer = new Viewer($('#view3d'));
+editor = new Editor({
+  getModel: () => model,
+  getLayers: () => state.design.layers,
+  onChange: layersChanged,
+  onSelect: () => renderLayerPanel(),
+  pxToMm: () => (vb ? vb.w / ($('#svgHost').clientWidth || 1) : 1),
+});
+hydrateIcons();
+setupTouchLocks();
+wireEditorUI();
 selectTemplate(state.tpl, { fromHash: true });
 setView(state.view);
 wireUI();
+
+// arriving from the site's hero box: /studio/?q=mailer box 250x180x70
+const askQ = new URLSearchParams(location.search).get('q');
+if (askQ) { $('#askInput').value = askQ; runAsk(askQ); history.replaceState(null, '', location.pathname + location.hash); }
 
 // handy for debugging in the console
 window.packStudio = { state, get model() { return model; }, viewer, parseAsk, runAsk, selectTemplate, doExport };
