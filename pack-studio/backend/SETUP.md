@@ -12,9 +12,13 @@ Node.js to run the Supabase CLI once.
 ## 1. Create the Supabase project
 
 1. Go to supabase.com → **New project**. Pick the **Mumbai (ap-south-1)** region for Indian users.
-2. When it's ready, open **Project settings → API** and copy:
+2. When it's ready, open **Project settings → API** (or **API Keys**) and copy:
    - **Project URL** (looks like `https://abcd1234.supabase.co`)
-   - **anon public** key
+   - **anon public** key (a long string starting `eyJ…`). If you see both new "publishable" keys and
+     "legacy API keys", use the legacy **anon** key.
+
+   These two are safe to share and go into the website. Never share the **service_role** key or your
+   database password.
 
 ## 2. Create the tables
 
@@ -54,6 +58,29 @@ own data), the 10-project limit on free accounts, and the `mark_paid` function p
 
 ## 5. Deploy the payment functions
 
+### Option A (recommended, no terminal): GitHub Actions
+
+1. Create a Supabase access token: supabase.com → your avatar → **Account preferences → Access tokens →
+   Generate new token** (name it `github-deploy`).
+2. In GitHub open this repository → **Settings → Secrets and variables → Actions → New repository secret**
+   and add these five. They are encrypted; nobody, including Claude, can read them back.
+
+   | Secret name | Value |
+   |---|---|
+   | `SUPABASE_ACCESS_TOKEN` | the token from step 1 |
+   | `SUPABASE_PROJECT_REF` | the project ref, the `abcd1234` part of `https://abcd1234.supabase.co` |
+   | `RAZORPAY_KEY_ID` | `rzp_test_…` from step 4 |
+   | `RAZORPAY_KEY_SECRET` | the key secret from step 4 |
+   | `RAZORPAY_WEBHOOK_SECRET` | a long random string you make up (also used in step 6) |
+
+3. Open the **Actions** tab → **Deploy Pack Studio backend** → **Run workflow**. In about two minutes it
+   checks the secrets, runs the payment tests, saves the Razorpay keys into Supabase and deploys the
+   three functions. The run summary shows your webhook URL for step 6.
+
+Run it again whenever you change the Razorpay keys (for example when moving from test to live keys).
+
+### Option B: from your own terminal
+
 From this `backend/` folder:
 
 ```sh
@@ -71,7 +98,7 @@ npx supabase functions deploy verify-payment
 npx supabase functions deploy razorpay-webhook --no-verify-jwt
 ```
 
-Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the
+Either way, Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `SUPABASE_SERVICE_ROLE_KEY` to the
 functions automatically.
 
 ## 6. Add the Razorpay webhook
