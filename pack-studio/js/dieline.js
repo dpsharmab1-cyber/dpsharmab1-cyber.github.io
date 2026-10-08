@@ -33,7 +33,12 @@ export function dielineSVG(model, { art = null, screen = false, labels = true } 
   if (model.zones.length) out.push(`<g id="Seal" stroke="${INK.seal}" ${sw(0.1, 0.6)} fill="url(#hatchSeal)">${model.zones.map((p) => `<polygon points="${poly(p)}"/>`).join('')}</g>`);
   if (model.guides.length) {
     out.push(`<g id="Guides" fill="none" stroke="${INK.guide}" ${sw(0.2, 1)} stroke-dasharray="${screen ? '6 3 1 3' : '4 1.5 0.8 1.5'}"><path d="${segPath(model.guides.map((g) => g.seg))}"/></g>`);
-    out.push(`<g id="GuideLabels" fill="${INK.guide}" font-family="Helvetica, Arial, sans-serif" font-size="3">${model.guides.filter((g) => g.label).map((g) => `<text x="${X(Math.max(g.seg[0][0], g.seg[1][0]) + 1.5)}" y="${Y(g.seg[0][1]) - 1}">${esc(g.label)}</text>`).join('')}</g>`);
+    out.push(`<g id="GuideLabels" fill="${INK.guide}" font-family="Helvetica, Arial, sans-serif" font-size="3">${model.guides.filter((g) => g.label).map((g) => {
+      // label just past the segment, or inside it when that would leave the artboard
+      const x1 = Math.max(g.seg[0][0], g.seg[1][0]), x0 = Math.min(g.seg[0][0], g.seg[1][0]);
+      const x = x1 + 1.5 + g.label.length * 1.7 > b.maxX ? x0 + 1.5 : x1 + 1.5;
+      return `<text x="${X(x)}" y="${Y(g.seg[0][1]) - 1}">${esc(g.label)}</text>`;
+    }).join('')}</g>`);
   }
   out.push(`<g id="CutContour" fill="none" stroke="${INK.cut}" ${sw(0.25, 1.4)} stroke-linecap="round"><path d="${segPath(model.cut)}"/></g>`);
   out.push(`<g id="Crease" fill="none" stroke="${INK.crease}" ${sw(0.25, 1.2)} stroke-dasharray="${screen ? '3 2' : '3 1.5'}"><path d="${segPath(model.crease)}"/></g>`);

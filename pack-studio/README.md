@@ -6,11 +6,13 @@ Live (after merge): `https://dpsharmab1-cyber.github.io/pack-studio/`
 
 ## What works today
 
-- **12 parametric templates in 6 categories**:
+- **16 parametric templates in 8 categories**:
   - Folding cartons: reverse and straight tuck end boxes, polygon gift box (5–12 sides)
   - Mailers & shipping: mailer box, shipping carton (FEFCO 0201 style)
   - Trays & sleeves: open tray, sleeve
-  - Pouches & bags: stand-up pouch (bottom gusset, zipper, tear notch, heat seals), flat 3-side-seal pouch
+  - Pouches: stand-up pouch (bottom gusset, zipper, tear notch, heat seals), flat 3-side-seal pouch
+  - Paper bags: shopping bag (turn-over top, rope handles), SOS food bag
+  - Tubes: squeeze tube (crimp seal, flip-top cap), paper tube with lid
   - Bottles & jars: bottle label (glass bottle, partial or full wrap), jar label (clear jar with lid)
   - Labels & wraps: can label
 - **Smart input**: "mailer box 250x180x70", "shipping box 40x30x30 cm", "coffee pouch 150x230x90", "wine bottle 75 x 300".
@@ -51,13 +53,14 @@ From that one description the engine derives everything else:
 
 **Adding a new category means writing one `build()` function, about 20–60 lines.** No new 3D, export or UI code is needed.
 
-Three kinds of template share the engine today: `net` (folding board), `pouch` (flexible film that
-inflates from the flat print layout) and `wrap` (labels on turned containers built from lathe profiles).
+Four kinds of template share the engine today: `net` (folding board and paper), `pouch` (flexible film that
+inflates from the flat print layout), `tube` (printed laminate that wraps into a cylinder and flattens to a
+crimp) and `wrap` (labels on turned containers built from lathe profiles).
 
 ## Roadmap toward the full product
 
 1. **Template library at scale**: more FEFCO/ECMA styles (crash-lock bottom, auto-bottom, gable, pillow, two-piece rigid),
-   more flexibles (side-gusset and flat-bottom bags, spouted pouches), plus tubes, cups and paper bags.
+   more flexibles (side-gusset and flat-bottom bags, spouted pouches), rigid boxes, cups and displays.
 2. **Print accuracy**: per-material thickness compensation on every panel, and a printer-verified test pack for each template.
 3. **Accounts and projects**: saved designs, team sharing, version history (e.g. Supabase).
 4. **Editor**: place, move and scale artwork per panel directly on the 3D model or dieline, plus text tools.

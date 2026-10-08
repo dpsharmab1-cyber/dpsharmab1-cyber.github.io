@@ -76,6 +76,7 @@ export class Viewer {
     this.eps = Math.max(0.3, model.material.t);
     if (model.kind === 'wrap') this.buildWrap(model);
     else if (model.kind === 'pouch') this.buildPouch(model);
+    else if (model.kind === 'tube') this.buildTube(model);
     else this.buildNet(model);
     this.placeOnGround(refit);
     this.setFold(this.fold);
@@ -110,6 +111,67 @@ export class Viewer {
       node.add(front, back, new T.LineSegments(outline, this.edgeMat));
       this.nodes.push({ q, node });
     }
+    // rope handles ride on their panel, so they fold with it
+    for (const ex of model.spec.extras || []) {
+      if (ex.type !== 'handle') continue;
+      const rope = new T.MeshStandardMaterial({ color: model.material.edge, roughness: 0.7 });
+      const m = new T.Mesh(new T.TorusGeometry(ex.w / 2, 2.2, 8, 40, Math.PI), rope);
+      m.position.set(ex.cx, ex.y, -1.2);
+      m.scale.set(1, ex.h / (ex.w / 2), 1);
+      m.castShadow = true;
+      byNode[ex.panel].add(m);
+    }
+  }
+
+  // Squeeze tube: the print wraps into a cylinder that flattens to the crimp seal.
+  buildTube(model) {
+    const s = model.spec, { r, L, C } = s;
+    const capH = Math.max(10, r * 0.9), shoulder = Math.max(5, r * 0.45), y0 = capH + shoulder;
+    const white = new T.MeshPhysicalMaterial({ color: 0xf3f3f1, roughness: 0.3, clearcoat: 0.6 });
+    const V = (x, y) => new T.Vector2(x, y);
+    const sh = new T.Mesh(new T.LatheGeometry([V(r * 0.42, capH - 0.5), V(r * 0.42, capH + 0.5), V(r * 0.85, capH + shoulder * 0.6), V(r, y0 + 0.5)], 64), white);
+    const cap = new T.Mesh(new T.CylinderGeometry(r * 0.78, r * 0.82, capH, 48), new T.MeshPhysicalMaterial({ color: 0x22292c, roughness: 0.35, clearcoat: 0.5 }));
+    cap.position.y = capH / 2;
+    for (const m of [sh, cap]) { m.castShadow = true; this.root.add(m); }
+
+    const NU = 96, NV = 40, flat = [], uvs = [], idx = [];
+    for (let j = 0; j <= NV; j++) for (let i = 0; i <= NU; i++) {
+      const x = (i / NU) * C, y = (j / NV) * L;
+      flat.push([x, y]);
+      uvs.push((x - model.art.minX) / model.art.w, (y - model.art.minY) / model.art.h);
+    }
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+      const a = j * (NU + 1) + i, b = a + 1, c = a + NU + 1, d = c + 1;
+      idx.push(a, b, c, b, d, c);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(new Float32Array(flat.length * 3), 3));
+    geo.setAttribute('uv', new T.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(idx);
+    const front = new T.Mesh(geo, this.frontMat), back = new T.Mesh(geo, this.backMat);
+    front.castShadow = true;
+    this.root.add(front, back);
+    this.tube = { geo, flat, r, L, C, y0, crimpFrom: 1 - (s.crimp * 4) / L };
+  }
+
+  morphTube(t) {
+    const { geo, flat, r, L, C, y0, crimpFrom } = this.tube;
+    const pos = geo.attributes.position, e = t * t * (3 - 2 * t), k = Math.max(1e-5, e) / r, xc = C / 2;
+    for (let i = 0; i < flat.length; i++) {
+      const [x, y] = flat[i], v = y / L;
+      let px, pz;
+      if (e < 1e-4) { px = x - xc; pz = r; }
+      else { const R = 1 / k, th = (x - xc) / R; px = R * Math.sin(th); pz = R * Math.cos(th) - R + r; }
+      // flatten toward the crimp: circle (r) → flat seal (πr/2 wide)
+      const f = Math.min(1, Math.max(0, (v - Math.min(0.5, crimpFrom)) / (1 - Math.min(0.5, crimpFrom))));
+      const fl = f * f * (3 - 2 * f) * e;
+      const ax = 1 + (Math.PI / 2 - 1) * fl, az = 1 - fl * 0.97;
+      pos.setXYZ(i, px * ax, y0 + y, pz * az);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+    geo.computeBoundingSphere();
+    geo.computeBoundingBox();
   }
 
   buildWrap(model) {
@@ -248,6 +310,7 @@ export class Viewer {
     if (!m) return;
     if (m.kind === 'wrap') return this.bendWrap(t);
     if (m.kind === 'pouch') return this.morphPouch(t);
+    if (m.kind === 'tube') return this.morphTube(t);
     const R = new T.Matrix4(), A = new T.Matrix4(), B = new T.Matrix4(), L = new T.Matrix4(), axis = new T.Vector3();
     for (const { q, node } of this.nodes) {
       const mat = node.matrix.identity();
@@ -324,6 +387,16 @@ function containerMeshes(s) {
     const rim = new T.Mesh(new T.TorusGeometry(r - 0.8, 1.2, 12, 72), metal);
     rim.rotation.x = Math.PI / 2; rim.position.y = H;
     out.push(body, top, rim);
+  } else if (s.body === 'papertube') {
+    const kraft = new T.MeshStandardMaterial({ color: 0xb98b5d, roughness: 0.85 });
+    const body = new T.Mesh(new T.CylinderGeometry(r - 0.2, r - 0.2, H - 2, 72, 1, true), kraft);
+    body.position.y = H / 2;
+    const base = new T.Mesh(new T.CircleGeometry(r, 72), kraft);
+    base.rotation.x = Math.PI / 2; base.position.y = 0.5;
+    const lidMat = new T.MeshStandardMaterial({ color: 0x23302d, roughness: 0.6 });
+    const lid = new T.Mesh(new T.CylinderGeometry(r + 1.4, r + 1.4, s.lidH, 72), lidMat);
+    lid.position.y = H - s.lidH / 2;
+    out.push(body, base, lid);
   } else if (s.body === 'bottle') {
     const shoulder = Math.max(s.labelY + s.labelH + 6, H * 0.5), neckR = Math.max(9, r * 0.3), neck0 = Math.min(H * 0.8, shoulder + r * 1.4), capY = H * 0.9;
     const pts = [V(0, 0), V(r - 3, 0), V(r, 3), V(r, shoulder)];
