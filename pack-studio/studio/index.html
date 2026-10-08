@@ -27,7 +27,9 @@
         <button type="button" data-u="mm" aria-pressed="true">mm</button>
         <button type="button" data-u="in" aria-pressed="false">in</button>
       </div>
-      <button type="button" class="ghost" id="share">Copy link</button>
+      <button type="button" class="ghost icon-btn" id="share" title="Copy a link to this design"><i data-icon="share-2"></i><span>Share</span></button>
+      <button type="button" class="ghost icon-btn" id="projectsBtn" title="My projects"><i data-icon="folder-open"></i><span>Projects</span></button>
+      <button type="button" class="acct" id="accountBtn" aria-label="Account"><i data-icon="circle-user"></i><span>Sign in</span></button>
     </div>
   </header>
 
@@ -36,6 +38,11 @@
 
     <section class="stage" aria-label="Preview">
       <div class="stage-bar">
+        <div class="doc">
+          <input id="docName" type="text" value="Untitled pack" maxlength="120" aria-label="Project name" spellcheck="false">
+          <button type="button" class="save" id="saveBtn" title="Save (Ctrl+S)"><i data-icon="save"></i><span>Save</span></button>
+          <span class="save-status" id="saveStatus" aria-live="polite"></span>
+        </div>
         <div class="seg" id="viewTabs" role="tablist" aria-label="View">
           <button type="button" data-view="3d" role="tab">3D</button>
           <button type="button" data-view="split" role="tab">Split</button>

@@ -26,6 +26,11 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
 - **Exports**: SVG dieline, PDF (1:1 with `CutContour` and `Crease` spot colours), DXF (R12, mm),
   GLB 3D model, PNG mockup, and an SVG proof with artwork.
 - **Share link**: the URL holds the template, size, material and design text.
+- **Saved projects**: Save (Ctrl+S) with autosave afterwards; My projects to open, rename, duplicate and delete.
+  Projects save in the browser, or to your account once accounts are switched on.
+- **Accounts and payments** (switch on with [backend/SETUP.md](backend/SETUP.md)): email-link and Google
+  sign-in via Supabase, projects in your account, Pro and Business plans paid through Razorpay
+  (UPI, cards, netbanking), with server-side price and signature checks.
 - mm/inch units, material presets with thickness, flat size, board area and the smallest standard sheet it fits.
 
 Everything runs client-side, so serving a user costs almost nothing. That is what makes low pricing sustainable.
@@ -42,7 +47,10 @@ dieline.js     SVG dieline + the artwork canvas (flat coords == dieline coords)
 viewer.js      3D: panels form a parent→child tree; each folds about its hinge
 exporters.js   SVG / PDF / DXF writers (GLB + PNG come from the viewer)
 editor.js      artwork layers: on-dieline editing and painting onto the 3D texture
+cloud.js       browser storage (IndexedDB) and Supabase accounts, projects, Razorpay checkout
+account.js     sign-in, My projects, Save/autosave and Upgrade dialogs
 app.js         UI, smart input, share links
+backend/       Supabase SQL + Edge Functions for payments, with tests (see backend/SETUP.md)
 ```
 
 A template only describes panels:
@@ -70,15 +78,15 @@ crimp) and `wrap` (labels on turned containers built from lathe profiles).
 1. **Template library at scale**: more FEFCO/ECMA styles (crash-lock bottom, auto-bottom, gable, pillow, two-piece rigid),
    more flexibles (side-gusset and flat-bottom bags, spouted pouches), rigid boxes, cups and displays.
 2. **Print accuracy**: per-material thickness compensation on every panel, and a printer-verified test pack for each template.
-3. **Accounts and projects**: saved designs, team sharing, version history (e.g. Supabase).
+3. **Accounts and projects**: team sharing, version history, auto-renewing subscriptions.
 4. **Editor**: place artwork by clicking on the 3D model, more text tools, saved brand kits.
 5. **Rendering**: HDRI scenes, materials (foil, gloss, emboss), turntable video export.
 6. **AI**: describe a product and get structure, size and a first design.
-7. **Business**: free tier (dieline exports) and Pro (commercial 3D/render exports) via Razorpay/Stripe, plus a printer marketplace.
+7. **Business**: printer marketplace and ordering prints from inside the studio.
 
 ## Running locally
 
 Any static server works: `python3 -m http.server` in the repo root, then open `/pack-studio/`.
 Nothing loads from a CDN and there is no build step. Open-source pieces are vendored with their licences:
-three.js (MIT) in `studio/js/vendor/`, Inter and Plus Jakarta Sans (OFL) in `assets/fonts/`, Lucide icons (ISC)
+three.js (MIT) and supabase-js (MIT) in `studio/js/vendor/`, Inter and Plus Jakarta Sans (OFL) in `assets/fonts/`, Lucide icons (ISC)
 in `assets/icons.js`.
