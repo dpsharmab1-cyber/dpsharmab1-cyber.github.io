@@ -43,7 +43,14 @@ own data), the 10-project limit on free accounts, and the `mark_paid` function p
 2. **Settings → API Keys → Generate key** gives a **Key ID** (`rzp_test_…`) and **Key Secret**.
    Keep the secret private; it never goes in the website code.
 3. Live payments need account activation (KYC). Razorpay also checks your website for
-   **Terms, Privacy policy, Refund/cancellation policy, and Contact** pages, so plan to add them.
+   **Terms, Privacy policy, Refund/cancellation policy, and Contact** pages. These are already on the
+   site (`terms.html`, `privacy.html`, `refund.html`, `contact.html`); fill in the `BUSINESS` block
+   in `pack-studio/assets/config.js` (legal name, support email, phone, address, city, grievance officer)
+   so they show your details instead of highlighted placeholders. Give Razorpay these URLs:
+   - `https://dpsharmab1-cyber.github.io/pack-studio/terms.html`
+   - `https://dpsharmab1-cyber.github.io/pack-studio/privacy.html`
+   - `https://dpsharmab1-cyber.github.io/pack-studio/refund.html`
+   - `https://dpsharmab1-cyber.github.io/pack-studio/contact.html`
 
 ## 5. Deploy the payment functions
 

@@ -17,7 +17,23 @@ export const CONFIG = {
 // What each paid plan costs, for display. The real prices are set on the server
 // (backend/supabase/functions/_shared/billing.ts); keep the two in step.
 export const PLANS = [
-  { id: 'pro_month', tier: 'pro', name: 'Pro', price: '₹399', per: 'month', note: 'Cancel any time' },
+  { id: 'pro_month', tier: 'pro', name: 'Pro', price: '₹399', per: 'month', note: 'No auto-renewal' },
   { id: 'pro_year', tier: 'pro', name: 'Pro yearly', price: '₹3,990', per: 'year', note: '2 months free' },
   { id: 'business_month', tier: 'business', name: 'Business', price: '₹999', per: 'month', note: 'For printers and teams' },
 ];
+
+// Business details shown on the Terms, Privacy, Refund and Contact pages.
+// Razorpay checks these pages before approving live payments, so fill in every
+// field. Empty fields show as highlighted placeholders on the pages.
+export const BUSINESS = {
+  brand: 'Pack Studio',
+  legalName: '',          // e.g. 'Your Name (sole proprietor)' or 'Your Company Private Limited'
+  email: '',              // support email, e.g. 'support@yourdomain.com'
+  phone: '',              // e.g. '+91 98xxx xxxxx'
+  address: '',            // full postal address, including PIN code
+  city: '',               // city whose courts handle disputes, e.g. 'Jaipur, Rajasthan'
+  gstin: '',              // optional; leave empty if not GST-registered
+  grievanceOfficer: '',   // name of the person who handles privacy and complaints
+  hours: 'Monday to Saturday, 10:00 to 18:00 IST',
+  effectiveDate: '8 October 2026',
+};

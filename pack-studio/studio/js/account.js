@@ -58,7 +58,7 @@ export function setupAccount({ cloud, snapshot, restore, toast, templateName }) 
         <button type="submit" class="btn-primary wide">${icon('mail')} Email me a sign-in link</button>
         <div class="or"><span>or</span></div>
         <button type="button" class="btn-line wide" id="googleBtn"><svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.7z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/></svg> Continue with Google</button>
-        <p class="muted small">No password needed. By signing in you agree to keep your designs your own; we never share them.</p>
+        <p class="muted small">No password needed. By signing in you agree to our <a href="../terms.html" target="_blank" rel="noopener">Terms</a> and <a href="../privacy.html" target="_blank" rel="noopener">Privacy Policy</a>. Your designs stay yours.</p>
       </form>`;
     $('#authForm', d).addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -109,6 +109,7 @@ export function setupAccount({ cloud, snapshot, restore, toast, templateName }) 
             <button type="button" class="${pl.id === highlight ? 'btn-gold' : 'btn-line'} wide" data-plan="${pl.id}" ${live ? '' : 'disabled'}>${live ? `${icon('credit-card')} Pay ${pl.price}` : 'Opens soon'}</button>
           </div>`).join('')}</div>
         <ul class="perks"><li>${icon('check')} Unlimited saved projects</li><li>${icon('check')} HD renders and GLB without watermark</li><li>${icon('check')} DXF for cutting tables, commercial use</li></ul>
+        <p class="muted small legal-note">One-time payment for the period shown; plans never renew automatically. By paying you agree to our <a href="../terms.html" target="_blank" rel="noopener">Terms</a> and <a href="../refund.html" target="_blank" rel="noopener">Refund Policy</a> (7-day money-back on your first purchase).</p>
       </div>`;
     d.querySelectorAll('[data-plan]').forEach((b) => b.addEventListener('click', async () => {
       if (!cloud.user) { d.close(); openAuth('Sign in first, then choose your plan.'); return; }
