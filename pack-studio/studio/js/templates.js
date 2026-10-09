@@ -26,6 +26,7 @@ export const MATERIALS = {
 export const CATEGORIES = [
   { id: 'cartons',  name: 'Folding cartons' },
   { id: 'mailers',  name: 'Mailers & shipping' },
+  { id: 'food',     name: 'Food & takeaway' },
   { id: 'trays',    name: 'Trays & sleeves' },
   { id: 'pouches',  name: 'Pouches' },
   { id: 'bags',     name: 'Paper bags' },
@@ -34,8 +35,7 @@ export const CATEGORIES = [
   { id: 'dairy',    name: 'Dairy & milk' },
   { id: 'snacks',   name: 'Snacks' },
   { id: 'sweets',   name: 'Sweets & mithai' },
-  { id: 'labels',   name: 'Labels & wraps' },
-  { id: 'soon',     name: 'Coming next', soon: ['Rigid boxes', 'Displays & POS', 'Blister & clamshell'] },
+  { id: 'labels',   name: 'Labels & stickers' },
 ];
 
 const P = (k, label, def, min, max, extra = {}) => ({ k, label, def, min, max, step: 1, unit: 'mm', adv: false, ...extra });
@@ -91,7 +91,7 @@ function wrap(p, body, H) {
   const r = p.D / 2, circ = Math.PI * p.D;
   const full = p.cover >= 100;
   // keep the label on the straight part of the body
-  const maxTop = body === 'bottle' ? H * 0.62 : body === 'jar' ? H - 14 : body === 'papertube' ? H - p.lidH - 2 : H - 2;
+  const maxTop = body === 'bottle' ? H * 0.62 : body === 'sauce' ? H * 0.72 : body === 'pill' ? H * 0.74 : body === 'jar' ? H - 14 : body === 'papertube' ? H - p.lidH - 2 : H - 2;
   const labelH = Math.max(10, Math.min(p.labelH, maxTop - 2));
   const labelY = Math.max(1, Math.min(p.labelY, maxTop - labelH));
   const labelW = full ? circ : circ * (p.cover / 100);
@@ -106,6 +106,49 @@ function wrap(p, body, H) {
     ],
     front: { rect: [xc - fw / 2, 0, fw, labelH], up: [0, 1] }, // the part facing the viewer
   };
+}
+
+// Tapered scoop carton (fries): base plus four walls leaning out by the same angle,
+// so the corner edges meet exactly. In a wall's own plane a corner rises h and
+// steps out h*sin(lean). Front is low with a scooped top, back is tall and round.
+function friesNet(p) {
+  const { L, W, Hf, Hb, glue } = p, sn = Math.sin((p.lean * Math.PI) / 180), ang = 90 - p.lean;
+  const scoop = Math.min(p.scoop, Hf * 0.6), up = Math.min(Hb - Hf, L * 0.5);
+  const curve = (x0, x1, y, depth, n = 24) => Array.from({ length: n + 1 }, (_, i) => {
+    const k = i / n; return [x0 + (x1 - x0) * k, y + depth * Math.sin(Math.PI * k)];
+  });
+  const fx = Hf * sn, bx = Hb * sn;
+  const front = ccw(dedupe([[0, 0], [L, 0], [L + fx, -Hf], ...curve(L + fx, -fx, -Hf, scoop).slice(1, -1), [-fx, -Hf]]));
+  const back = ccw(dedupe([[0, W], [L, W], [L + bx, W + Hb], ...curve(L + bx, -bx, W + Hb, up * 0.35).slice(1, -1), [-bx, W + Hb]]));
+  const side = (x, dir) => ccw([[x, 0], [x, W], [x - dir * Hb, W + bx], [x - dir * Hf, -fx]]);
+  const flap = (a, b, dir) => {
+    // glue flap along a slanted wall edge a→b, on the outer side (dir = ±1)
+    const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy), nx = (-dy / l) * dir * glue, ny = (dx / l) * dir * glue;
+    const t = Math.min(0.25, glue / l);
+    return ccw([a, b, [b[0] + nx - dx * t, b[1] + ny - dy * t], [a[0] + nx + dx * t, a[1] + ny + dy * t]]);
+  };
+  return [
+    { id: 'base', name: 'Base', pts: rect(0, 0, L, W) },
+    { id: 'front', name: 'Front', pts: front, parent: 'base', hinge: [[0, 0], [L, 0]], angle: ang, seq: 0 },
+    { id: 'back', name: 'Back', pts: back, parent: 'base', hinge: [[0, W], [L, W]], angle: ang, seq: 0 },
+    { id: 'left', name: 'Side', pts: side(0, 1), parent: 'base', hinge: [[0, 0], [0, W]], angle: ang, seq: 1 },
+    { id: 'right', name: 'Side', pts: side(L, -1), parent: 'base', hinge: [[L, 0], [L, W]], angle: ang, seq: 1 },
+    { id: 'gFL', name: '', glue: true, pts: flap([0, 0], [-fx, -Hf], -1), parent: 'front', hinge: [[0, 0], [-fx, -Hf]], angle: 90, layer: 1, seq: 2 },
+    { id: 'gFR', name: '', glue: true, pts: flap([L, 0], [L + fx, -Hf], 1), parent: 'front', hinge: [[L, 0], [L + fx, -Hf]], angle: 90, layer: 1, seq: 2 },
+    { id: 'gBL', name: '', glue: true, pts: flap([0, W], [-bx, W + Hb], 1), parent: 'back', hinge: [[0, W], [-bx, W + Hb]], angle: 90, layer: 1, seq: 2 },
+    { id: 'gBR', name: '', glue: true, pts: flap([L, W], [L + bx, W + Hb], -1), parent: 'back', hinge: [[L, W], [L + bx, W + Hb]], angle: 90, layer: 1, seq: 2 },
+  ];
+}
+
+// Flat die-cut sticker or label: one panel, any outline.
+function stickerNet(outline) {
+  return { panels: [{ id: 'label', name: 'Label', pts: ccw(outline) }], front: { panel: 'label', up: [0, 1] } };
+}
+const ellipse = (rx, ry, n = 96) => Array.from({ length: n }, (_, i) => [rx + rx * Math.cos((i / n) * Math.PI * 2), ry + ry * Math.sin((i / n) * Math.PI * 2)]);
+function roundedRect(w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2 - 0.01, h / 2 - 0.01));
+  if (!r) return rect(0, 0, w, h);
+  return [...arc(w - r, r, r, -Math.PI / 2, 0), ...arc(w - r, h - r, r, 0, Math.PI / 2), ...arc(r, h - r, r, Math.PI / 2, Math.PI), ...arc(r, r, r, Math.PI, Math.PI * 1.5)];
 }
 
 // Flexible pouch printed as one web: front, (gusset), back. The back sits upside
@@ -288,14 +331,14 @@ export const TEMPLATES = [
     id: 'rte', category: 'cartons', name: 'Reverse tuck end box',
     desc: 'The classic retail carton: cosmetics, serums, supplements, tea.',
     keywords: ['tuck', 'reverse', 'cosmetic', 'serum', 'perfume', 'soap', 'carton', 'retail', 'product box'],
-    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'sbs',
+    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'kraft',
     build: (p) => tuckEnd(p, true),
   },
   {
     id: 'ste', category: 'cartons', name: 'Straight tuck end box',
     desc: 'Both tucks on the back panel, so the front artwork stays unbroken.',
     keywords: ['straight', 'ste'],
-    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'sbs',
+    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'kraft',
     build: (p) => tuckEnd(p, false),
   },
   {
@@ -549,7 +592,7 @@ export const TEMPLATES = [
     build: (p) => cupSleeve(p),
   },
   {
-    id: 'dairycarton', category: 'dairy', name: 'Butter & paneer carton',
+    id: 'dairycarton', category: 'dairy', hidden: true, name: 'Butter & paneer carton',
     desc: 'Low straight-tuck carton for butter, paneer, cheese and ghee blocks.',
     keywords: ['butter', 'paneer', 'cheese', 'ghee', 'butter box', 'paneer box', 'cheese box', 'dairy box'],
     params: [
@@ -673,6 +716,83 @@ export const TEMPLATES = [
     ],
     dims: ['D', 'jarH'], material: 'paper',
     build: (p) => wrap(p, 'jar', p.jarH),
+  },
+  {
+    id: 'fries', category: 'food', name: 'Fries box (scoop)',
+    desc: 'Tapered fry carton with a scooped front and tall rounded back. Also popcorn, churros and wedges.',
+    keywords: ['fries', 'french fries', 'fry box', 'chips box', 'scoop', 'popcorn', 'churros', 'wedges', 'fast food', 'qsr', 'takeaway'],
+    params: [
+      P('L', 'Base width', 70, 40, 160), P('W', 'Base depth', 35, 20, 100), P('Hf', 'Front height', 85, 40, 200), P('Hb', 'Back height', 115, 50, 260),
+      P('lean', 'Wall lean', 9, 0, 20, { unit: '°', adv: true }), P('scoop', 'Front scoop', 18, 0, 60, { adv: true }), P('glue', 'Glue flap', 12, 8, 25, { adv: true }),
+    ],
+    presets: [
+      { label: 'Small', v: { L: 60, W: 30, Hf: 75, Hb: 100 } },
+      { label: 'Medium', v: { L: 70, W: 35, Hf: 85, Hb: 115 } },
+      { label: 'Large', v: { L: 82, W: 40, Hf: 95, Hb: 130 } },
+    ],
+    dims: ['L', 'W', 'Hb'], material: 'sbs',
+    build: (p) => ({ panels: friesNet({ ...p, Hb: Math.max(p.Hb, p.Hf + 5) }), orient: 'tray', front: { panel: 'front', up: [0, -1] } }),
+  },
+  {
+    id: 'saucebottle', category: 'bottles', name: 'Sauce bottle label',
+    desc: 'Label on a squeeze bottle with a flip-top cap: ketchup, sauces, dressings, honey, syrups.',
+    keywords: ['sauce', 'sauce bottle', 'ketchup', 'squeeze bottle', 'mayonnaise', 'mayo', 'mustard', 'chilli sauce', 'hot sauce', 'dressing', 'syrup', 'honey squeeze'],
+    params: [
+      P('D', 'Bottle diameter', 60, 35, 110), P('bottleH', 'Bottle height', 190, 100, 320),
+      P('labelH', 'Label height', 70, 20, 180), P('cover', 'Wrap coverage', 55, 20, 100, { unit: '%' }),
+      P('labelY', 'Label from base', 30, 0, 120, { adv: true }), P('overlap', 'Glue overlap', 8, 0, 30, { adv: true }),
+    ],
+    presets: [
+      { label: '200 g', q: { g: 200 }, v: { D: 50, bottleH: 160, labelH: 60, labelY: 26 } },
+      { label: '500 g', q: { g: 500 }, v: { D: 62, bottleH: 200, labelH: 75, labelY: 32 } },
+      { label: '1 kg', q: { g: 1000 }, v: { D: 78, bottleH: 250, labelH: 95, labelY: 40 } },
+    ],
+    dims: ['D', 'bottleH'], material: 'paper',
+    build: (p) => wrap(p, 'sauce', p.bottleH),
+  },
+  {
+    id: 'pillbottle', category: 'bottles', name: 'Pill bottle label',
+    desc: 'Wrap label for supplement, vitamin, protein and medicine bottles with a wide cap.',
+    keywords: ['pill bottle', 'supplement', 'vitamin', 'capsule', 'tablet bottle', 'medicine bottle', 'pharma', 'nutraceutical', 'protein', 'gummies', 'hdpe bottle'],
+    params: [
+      P('D', 'Bottle diameter', 60, 30, 160), P('bottleH', 'Bottle height', 110, 50, 260),
+      P('labelH', 'Label height', 60, 20, 200), P('cover', 'Wrap coverage', 90, 20, 100, { unit: '%' }),
+      P('labelY', 'Label from base', 10, 0, 100, { adv: true }), P('overlap', 'Glue overlap', 8, 0, 30, { adv: true }),
+    ],
+    presets: [
+      { label: '60 cc', v: { D: 45, bottleH: 85, labelH: 42, labelY: 8 } },
+      { label: '150 cc', v: { D: 60, bottleH: 110, labelH: 60, labelY: 10 } },
+      { label: '500 cc', v: { D: 85, bottleH: 150, labelH: 85, labelY: 14 } },
+      { label: '1 kg tub', q: { g: 1000 }, v: { D: 125, bottleH: 190, labelH: 120, labelY: 18 } },
+    ],
+    dims: ['D', 'bottleH'], material: 'paper',
+    build: (p) => wrap(p, 'pill', p.bottleH),
+  },
+  {
+    id: 'roundsticker', category: 'labels', name: 'Round sticker',
+    desc: 'Circular die-cut sticker or label: lids, seals, logos, jar tops, thank-you stickers.',
+    keywords: ['round sticker', 'circle sticker', 'circular label', 'round label', 'lid sticker', 'seal sticker', 'logo sticker', 'die cut', 'die-cut', 'sticker'],
+    params: [P('D', 'Diameter', 50, 10, 300)],
+    presets: [{ label: '25 mm', v: { D: 25 } }, { label: '50 mm', v: { D: 50 } }, { label: '75 mm', v: { D: 75 } }, { label: '100 mm', v: { D: 100 } }],
+    dims: ['D'], material: 'paper',
+    build: (p) => stickerNet(ellipse(p.D / 2, p.D / 2)),
+  },
+  {
+    id: 'ovalsticker', category: 'labels', name: 'Oval label',
+    desc: 'Oval die-cut label for bottles, jars, soaps and candles.',
+    keywords: ['oval label', 'oval sticker', 'ellipse label', 'soap label', 'candle label'],
+    params: [P('W', 'Width', 80, 15, 300), P('H', 'Height', 55, 10, 300)],
+    dims: ['W', 'H'], material: 'paper',
+    build: (p) => stickerNet(ellipse(p.W / 2, p.H / 2)),
+  },
+  {
+    id: 'rectsticker', category: 'labels', name: 'Rectangle label',
+    desc: 'Square or rectangular label with optional rounded corners: product, shipping, barcode and MRP stickers.',
+    keywords: ['rectangle label', 'square sticker', 'product label', 'shipping label', 'mrp sticker', 'barcode sticker', 'price label', 'rounded corner label'],
+    params: [P('W', 'Width', 90, 10, 400), P('H', 'Height', 60, 10, 400), P('r', 'Corner radius', 4, 0, 50)],
+    presets: [{ label: '50 × 25', v: { W: 50, H: 25, r: 2 } }, { label: '100 × 50', v: { W: 100, H: 50, r: 3 } }, { label: '100 × 150', v: { W: 100, H: 150, r: 3 } }],
+    dims: ['W', 'H'], material: 'paper',
+    build: (p) => stickerNet(roundedRect(p.W, p.H, p.r)),
   },
   {
     id: 'canlabel', category: 'labels', name: 'Can label',

@@ -2,6 +2,7 @@
 
 import { panelLabels } from './engine.js';
 import { drawLayers, FONTS } from './editor.js';
+import { fillKraft } from './texture.js';
 
 export const INK = { cut: '#e6007e', crease: '#0a84ff', bleed: '#16a34a', glue: '#f59e0b', seal: '#8b5cf6', guide: '#64748b' };
 
@@ -62,7 +63,7 @@ function esc(s) {
 
 // ---------- artwork canvas (flat coordinates == dieline coordinates) ----------
 
-export const PATTERNS = ['Solid', 'Stripes', 'Dots', 'Grid', 'Waves'];
+export const PATTERNS = ['Kraft', 'Solid', 'Stripes', 'Dots', 'Grid', 'Waves'];
 
 export function drawDesign(model, d, maxPx = 2048, { layers = true, selected = null, onAsset = null } = {}) {
   const b = model.art, s = maxPx / Math.max(b.w, b.h);
@@ -71,7 +72,9 @@ export function drawDesign(model, d, maxPx = 2048, { layers = true, selected = n
   c.width = cw; c.height = ch;
   const g = c.getContext('2d');
 
-  g.fillStyle = d.color; g.fillRect(0, 0, cw, ch);
+  // Kraft: the print colour shows paper fibres, like unbleached board
+  if (d.pattern === 'Kraft' && !d.art) fillKraft(g, cw, ch, s, d.color);
+  else { g.fillStyle = d.color; g.fillRect(0, 0, cw, ch); }
   if (d.art) g.drawImage(d.art, 0, 0, cw, ch);
   else drawPattern(g, d.pattern, cw, ch, s, d.color);
 
@@ -114,7 +117,7 @@ export function drawDesign(model, d, maxPx = 2048, { layers = true, selected = n
 }
 
 function drawPattern(g, kind, w, h, s, base) {
-  if (!kind || kind === 'Solid') return;
+  if (!kind || kind === 'Solid' || kind === 'Kraft') return;
   g.save();
   g.globalAlpha = 0.14;
   g.fillStyle = g.strokeStyle = contrastInk(base);

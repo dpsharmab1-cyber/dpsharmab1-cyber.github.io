@@ -35,6 +35,12 @@ if (missing) {
 // contact form opens the visitor's email app with the message filled in
 const form = document.getElementById('contactForm');
 if (form) {
+  // the packaging library links here with ?topic=Template request&msg=...
+  const qs = new URLSearchParams(location.search), topic = qs.get('topic'), msg = qs.get('msg');
+  const sel = form.querySelector('[name=topic]');
+  if (topic && [...sel.options].some((o) => o.text === topic)) sel.value = topic;
+  if (msg) form.querySelector('[name=message]').value = msg.slice(0, 500);
+  if (topic || msg) document.getElementById('form')?.scrollIntoView();
   if (!email) form.querySelector('button[type=submit]').disabled = true;
   form.addEventListener('submit', (e) => {
     e.preventDefault();

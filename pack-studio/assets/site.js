@@ -1,13 +1,14 @@
 import { hydrateIcons, icon } from './icons.js';
-import { TEMPLATES, CATEGORIES, MATERIALS, byId, defaults } from '../studio/js/templates.js';
+import { MATERIALS, byId, defaults } from '../studio/js/templates.js';
+import { LIBRARY, ALL_TYPES } from '../studio/js/catalog.js';
 import { compile } from '../studio/js/engine.js';
 import { drawDesign } from '../studio/js/dieline.js';
 
 hydrateIcons();
 
-// keep the headline numbers in step with the template registry
-document.getElementById('statTemplates').textContent = TEMPLATES.length;
-document.getElementById('statCategories').textContent = CATEGORIES.filter((c) => !c.soon).length;
+// keep the headline numbers in step with the packaging library
+document.getElementById('statTemplates').textContent = ALL_TYPES.length;
+document.getElementById('statCategories').textContent = LIBRARY.length;
 
 // mobile menu
 const menu = document.getElementById('menuBtn'), links = document.querySelector('.links');
@@ -23,44 +24,12 @@ document.getElementById('heroAsk').addEventListener('submit', (e) => {
   if (!q) { e.preventDefault(); location.href = 'studio/'; }
 });
 
-// ---------- template gallery ----------
+// ---------- packaging library: category cards ----------
 
-const cats = CATEGORIES.filter((c) => !c.soon);
-const tabs = document.getElementById('cats'), grid = document.getElementById('tgrid');
-let current = 'all';
-
-function thumb(t) {
-  const m = compile(t, defaults(t), MATERIALS[t.material]);
-  const b = m.net, X = (x) => (x - b.minX).toFixed(1), Y = (y) => (b.maxY - y).toFixed(1);
-  const d = (segs) => segs.map(([[a, c], [e, f]]) => `M${X(a)} ${Y(c)}L${X(e)} ${Y(f)}`).join('');
-  const fill = m.panels.map((q) => `<polygon points="${q.pts.map(([x, y]) => `${X(x)},${Y(y)}`).join(' ')}"/>`).join('');
-  return `<svg viewBox="-6 -6 ${(b.w + 12).toFixed(1)} ${(b.h + 12).toFixed(1)}" aria-hidden="true">
-    <g fill="#ffffff">${fill}</g>
-    <path d="${d(m.cut)}" fill="none" stroke="#13288a" stroke-width="1.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
-    <path d="${d(m.crease)}" fill="none" stroke="#e5a912" stroke-width="1.4" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/></svg>`;
-}
-
-const cards = TEMPLATES.map((t) => {
-  const a = document.createElement('a');
-  a.className = 'tcard';
-  a.href = `studio/#t=${t.id}`;
-  a.dataset.cat = t.category;
-  a.innerHTML = `<div class="art">${thumb(t)}</div><div class="body"><b>${t.name}</b><small>${t.desc}</small><span class="go">Open ${icon('arrow-right')}</span></div>`;
-  return a;
-});
-
-function renderGallery() {
-  tabs.innerHTML = [{ id: 'all', name: `All (${TEMPLATES.length})` }, ...cats].map((c) =>
-    `<button type="button" role="tab" data-cat="${c.id}" aria-selected="${c.id === current}">${c.name}</button>`).join('');
-  grid.replaceChildren(...cards.filter((c) => current === 'all' || c.dataset.cat === current));
-}
-tabs.addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  current = b.dataset.cat;
-  renderGallery();
-});
-renderGallery();
+document.getElementById('homeCats').innerHTML = LIBRARY.map((c) => `<a class="catcard" href="catalog.html#${c.id}">
+  <div class="cc-text"><h3>${c.name}</h3><span class="cc-count">${c.types.length} types</span><span class="cc-go">${icon('arrow-right')}</span></div>
+  <img src="assets/cat/${c.id}.webp" alt="" loading="lazy" width="160" height="160"></a>`).join('');
+document.getElementById('libMore').innerHTML = `Browse all ${ALL_TYPES.length} pack types ${icon('arrow-right')}`;
 
 // ---------- hero: real packs folding, one after another ----------
 

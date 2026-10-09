@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Packaging library · Pack Studio</title>
+  <meta name="description" content="Every common packaging type in one searchable library: boxes, mailers, food and takeaway, pouches, bags, bottles, cans, tubes, cups, dairy, snacks, sweets, pharma, cosmetics, eyewear, labels and displays.">
+  <meta name="theme-color" content="#13288a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232547d0'/%3E%3Cpath d='M16 6 25 11v10l-9 5-9-5V11z' fill='%23e5a912'/%3E%3Cpath d='M7 11l9 5 9-5M16 16v10' stroke='%232547d0' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+  <link rel="preload" href="assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/theme.css">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body class="lib-page">
+  <header class="nav" id="nav">
+    <div class="wrap nav-in">
+      <a class="logo" href="./" aria-label="Pack Studio home"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2547d0"/><path d="M16 6 25 11v10l-9 5-9-5V11z" fill="#e5a912"/><path d="M7 11l9 5 9-5M16 16v10" stroke="#2547d0" stroke-width="1.6" fill="none"/></svg> Pack Studio <em>Beta</em></a>
+      <nav class="links" aria-label="Sections"><a href="./#features">Features</a><a href="catalog.html" aria-current="page">Library</a><a href="./#how">How it works</a><a href="./#pricing">Pricing</a><a href="./#faq">FAQ</a></nav>
+      <a class="btn btn-gold btn-sm" href="studio/">Open studio <i data-icon="arrow-right"></i></a>
+      <button class="menu" id="menuBtn" aria-label="Menu" aria-expanded="false"><i data-icon="menu"></i></button>
+    </div>
+  </header>
+
+  <main>
+    <section class="legal-hero lib-hero">
+      <div class="wrap">
+        <p class="eyebrow">Packaging library</p>
+        <h1>Every pack type, sorted by what you're packing</h1>
+        <p class="lead" id="libLead">Search a product and open a ready template at a typical size, or request one we haven't built yet.</p>
+        <form class="lib-search" id="libSearch" role="search">
+          <i data-icon="sparkles"></i>
+          <input id="libQ" type="search" autocomplete="off" aria-label="Search pack types" placeholder="Try “fries”, “eyeglass box”, “sauce bottle”, “syringe”, “pizza”…">
+          <button type="submit" class="btn btn-gold btn-sm">Search</button>
+        </form>
+        <div class="lib-filter" role="group" aria-label="Show">
+          <button type="button" data-f="all" aria-pressed="true">All</button>
+          <button type="button" data-f="ready" aria-pressed="false">Ready to customise</button>
+          <button type="button" data-f="request" aria-pressed="false">On request</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec lib-sec">
+      <div class="wrap">
+        <div class="catgrid" id="catgrid" aria-label="Categories"></div>
+        <div class="lib-head" id="libHead" hidden>
+          <div><h2 id="libTitle"></h2><p class="muted" id="libSub"></p></div>
+          <button type="button" class="btn btn-line btn-sm" id="libAll"><i data-icon="layers-3"></i> All categories</button>
+        </div>
+        <div id="libResults"></div>
+        <aside class="lib-note">
+          <h3>How many kinds of packaging are there?</h3>
+          <p>There is no single world list. The corrugated-box code (FEFCO) has around 200 numbered styles in nine series. The folding-carton code (ECMA) sorts cartons into six style groups (A–F). Flexible packaging, bottles, cans, tubes, cups and labels each add their own formats on top. Most of those styles are small variations of a few base structures.</p>
+          <p>This library lists the pack types people actually order, grouped by product, and maps each one to a parametric structure. Sizes are typical starting points; check them with your printer or converter.</p>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot-in">
+      <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2547d0"/><path d="M16 6 25 11v10l-9 5-9-5V11z" fill="#e5a912"/><path d="M7 11l9 5 9-5M16 16v10" stroke="#2547d0" stroke-width="1.6" fill="none"/></svg> Pack Studio</a>
+      <nav aria-label="Footer"><a href="./">Home</a><a href="catalog.html">Library</a><a href="studio/">Studio</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="refund.html">Refunds</a><a href="contact.html">Contact</a></nav>
+      <p class="muted small">© 2026 Pack Studio. In beta.</p>
+    </div>
+  </footer>
+  <script type="module" src="assets/catalog-page.js"></script>
+</body>
+</html>
