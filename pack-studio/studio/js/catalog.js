@@ -189,7 +189,7 @@ export const LIBRARY = [
     ],
   },
   {
-    id: 'snacks', name: 'Snacks & confectionery', blurb: 'Chips, namkeen, biscuits and chocolate.',
+    id: 'snacks', name: 'Snacks & chocolate', blurb: 'Chips, namkeen, biscuits and chocolate.',
     look: { tpl: 'chips', v: { W: 160, H: 230 }, color: '#e5a912', pattern: 'Solid' },
     types: [
       T('Chips bag', 'chips', null, 'chips crisps wafers'),
@@ -254,7 +254,7 @@ export const LIBRARY = [
     ],
   },
   {
-    id: 'accessories', name: 'Eyewear, electronics & apparel', blurb: 'Boxes for accessories and devices.',
+    id: 'accessories', name: 'Eyewear, gadgets & apparel', blurb: 'Boxes for accessories and devices.',
     look: { tpl: 'sweet2pc', v: { L: 170, W: 90, H: 50, lidH: 50 }, color: '#1b1d21', pattern: 'Solid' },
     types: [
       T('Eyeglass box', 'rte', { L: 160, W: 60, H: 45 }, 'eyeglass spectacles glasses eyewear optical'),

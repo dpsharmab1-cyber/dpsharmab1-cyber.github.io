@@ -372,3 +372,15 @@ select { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 9p
 .presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .presets .muted { margin-right: 2px; }
 .presets .chip[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+/* touch screens: finger-sized controls */
+@media (pointer: coarse) {
+  .seg button, .ghost, .icon-btn, #fit3d, #fit2d, .stage-bar button, .tog, .ed-history button { min-height: 38px; }
+  .seg button { min-width: 40px; }
+  input[type=range], .param input[type="range"] { height: 30px; }
+  .thick { min-height: 38px; }
+  .swatch { min-width: 34px; min-height: 34px; }
+  .adv summary, details > summary { min-height: 40px; display: flex; align-items: center; }
+  .lib-browse, .chip { min-height: 36px; }
+  .brand { min-height: 40px; }
+}
