@@ -444,6 +444,29 @@ export class Viewer {
     this.dirty = true;
   }
 
+  // Screen point → flat dieline point (mm), through the printed surface's UVs.
+  // Inside faces count as hits too, so a click on the inside of a box isn't
+  // passed through to the print on the far wall.
+  pick(clientX, clientY) {
+    if (!this.model) return null;
+    const r = this.renderer.domElement.getBoundingClientRect();
+    if (!r.width || !r.height) return null;
+    const ndc = new T.Vector2(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    this.ray ||= new T.Raycaster();
+    this.ray.setFromCamera(ndc, this.camera);
+    const meshes = [];
+    this.root.traverse((o) => {
+      if (o.isMesh && (o.material === this.frontMat || o.material === this.backMat)) {
+        o.geometry.computeBoundingSphere(); // pouches, tubes and cups morph their vertices
+        meshes.push(o);
+      }
+    });
+    const hit = this.ray.intersectObjects(meshes, false)[0];
+    if (!hit || hit.object.material !== this.frontMat || !hit.uv) return null;
+    const a = this.model.art;
+    return [a.minX + hit.uv.x * a.w, a.minY + hit.uv.y * a.h];
+  }
+
   snapshot(scale = 2) {
     const r = this.renderer, size = r.getSize(new T.Vector2()), pr = r.getPixelRatio();
     r.setPixelRatio(pr * scale);
