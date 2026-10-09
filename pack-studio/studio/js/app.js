@@ -6,6 +6,7 @@ import { Viewer } from './viewer.js';
 import { Editor, newLayer, pinToPanel, panelAt, layerCenter, layerCorners, layerAt, layerName, printCheck, fontCSS, resetTextLayout, FONTS } from './editor.js';
 import { ELEMENTS, ICON_NAMES, elementsReady, normaliseEAN } from './elements.js';
 import { PACK_ICONS } from './pack-icons.js';
+import { ALL_TYPES, searchTypes } from './catalog.js';
 import { hydrateIcons, icon } from '../../assets/icons.js';
 import { createCloud } from './cloud.js';
 import { setupAccount } from './account.js';
@@ -32,25 +33,52 @@ let model = null, viewer = null, editor = null, showArt = true, vb = null, userZ
 
 function buildLibrary() {
   const lib = $('#library');
-  lib.innerHTML = '';
+  lib.innerHTML = `<div class="lib-find"><input id="libFind" type="search" autocomplete="off" aria-label="Search templates and pack types" placeholder="Search ${ALL_TYPES.length} pack types…">
+    <div class="lib-hits" id="libHits" hidden></div><a class="lib-browse" href="../catalog.html">${icon('layers-3')} Browse the library</a></div>`;
   for (const cat of CATEGORIES) {
+    const list = TEMPLATES.filter((x) => x.category === cat.id && !x.hidden);
+    if (!list.length) continue;
     const box = document.createElement('div');
     box.className = 'cat';
     box.innerHTML = `<h4>${cat.name}</h4>`;
-    if (cat.soon) {
-      box.insertAdjacentHTML('beforeend', `<div class="soon">${cat.soon.map((s) => `<span>${s}</span>`).join('')}</div>`);
-    }
-    for (const t of TEMPLATES.filter((x) => x.category === cat.id)) {
+    for (const t of list) {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tpl';
       b.dataset.tpl = t.id;
+      b.dataset.find = ` ${[t.name, t.desc, cat.name, ...t.keywords].join(' ').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ')} `;
       b.innerHTML = `<span class="thumb">${thumb(t)}</span><span><b>${t.name}</b><small>${t.desc}</small></span>`;
       b.addEventListener('click', () => selectTemplate(t.id));
       box.appendChild(b);
     }
     lib.appendChild(box);
   }
+  const input = $('#libFind'), hits = $('#libHits');
+  const run = () => {
+    const q = input.value.trim().toLowerCase(), words = q.split(/[^a-z0-9]+/).filter(Boolean);
+    lib.querySelectorAll('.tpl').forEach((b) => (b.hidden = !words.every((w) => b.dataset.find.includes(' ' + w))));
+    lib.querySelectorAll('.cat').forEach((c) => (c.hidden = !c.querySelector('.tpl:not([hidden])')));
+    const found = q ? searchTypes(q).filter((t) => t.tpl) : [];
+    const seen = new Set(), top = found.filter((t) => !seen.has(t.name) && seen.add(t.name)).slice(0, 8);
+    hits.hidden = !q;
+    hits.innerHTML = top.length
+      ? `<p>Pack types</p>${top.map((t, i) => `<button type="button" data-hit="${i}"><b>${esc(t.name)}</b><small>${esc(byId[t.tpl].name)}</small></button>`).join('')}`
+      : `<p>No pack type matches “${esc(input.value.trim())}”. <a href="../catalog.html?q=${encodeURIComponent(input.value.trim())}">Search the library</a></p>`;
+    hits.querySelectorAll('[data-hit]').forEach((b) => b.addEventListener('click', () => openType(top[+b.dataset.hit])));
+  };
+  input.addEventListener('input', run);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); hits.querySelector('[data-hit]')?.click(); } if (e.key === 'Escape') { input.value = ''; run(); } });
+}
+
+// a catalogue entry: a template at a typical starting size
+function openType(t) {
+  const tpl = byId[t.tpl];
+  state.values[tpl.id] = { ...defaults(tpl), ...(t.v || {}) };
+  $('#libFind').value = '';
+  $('#libFind').dispatchEvent(new Event('input'));
+  selectTemplate(tpl.id);
+  const v = state.values[tpl.id];
+  toast(`${t.name}: ${tpl.name}, ${tpl.dims.map((k) => fmtLen(v[k])).join(' × ')}. Change any size on the right.`);
 }
 
 function thumb(t) {

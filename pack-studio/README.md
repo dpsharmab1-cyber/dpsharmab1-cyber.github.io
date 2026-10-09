@@ -4,27 +4,37 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
 
 - Site: `https://dpsharmab1-cyber.github.io/pack-studio/`
 - Studio (the app): `https://dpsharmab1-cyber.github.io/pack-studio/studio/`
+- Packaging library: `https://dpsharmab1-cyber.github.io/pack-studio/catalog.html`
 
 ## What works today
 
-- **23 parametric templates in 11 categories**:
-  - Folding cartons: reverse and straight tuck end boxes, polygon gift box (5–12 sides)
+- **Packaging library** (`catalog.html`): 188 pack types in 17 categories, sorted by what is being packed (product
+  boxes, mailers, food and takeaway, pouches, bags, bottles, cans, tubes, cups, dairy, snacks, sweets, pharma, cosmetics,
+  eyewear and electronics, labels, displays). 144 open a template at a typical size (an eyeglass box is the tuck end box at
+  160 × 60 × 45 mm, a pizza box is the mailer at 300 × 300 × 40 mm); the rest have a "Request" link. Search by product
+  ("fries", "syringe", "sauce"), filter ready or on request, FEFCO/ECMA codes where they apply. Data: `studio/js/catalog.js`.
+- **28 parametric structures** behind it:
+  - Folding cartons: reverse and straight tuck end boxes (kraft by default), polygon gift box (5–12 sides)
   - Mailers & shipping: mailer box, shipping carton (FEFCO 0201 style)
+  - Food & takeaway: fries / popcorn scoop box (tapered walls that meet exactly, scooped front)
   - Trays & sleeves: open tray, sleeve
   - Pouches: stand-up pouch (bottom gusset, zipper, tear notch, heat seals), flat 3-side-seal pouch
   - Paper bags: shopping bag (turn-over top, rope handles), SOS food bag
   - Tubes: squeeze tube (crimp seal, flip-top cap), paper tube with lid
-  - Bottles & jars: bottle label (glass bottle, partial or full wrap), jar label (clear jar with lid)
+  - Bottles & jars: bottle label, jar label, sauce squeeze-bottle label, pill / supplement bottle label
   - Dairy & milk: milk pouch (centre-seal pillow pack, 200 ml to 1 L), curd and ice-cream cup (tapered sleeve
-    unrolled as a ring sector), butter and paneer carton
+    unrolled as a ring sector); the butter/paneer carton now lives in the library as tuck-box sizes
   - Snacks: chips and snack bag (pillow pack with crimp seals), chips canister
   - Sweets & mithai: sweet box with hinged lid, two-piece lid-and-base sweet box (the lid flips onto the base)
-  - Labels & wraps: can label
+  - Labels & stickers: round sticker, oval label, rectangle label (rounded corners), can label
+- **Library search in the studio**: the template list has a search box that also finds product types and opens them at size.
 - **Smart input**: "mailer box 250x180x70", "shipping box 40x30x30 cm", "coffee pouch 150x230x90", "wine bottle 75 x 300",
   and amounts: "milk pouch 500 ml", "chips 100 g", "mithai box 1kg" pick the nearest **Quick size**.
 - **Quick sizes**: one-tap common sizes per template (approximate starting points; confirm with your converter).
 - **Live dieline**: cut, crease, 3 mm bleed, glue and heat-seal zones, zipper and tear-notch marks, with pan/zoom.
 - **Folding 3D preview**: panels fold in a realistic order. Print stays outside and the board colour shows inside.
+- **Cardboard look**: the default carton is kraft board with a seamless fibre texture on the print, fibres on the
+  unprinted inside and a fine bump on paper and board materials.
 - **Design**: colours, patterns, brand name and tagline, logo, or full artwork mapped 1:1 from the dieline.
 - **Artwork editor**: text, image, shape and pack-label layers on any panel. Drag, resize and rotate them on the dieline
   **or directly on the 3D model** (clicks are mapped through the model's UVs). Layers are pinned to their panel, so they follow

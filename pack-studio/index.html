@@ -26,7 +26,7 @@
       </a>
       <nav class="links" aria-label="Sections">
         <a href="#features">Features</a>
-        <a href="#templates">Templates</a>
+        <a href="catalog.html">Library</a>
         <a href="#how">How it works</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
@@ -72,8 +72,8 @@
 
     <section class="strip">
       <div class="wrap strip-in">
-        <div><b id="statTemplates">23</b><span>parametric templates</span></div>
-        <div><b id="statCategories">11</b><span>packaging categories</span></div>
+        <div><b id="statTemplates">188</b><span>pack types</span></div>
+        <div><b id="statCategories">17</b><span>categories</span></div>
         <div><b>6</b><span>export formats</span></div>
         <div><b>₹0</b><span>during beta</span></div>
       </div>
@@ -95,13 +95,18 @@
       </div>
     </section>
 
-    <section class="sec alt" id="templates">
+    <section class="sec alt home-lib" id="templates">
       <div class="wrap">
-        <p class="eyebrow">Templates</p>
-        <h2>Pick a style. Set any size.</h2>
-        <p class="sub">Each template is a parametric model, not a fixed file, so one template covers every size you need.</p>
-        <div class="cats" id="cats" role="tablist" aria-label="Template categories"></div>
-        <div class="tgrid" id="tgrid"></div>
+        <p class="eyebrow">Packaging library</p>
+        <h2>Every pack type, by what you're packing.</h2>
+        <p class="sub" id="libSubHome">Boxes, food and takeaway, pouches, bottles, cans, tubes, cups, dairy, sweets, pharma, cosmetics, eyewear, labels and more. Each opens as a parametric template at a typical size.</p>
+        <form class="lib-search" id="homeLibSearch" action="catalog.html" role="search">
+          <i data-icon="sparkles"></i>
+          <input name="q" type="search" autocomplete="off" aria-label="Search pack types" placeholder="What are you packing? “fries”, “eyeglasses”, “sauce”, “medicine”…">
+          <button type="submit" class="btn btn-gold btn-sm">Search</button>
+        </form>
+        <div class="catgrid" id="homeCats"></div>
+        <a class="btn btn-line more" href="catalog.html" id="libMore">Browse the full library <i data-icon="arrow-right"></i></a>
       </div>
     </section>
 
@@ -181,7 +186,7 @@
   <footer class="foot">
     <div class="wrap foot-in">
       <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2547d0"/><path d="M16 6 25 11v10l-9 5-9-5V11z" fill="#e5a912"/><path d="M7 11l9 5 9-5M16 16v10" stroke="#2547d0" stroke-width="1.6" fill="none"/></svg> Pack Studio</a>
-      <nav aria-label="Footer"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="studio/">Studio</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="refund.html">Refunds</a><a href="contact.html">Contact</a></nav>
+      <nav aria-label="Footer"><a href="catalog.html">Library</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="studio/">Studio</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="refund.html">Refunds</a><a href="contact.html">Contact</a></nav>
       <p class="muted small">© 2026 Pack Studio · Beta. Built with open source: three.js, Inter, Plus Jakarta Sans and Lucide icons.</p>
     </div>
   </footer>

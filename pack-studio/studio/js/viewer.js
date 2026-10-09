@@ -534,6 +534,37 @@ function containerMeshes(s) {
     const cap = new T.Mesh(new T.CylinderGeometry(r + 1.6, r + 1.6, s.lidH, 72), capMat);
     cap.position.y = H - s.lidH / 2 + 2;
     out.push(body, ring, cap);
+  } else if (s.body === 'sauce') {
+    // squeeze bottle: soft shoulder into a short neck, flip-top cap
+    const shoulder = Math.max(s.labelY + s.labelH + 6, H * 0.6), neckR = r * 0.42, neckY = H * 0.84;
+    const pts = [V(0, 0), V(r - 5, 0), V(r, 5), V(r, shoulder)];
+    for (let i = 1; i <= 14; i++) {
+      const k = i / 14, e = Math.sin((Math.PI / 2) * k);
+      pts.push(V(r + (neckR - r) * e, shoulder + (neckY - shoulder) * k));
+    }
+    pts.push(V(0.01, neckY));
+    const plastic = new T.MeshPhysicalMaterial({ color: 0xb3261e, roughness: 0.22, clearcoat: 0.8, clearcoatRoughness: 0.15 });
+    out.push(new T.Mesh(new T.LatheGeometry(pts, 72), plastic));
+    const capMat = new T.MeshStandardMaterial({ color: 0xf2f2ef, roughness: 0.45 });
+    const capH = H - neckY;
+    const cap = new T.Mesh(new T.CylinderGeometry(neckR * 0.78, neckR * 1.05, capH * 0.8, 48), capMat);
+    cap.position.y = neckY + capH * 0.4;
+    const tip = new T.Mesh(new T.CylinderGeometry(neckR * 0.25, neckR * 0.45, capH * 0.2, 24), capMat);
+    tip.position.y = neckY + capH * 0.9;
+    out.push(cap, tip);
+  } else if (s.body === 'pill') {
+    // HDPE supplement bottle: straight wall, short shoulder, wide ribbed cap
+    const shoulder = Math.max(s.labelY + s.labelH + 3, H * 0.76), neckR = r * 0.8, neckY = H * 0.84;
+    const pts = [V(0, 0), V(r - 3, 0), V(r, 3), V(r, shoulder)];
+    for (let i = 1; i <= 8; i++) {
+      const k = i / 8, e = Math.sin((Math.PI / 2) * k);
+      pts.push(V(r + (neckR - r) * e, shoulder + (neckY - shoulder) * k));
+    }
+    pts.push(V(0.01, neckY));
+    out.push(new T.Mesh(new T.LatheGeometry(pts, 72), new T.MeshStandardMaterial({ color: 0xf5f5f2, roughness: 0.42 })));
+    const cap = new T.Mesh(new T.CylinderGeometry(neckR + 1.5, neckR + 1.5, H - neckY, 72), new T.MeshStandardMaterial({ color: 0x1d2b4f, roughness: 0.5 }));
+    cap.position.y = neckY + (H - neckY) / 2;
+    out.push(cap);
   } else if (s.body === 'bottle') {
     const shoulder = Math.max(s.labelY + s.labelH + 6, H * 0.5), neckR = Math.max(9, r * 0.3), neck0 = Math.min(H * 0.8, shoulder + r * 1.4), capY = H * 0.9;
     const pts = [V(0, 0), V(r - 3, 0), V(r, 3), V(r, shoulder)];

@@ -44,6 +44,18 @@ h2, h3 { margin: 0; }
 
 /* ---------- library ---------- */
 .cat { margin-bottom: 14px; }
+.lib-find { position: relative; display: grid; gap: 6px; margin: 0 2px 14px; }
+.lib-find input { width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); padding: 8px 10px; font-size: 13px; outline: none; }
+.lib-find input:focus { border-color: var(--accent); background: var(--panel); }
+.lib-browse { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--accent); text-decoration: none; padding: 0 2px; }
+.lib-browse svg { width: 14px; height: 14px; }
+.lib-hits { position: absolute; z-index: 20; top: 40px; left: 0; right: 0; min-width: 230px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); padding: 6px; display: grid; gap: 2px; max-height: 60vh; overflow: auto; }
+.lib-hits p { margin: 4px 6px; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.lib-hits p a { text-transform: none; letter-spacing: 0; color: var(--accent); }
+.lib-hits button { display: grid; text-align: left; border: 0; background: transparent; border-radius: 8px; padding: 7px 8px; }
+.lib-hits button:hover, .lib-hits button:focus-visible { background: var(--accent-soft); }
+.lib-hits b { font-size: 13px; font-weight: 600; }
+.lib-hits small { font-size: 11.5px; color: var(--muted); }
 .cat h4 { margin: 6px 8px 8px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .tpl { display: flex; gap: 10px; align-items: center; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; border-radius: 12px; padding: 7px; }
 .tpl:hover { background: var(--bg); }
@@ -170,6 +182,9 @@ select { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 9p
   .library { order: 1; display: flex; gap: 6px; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 8px 16px; }
   .cat { display: contents; }
   .cat h4, .soon { display: none; }
+  .lib-find { flex: none; width: 200px; margin: 0; align-self: center; }
+  .lib-browse { display: none; }
+  .lib-hits { position: fixed; top: auto; left: 16px; right: 16px; margin-top: 4px; }
   .tpl { flex: none; width: auto; padding: 5px 10px 5px 5px; border: 1px solid var(--line); }
   .tpl .thumb { width: 38px; height: 38px; padding: 3px; }
   .tpl b { white-space: nowrap; }
