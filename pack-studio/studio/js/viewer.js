@@ -3,6 +3,7 @@
 
 import * as T from './vendor/three.bundle.mjs';
 import { panelProgress } from './engine.js';
+import { boardMap, TILE_MM } from './texture.js';
 
 export class Viewer {
   constructor(el) {
@@ -45,6 +46,12 @@ export class Viewer {
     this.backMat = new T.MeshStandardMaterial({ roughness: 0.85, metalness: 0, side: T.BackSide });
     this.edgeMat = new T.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 });
 
+    // board fibres: colour on the unprinted inside, a fine bump on both faces
+    const fib = this.fibreTex = new T.CanvasTexture(boardMap());
+    fib.wrapS = fib.wrapT = T.RepeatWrapping;
+    fib.colorSpace = T.SRGBColorSpace;
+    fib.anisotropy = r.capabilities.getMaxAnisotropy();
+
     this.fold = 1;
     new ResizeObserver(() => this.resize()).observe(el);
     this.resize();
@@ -78,6 +85,14 @@ export class Viewer {
     this.root.quaternion.identity();
     this.nodes = [];
     this.backMat.color.set(model.material.inside);
+    // paper and board get fibres; films, laminates and foils stay smooth
+    const board = !/film|laminate|foil/i.test(model.material.name || '');
+    this.fibreTex.repeat.set(model.art.w / TILE_MM, model.art.h / TILE_MM);
+    this.backMat.map = board ? this.fibreTex : null;
+    this.backMat.bumpMap = this.frontMat.bumpMap = board ? this.fibreTex : null;
+    this.backMat.bumpScale = 1.2;
+    this.frontMat.bumpScale = 0.6;
+    this.backMat.needsUpdate = this.frontMat.needsUpdate = true;
     this.edgeMat.color.set(model.material.edge);
     this.eps = Math.max(0.3, model.material.t);
     if (model.kind === 'wrap') this.buildWrap(model);

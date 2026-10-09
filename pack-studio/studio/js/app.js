@@ -11,7 +11,7 @@ import { createCloud } from './cloud.js';
 import { setupAccount } from './account.js';
 
 const $ = (s) => document.querySelector(s);
-const SWATCHES = ['#2547d0', '#e5a912', '#0b1a5c', '#ffffff', '#f4efe6', '#1b1d21', '#e8553e', '#2f9e6b', '#c9a27e', '#f6c7d3'];
+const SWATCHES = ['#c2956a', '#2547d0', '#e5a912', '#0b1a5c', '#ffffff', '#f4efe6', '#1b1d21', '#e8553e', '#2f9e6b', '#c9a27e', '#f6c7d3'];
 const TOUCH = matchMedia('(pointer: coarse)').matches;
 const NARROW = () => matchMedia('(max-width: 900px)').matches;
 const IN = 25.4;
@@ -22,7 +22,7 @@ const state = {
   mat: null, thick: null,
   units: 'mm',
   view: matchMedia('(min-width: 1180px)').matches ? 'split' : '3d',
-  design: { color: '#2547d0', pattern: 'Solid', brand: 'Your Brand', tagline: 'Made with care', logo: null, art: null, layers: [] },
+  design: { color: '#c2956a', pattern: 'Kraft', brand: 'Your Brand', tagline: 'Made with care', logo: null, art: null, layers: [] },
   layersByTpl: {},     // artwork layers are kept per template
 };
 let account = null;

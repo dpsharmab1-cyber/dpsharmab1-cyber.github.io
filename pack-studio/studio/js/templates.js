@@ -288,14 +288,14 @@ export const TEMPLATES = [
     id: 'rte', category: 'cartons', name: 'Reverse tuck end box',
     desc: 'The classic retail carton: cosmetics, serums, supplements, tea.',
     keywords: ['tuck', 'reverse', 'cosmetic', 'serum', 'perfume', 'soap', 'carton', 'retail', 'product box'],
-    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'sbs',
+    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'kraft',
     build: (p) => tuckEnd(p, true),
   },
   {
     id: 'ste', category: 'cartons', name: 'Straight tuck end box',
     desc: 'Both tucks on the back panel, so the front artwork stays unbroken.',
     keywords: ['straight', 'ste'],
-    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'sbs',
+    params: TUCK_PARAMS, dims: ['L', 'W', 'H'], material: 'kraft',
     build: (p) => tuckEnd(p, false),
   },
   {
