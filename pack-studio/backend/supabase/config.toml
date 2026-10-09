@@ -1,7 +1,0 @@
-project_id = "pack-studio"
-
-# Supabase CLI settings for the Pack Studio functions.
-# Razorpay calls the webhook without a Supabase login, so it must not require one;
-# it proves itself with the X-Razorpay-Signature header instead.
-[functions.razorpay-webhook]
-verify_jwt = false
