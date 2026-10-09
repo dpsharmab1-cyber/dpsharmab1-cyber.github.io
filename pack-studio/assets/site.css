@@ -254,7 +254,7 @@ details p { color: var(--muted); margin-top: 10px; }
 .catcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
 .catcard.on { border-color: var(--royal-800); box-shadow: 4px 4px 0 var(--royal-800); }
 .cc-text { position: relative; z-index: 1; display: flex; flex-direction: column; padding: 18px 0 16px 20px; max-width: 58%; }
-.cc-text h3 { font: 700 19px/1.2 var(--display); }
+.cc-text h3 { font: 700 19px/1.2 var(--display); overflow-wrap: anywhere; hyphens: auto; }
 .cc-count { margin-top: 8px; color: var(--muted); font-size: 14px; }
 .cc-go { margin-top: auto; padding-top: 12px; color: var(--text); }
 .catcard img { position: absolute; right: 8px; bottom: 8px; width: 46%; height: calc(100% - 16px); object-fit: contain; object-position: right bottom; filter: drop-shadow(0 10px 14px rgba(18, 24, 51, .12)); transition: transform .25s; }
@@ -265,9 +265,9 @@ details p { color: var(--muted); margin-top: 10px; }
 .lib-cat h2 { font-size: 22px; display: flex; align-items: baseline; gap: 10px; }
 .lib-cat h2 small { font: 600 14px var(--font); color: var(--muted); }
 .tygrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-top: 16px; }
-.tycard { display: grid; grid-template-rows: auto 1fr; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); transition: border-color .2s, box-shadow .2s; }
+.tycard { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); transition: border-color .2s, box-shadow .2s; }
 .tycard:hover { border-color: var(--accent); box-shadow: var(--shadow); }
-.ty-art { aspect-ratio: 16 / 10; display: grid; place-items: center; padding: 12px; background: linear-gradient(160deg, var(--royal-50), var(--panel)); border-bottom: 1px solid var(--line); }
+.ty-art { min-width: 0; width: 100%; aspect-ratio: 16 / 10; display: grid; place-items: center; padding: 12px; background: linear-gradient(160deg, var(--royal-50), var(--panel)); border-bottom: 1px solid var(--line); }
 .ty-art svg { width: 100%; height: 100%; }
 .ty-soon { display: grid; justify-items: center; gap: 6px; color: var(--muted); }
 .ty-soon small { font-size: 12px; font-weight: 600; }
@@ -289,3 +289,14 @@ details p { color: var(--muted); margin-top: 10px; }
 @media (max-width: 1020px) { .catgrid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .catgrid { grid-template-columns: repeat(2, 1fr); } .catcard { min-height: 150px; } .cc-text h3 { font-size: 16.5px; } .lib-head { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 400px) { .cc-text { padding: 14px 0 12px 14px; } .cc-text h3 { font-size: 15px; } }
+
+/* touch screens: every link and control gets a finger-sized target (40 px+) */
+@media (pointer: coarse) {
+  .foot nav a, .links a, .toc a, .legal a, .hero-card a, #heroOpen { display: inline-flex; align-items: center; min-height: 40px; }
+  .foot nav { gap: 4px 14px; }
+  .faq summary, details > summary { min-height: 44px; display: flex; align-items: center; }
+  .lib-filter button { min-height: 40px; }
+  .ty-go { min-height: 40px; }
+}
+.lib-static { columns: 3 220px; gap: 24px; margin: 12px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+.lib-static li { break-inside: avoid; margin: 4px 0; }

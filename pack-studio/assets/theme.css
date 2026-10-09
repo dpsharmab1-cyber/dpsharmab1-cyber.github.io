@@ -49,16 +49,7 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0c1024; --panel: #141933; --sheet: #1a2040; --line: #262d52; --text: #e9ecf8; --muted: #9aa3c7; --label: #7d86ad;
-    --accent: #7f9bff; --accent-strong: #a3b6ff; --accent-ink: #0a0f2e; --accent-soft: #1c2658;
-    --gold: var(--mustard-400); --gold-ink: #1b1607; --gold-soft: #3a3010;
-    --stage: radial-gradient(120% 90% at 50% 12%, #1c2348 0%, #0e1229 72%);
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .35);
-    --shadow-lg: 0 2px 6px rgba(0, 0, 0, .3), 0 24px 60px rgba(0, 0, 0, .45);
-    color-scheme: dark;
-  }
-}
+/* Brand theme is royal blue, mustard and white only: no dark variant, even when the
+   device is in dark mode (color-scheme: light keeps form controls light too). */
 
 .ic { width: 1.1em; height: 1.1em; flex: none; display: inline-block; vertical-align: -0.15em; }

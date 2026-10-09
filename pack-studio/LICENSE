@@ -1,0 +1,25 @@
+Pack Studio — proprietary licence
+
+Copyright (c) 2026 the owner of the dpsharmab1-cyber GitHub account, trading as Pack Studio.
+All rights reserved.
+
+The source code, templates, packaging library, designs, text and images in this
+"pack-studio" folder ("the Software") are the property of the copyright owner.
+The Software is published so that it can run in visitors' browsers. Viewing it
+does not grant any licence. Without prior written permission you may not copy,
+modify, distribute, sublicense, sell, host, or create derivative works from the
+Software or any substantial part of it, or use it to build a competing product
+or service.
+
+Using the hosted service at the official Pack Studio website is governed by the
+Terms of Service published there (terms.html).
+
+Third-party components keep their own licences, which this notice does not change:
+- three.js (MIT)            studio/js/vendor/THREE-LICENSE.txt
+- supabase-js (MIT)         studio/js/vendor/SUPABASE-LICENSE.txt
+- qrcode-generator (MIT)    studio/js/vendor/QRCODE-LICENSE.txt
+- Lucide icons (ISC)        assets/icons.js, studio/js/pack-icons.js
+- Inter, Plus Jakarta Sans, Noto Sans Devanagari, Playfair Display (SIL OFL 1.1)
+                            assets/fonts/LICENSE.txt
+
+For licensing or partnership enquiries, use the contact page.
