@@ -64,7 +64,7 @@ function esc(s) {
 
 export const PATTERNS = ['Solid', 'Stripes', 'Dots', 'Grid', 'Waves'];
 
-export function drawDesign(model, d, maxPx = 2048, { layers = true } = {}) {
+export function drawDesign(model, d, maxPx = 2048, { layers = true, selected = null, onAsset = null } = {}) {
   const b = model.art, s = maxPx / Math.max(b.w, b.h);
   const cw = Math.max(2, Math.round(b.w * s)), ch = Math.max(2, Math.round(b.h * s));
   const c = document.createElement('canvas');
@@ -109,7 +109,7 @@ export function drawDesign(model, d, maxPx = 2048, { layers = true } = {}) {
     g.fillText(d.tagline.toUpperCase(), 0, y);
   }
   g.restore();
-  if (layers && d.layers?.length) drawLayers(g, model, d.layers, s);
+  if (layers && d.layers?.length) drawLayers(g, model, d.layers, s, { selected, onAsset });
   return c;
 }
 

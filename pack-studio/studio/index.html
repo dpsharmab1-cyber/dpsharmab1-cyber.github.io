@@ -8,6 +8,7 @@
   <meta name="robots" content="noindex">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232547d0'/%3E%3Cpath d='M16 6 25 11v10l-9 5-9-5V11z' fill='%23e5a912'/%3E%3Cpath d='M7 11l9 5 9-5M16 16v10' stroke='%232547d0' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
   <link rel="preload" href="../assets/fonts/inter.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../assets/fonts-extra.css">
   <link rel="stylesheet" href="../assets/theme.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -106,6 +107,11 @@
 
       <section class="card">
         <h3>Design</h3>
+        <div class="kit" id="kitRow">
+          <select id="kitSel" aria-label="Brand kit"><option value="">Brand kit…</option></select>
+          <button type="button" class="ghost sm" id="kitSave" title="Save colours, fonts, logo and name as a brand kit"><i data-icon="palette"></i> Save kit</button>
+          <button type="button" class="ghost sm icon-only" id="kitDel" title="Delete this brand kit" aria-label="Delete brand kit" hidden><i data-icon="trash-2"></i></button>
+        </div>
         <div class="swatches" id="swatches" role="radiogroup" aria-label="Print colour"></div>
         <div class="chips" id="patterns" role="radiogroup" aria-label="Pattern"></div>
         <label class="field"><span>Brand name</span><input type="text" id="brand" maxlength="32"></label>
@@ -118,31 +124,84 @@
       </section>
 
       <section class="card" id="artCard">
-        <h3>Artwork editor <span class="muted small">on the dieline</span></h3>
+        <div class="card-head">
+          <h3>Artwork editor</h3>
+          <div class="ed-history">
+            <button type="button" id="undo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i data-icon="undo-2"></i></button>
+            <button type="button" id="redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" disabled><i data-icon="redo-2"></i></button>
+          </div>
+        </div>
         <div class="ed-actions">
-          <button type="button" id="addText"><i data-icon="type"></i> Add text</button>
-          <label class="btnlike"><input type="file" id="addImage" accept="image/*"><i data-icon="image-plus"></i> Add image</label>
+          <button type="button" id="addText"><i data-icon="type"></i> Text</button>
+          <label class="btnlike"><input type="file" id="addImage" accept="image/*"><i data-icon="image-plus"></i> Image</label>
+          <details class="menu" id="shapeMenu"><summary class="btnlike"><i data-icon="shapes"></i> Shape</summary><div class="menu-list" id="shapeList"></div></details>
+          <details class="menu" id="elMenu"><summary class="btnlike"><i data-icon="badge-check"></i> Pack label</summary><div class="menu-list" id="elList"></div></details>
         </div>
         <ol class="layers" id="layerList"></ol>
         <div class="layer-props" id="layerProps" hidden>
-          <label class="field" data-for="text"><span>Text</span><input id="lpText" type="text" maxlength="60"></label>
+          <label class="field" data-for="text"><span>Text</span><textarea id="lpText" rows="2" maxlength="300"></textarea></label>
           <div class="row" data-for="text">
             <select id="lpFont" aria-label="Font"></select>
-            <button type="button" id="lpBold" class="tog" aria-label="Bold" aria-pressed="true"><b>B</b></button>
-            <input type="color" id="lpColor" aria-label="Text colour">
+            <button type="button" id="lpBold" class="tog" aria-label="Bold" aria-pressed="true"><i data-icon="bold"></i></button>
+            <button type="button" id="lpItalic" class="tog" aria-label="Italic" aria-pressed="false"><i data-icon="italic"></i></button>
+            <input type="color" id="lpColor" aria-label="Text colour" title="Text colour">
           </div>
+          <div class="row" data-for="text">
+            <div class="seg" id="lpAlign" role="group" aria-label="Text alignment">
+              <button type="button" data-align="left" aria-label="Align left"><i data-icon="align-left"></i></button>
+              <button type="button" data-align="center" aria-label="Align centre"><i data-icon="align-center"></i></button>
+              <button type="button" data-align="right" aria-label="Align right"><i data-icon="align-right"></i></button>
+            </div>
+            <label class="mini" title="Outline colour">Outline <input type="color" id="lpOutline" aria-label="Outline colour"></label>
+            <input type="range" id="lpOwR" min="0" max="2" step="0.05" aria-label="Outline width" title="Outline width">
+          </div>
+          <div class="param" data-for="text"><label for="lpLsR">Letter spacing</label><span></span><input type="range" id="lpLsR" min="-0.1" max="0.8" step="0.01"></div>
+          <div class="param" data-for="text"><label for="lpCurveR">Curve</label><span class="muted small" id="lpCurveVal"></span><input type="range" id="lpCurveR" min="-100" max="100" step="1"></div>
+
+          <div class="row" data-for="shape">
+            <label class="mini" data-for="shape:rect shape:ellipse shape:burst shape:ribbon"><input type="checkbox" id="lpFillOn"> Fill <input type="color" id="lpFill" aria-label="Fill colour"></label>
+            <label class="mini"><input type="checkbox" id="lpStrokeOn"> Line <input type="color" id="lpStroke" aria-label="Line colour"></label>
+            <label class="mini thick"><input type="number" id="lpSw" min="0.1" max="20" step="0.1" aria-label="Line width"><span>mm</span></label>
+          </div>
+          <div class="param" data-for="shape:rect"><label for="lpRadiusR">Corner radius</label><span></span><input type="range" id="lpRadiusR" min="0" max="60" step="0.5"></div>
+          <div class="param" data-for="shape:burst"><label for="lpPointsR">Points</label><span></span><input type="range" id="lpPointsR" min="5" max="40" step="1"></div>
+
+          <label class="field" data-for="element:barcode"><span>EAN-13 number <small class="muted">12 digits, check digit added</small></span><input id="lpCode" type="text" inputmode="numeric" maxlength="13" autocomplete="off"></label>
+          <label class="field" data-for="element:qr"><span>QR code link or text</span><input id="lpQr" type="text" maxlength="300" autocomplete="off"></label>
+          <label class="field" data-for="element:nutrition"><span>Title</span><input id="lpNTitle" type="text" maxlength="60"></label>
+          <label class="field" data-for="element:nutrition"><span>Basis</span><input id="lpNBasis" type="text" maxlength="60"></label>
+          <label class="field" data-for="element:nutrition"><span>Rows <small class="muted">name | value, indent with two spaces for sub-rows</small></span><textarea id="lpNRows" rows="6" maxlength="1200"></textarea></label>
+          <label class="field" data-for="element:legal"><span>Declarations <small class="muted">one per line</small></span><textarea id="lpLegal" rows="6" maxlength="1200"></textarea></label>
+          <div class="icon-grid" id="lpIcons" data-for="element:icon" role="radiogroup" aria-label="Icon"></div>
+          <div class="row" data-for="element:qr element:nutrition element:legal element:icon">
+            <span class="muted small">Colour</span><input type="color" id="lpElColor" aria-label="Element colour">
+          </div>
+          <div class="palette" id="lpPalette" aria-label="Brand colours"></div>
+
           <div class="param"><label for="lpSize" id="lpSizeLabel">Size</label><div class="num"><input id="lpSize" type="number" step="0.5" min="1"><span>mm</span></div><input type="range" id="lpSizeR" min="2" max="200" step="0.5" aria-label="Size"></div>
+          <div class="param" data-for="shape:rect shape:ellipse shape:burst shape:ribbon"><label for="lpH">Height</label><div class="num"><input id="lpH" type="number" step="0.5" min="0.5"><span>mm</span></div><input type="range" id="lpHR" min="1" max="200" step="0.5" aria-label="Height"></div>
           <div class="param"><label for="lpRot">Rotation</label><div class="num"><input id="lpRot" type="number" step="1"><span>°</span></div><input type="range" id="lpRotR" min="-180" max="180" step="1" aria-label="Rotation"></div>
           <div class="param"><label for="lpOpacityR">Opacity</label><span></span><input type="range" id="lpOpacityR" min="0.1" max="1" step="0.05"></div>
+          <div class="ed-tools" aria-label="Align on panel">
+            <button type="button" data-place="left" title="Align to panel left"><i data-icon="align-horizontal-justify-start"></i></button>
+            <button type="button" data-place="hcenter" title="Centre horizontally on panel"><i data-icon="align-horizontal-justify-center"></i></button>
+            <button type="button" data-place="right" title="Align to panel right"><i data-icon="align-horizontal-justify-end"></i></button>
+            <button type="button" data-place="top" title="Align to panel top"><i data-icon="align-vertical-justify-start"></i></button>
+            <button type="button" data-place="vmiddle" title="Centre vertically on panel"><i data-icon="align-vertical-justify-center"></i></button>
+            <button type="button" data-place="bottom" title="Align to panel bottom"><i data-icon="align-vertical-justify-end"></i></button>
+          </div>
           <div class="ed-tools">
-            <button type="button" data-act="center" title="Centre on its panel"><i data-icon="maximize"></i></button>
             <button type="button" data-act="up" title="Bring forward"><i data-icon="arrow-up"></i></button>
             <button type="button" data-act="down" title="Send backward"><i data-icon="arrow-down"></i></button>
-            <button type="button" data-act="dup" title="Duplicate"><i data-icon="copy"></i></button>
+            <button type="button" data-act="dup" title="Duplicate (Ctrl+D)"><i data-icon="copy"></i></button>
             <button type="button" data-act="del" title="Delete" class="danger"><i data-icon="trash-2"></i></button>
           </div>
         </div>
-        <p class="hint">Tap a panel on the dieline, then add text or an image. Drag to move, pull the square to resize, the circle to rotate (Shift snaps to 15°). Arrow keys nudge 1 mm.</p>
+        <details class="check" id="printCheck">
+          <summary><span>Print check</span><b id="checkCount" class="count ok">OK</b></summary>
+          <ul id="checkList"></ul>
+        </details>
+        <p class="hint">Tap a panel, then add a layer. Drag layers on the dieline or right on the 3D model; pull the square to resize and the circle to rotate. Layers snap to the panel centre (hold Alt to stop snapping). Arrow keys nudge 1 mm, Ctrl+Z undoes.</p>
       </section>
 
       <section class="card">

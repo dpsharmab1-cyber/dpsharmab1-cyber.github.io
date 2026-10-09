@@ -3,7 +3,9 @@ import { compile, sheetFit } from './engine.js';
 import { dielineSVG, drawDesign, PATTERNS, contrastInk } from './dieline.js';
 import { exportSVG, exportPDF, exportDXF, download, fileBase } from './exporters.js';
 import { Viewer } from './viewer.js';
-import { Editor, newLayer, pinToPanel, panelAt, layerCenter, FONTS } from './editor.js';
+import { Editor, newLayer, pinToPanel, panelAt, layerCenter, layerCorners, layerAt, layerName, printCheck, fontCSS, resetTextLayout, FONTS } from './editor.js';
+import { ELEMENTS, ICON_NAMES, elementsReady, normaliseEAN } from './elements.js';
+import { PACK_ICONS } from './pack-icons.js';
 import { hydrateIcons, icon } from '../../assets/icons.js';
 import { createCloud } from './cloud.js';
 import { setupAccount } from './account.js';
@@ -67,6 +69,7 @@ function selectTemplate(id, { fromHash = false } = {}) {
   state.design.layers = state.layersByTpl[tpl.id] || (state.layersByTpl[tpl.id] = []);
   activePanel = null;
   editor?.select(null);
+  resetHistory();
   if (!fromHash || !state.mat) { state.mat = tpl.material; state.thick = null; }
   document.querySelectorAll('.tpl').forEach((b) => b.setAttribute('aria-current', String(b.dataset.tpl === tpl.id)));
   $('#tplCat').textContent = CATEGORIES.find((c) => c.id === tpl.category).name;
@@ -199,13 +202,14 @@ function rebuild({ refit }) {
   viewer.setModel(model, { refit });
   redrawArt();
   updateStats();
+  runPrintCheck();
   writeHash();
 }
 
 let art2D = null;
 function redrawArt() {
   if (!model) return;
-  viewer.setArtwork(drawDesign(model, state.design, 2048));
+  paint3D();
   // layers are drawn live on the dieline by the editor, so leave them out here
   art2D = drawDesign(model, state.design, 1100, { layers: false }).toDataURL('image/jpeg', 0.86);
   render2D();
@@ -216,13 +220,34 @@ let live3D = 0;
 function layersChanged(kind) {
   if (kind === 'live') {
     if (live3D) return;
-    live3D = requestAnimationFrame(() => { live3D = 0; viewer.setArtwork(drawDesign(model, state.design, 1024)); });
+    live3D = requestAnimationFrame(() => { live3D = 0; paint3D(1024); });
   } else {
     cancelAnimationFrame(live3D); live3D = 0;
-    viewer.setArtwork(drawDesign(model, state.design, 2048));
+    paint3D();
     renderLayerPanel();
+    commitHistory();
+    runPrintCheck();
     account?.markDirty();
   }
+}
+
+// The 3D texture shows the selected layer's frame, so it can be found on the model.
+function paint3D(px = 2048, { clean = false } = {}) {
+  if (!model) return;
+  viewer.setArtwork(drawDesign(model, state.design, px, { selected: clean ? null : editor?.selected, onAsset: schedulePaint3D }));
+}
+
+let paintRaf = 0;
+function schedulePaint3D() {
+  if (paintRaf) return;
+  paintRaf = requestAnimationFrame(() => { paintRaf = 0; paint3D(); });
+}
+
+// exports and thumbnails never show the selection frame
+async function withCleanTexture(fn) {
+  await elementsReady(state.design.layers);
+  paint3D(2048, { clean: true });
+  try { return await fn(); } finally { paint3D(); }
 }
 
 function updateStats() {
@@ -285,9 +310,8 @@ function wire2DPanZoom() {
     // a tap (no drag) picks the panel new layers go on, and clears the selection
     if (drag && !drag.moved && editor.svg && model) {
       const [x, y] = editor.toFlat(e);
-      activePanel = panelAt(model, x, y)?.id || null;
-      host.querySelectorAll('#Hit .active').forEach((n) => n.classList.remove('active'));
-      if (activePanel) host.querySelector(`#Hit [data-panel="${activePanel}"]`)?.classList.add('active');
+      const id = panelAt(model, x, y)?.id || null;
+      if (id !== activePanel) setActivePanel(id);
       editor.select(null);
     }
     drag = null;
@@ -416,7 +440,10 @@ async function doExport(kind) {
   const base = fileBase(model), m = currentMaterial();
   try {
     if (kind === 'svg') download(`${base}-dieline.svg`, exportSVG(model), 'image/svg+xml');
-    if (kind === 'proof') download(`${base}-proof.svg`, exportSVG(model, drawDesign(model, state.design, 2400).toDataURL('image/png')), 'image/svg+xml');
+    if (kind === 'proof') {
+      await elementsReady(state.design.layers);
+      download(`${base}-proof.svg`, exportSVG(model, drawDesign(model, state.design, 2400).toDataURL('image/png')), 'image/svg+xml');
+    }
     if (kind === 'dxf') download(`${base}-dieline.dxf`, exportDXF(model), 'application/dxf');
     if (kind === 'pdf') {
       const dims = model.tpl.dims.map((k) => `${model.tpl.params.find((p) => p.k === k).label} ${Math.round(model.values[k] * 10) / 10}`).join(', ');
@@ -427,12 +454,13 @@ async function doExport(kind) {
       return;
     }
     if (kind === 'glb') {
-      const buf = await viewer.exportGLB();
+      const buf = await withCleanTexture(() => viewer.exportGLB());
       download(`${base}.glb`, new Blob([buf], { type: 'model/gltf-binary' }));
     }
     if (kind === 'png') {
       const hd = account ? account.can('hd') : true;
-      const blob = await (await fetch(hd ? viewer.snapshot(2) : await watermark(viewer.snapshot(1)))).blob();
+      const shot = await withCleanTexture(() => viewer.snapshot(hd ? 2 : 1));
+      const blob = await (await fetch(hd ? shot : await watermark(shot))).blob();
       download(`${base}-mockup.png`, blob);
     }
     toast(`Downloaded ${kind.toUpperCase()}`);
@@ -519,9 +547,27 @@ function setupTouchLocks() {
 
 // ---------- artwork editor panel ----------
 
+const DEFAULT_PALETTE = ['#ffffff', '#1b1d21', '#0b1a5c', '#2547d0', '#e5a912', '#e8553e', '#2f9e6b', '#c9a27e'];
+const LAYER_ICON = { text: 'type', image: 'image-plus', shape: 'shapes' };
+const EL_ICON = { barcode: 'scan-barcode', qr: 'qr-code' };
+const MENU_SHAPES = [['rect', 'Rectangle', 'Panels, bands, price boxes'], ['ellipse', 'Circle / ellipse', 'Seals and spot colour'], ['burst', 'Starburst badge', '“New”, “20% extra”'], ['ribbon', 'Ribbon banner', 'Behind a headline'], ['line', 'Line', 'Dividers and rules']];
+const MENU_ELEMENTS = [['veg', 'Food-type mark (veg)'], ['nonveg', 'Food-type mark (non-veg)'], ['legal', 'MRP & legal details', 'MRP, net qty, dates, FSSAI no.'], ['nutrition', 'Nutrition table', 'Per 100 g values'], ['barcode', 'Barcode (EAN-13)', 'Standard retail barcode'], ['qr', 'QR code', 'Link to your site or menu'], ['icon', 'Icon', 'Recycle, keep cool, veg, more']];
+
 function wireEditorUI() {
   const fonts = $('#lpFont');
-  for (const f of Object.keys(FONTS)) fonts.add(new Option(f, f));
+  for (const f of Object.keys(FONTS)) fonts.add(new Option(f === 'Hindi' ? 'Hindi (देवनागरी)' : f, f));
+
+  // add menus
+  $('#shapeList').innerHTML = MENU_SHAPES.map(([k, n, d]) => `<button type="button" data-shape="${k}"><span class="sw">${shapeGlyph(k)}</span><span>${n}<small>${d}</small></span></button>`).join('');
+  $('#elList').innerHTML = MENU_ELEMENTS.map(([k, n, d]) => `<button type="button" data-el="${k}"><span class="sw">${elementGlyph(k)}</span><span>${n}${d ? `<small>${d}</small>` : ''}</span></button>`).join('');
+  const closeMenus = () => document.querySelectorAll('details.menu[open]').forEach((m) => m.removeAttribute('open'));
+  $('#shapeList').addEventListener('click', (e) => { const b = e.target.closest('[data-shape]'); if (b) { closeMenus(); addLayer('shape', { shape: b.dataset.shape }); } });
+  $('#elList').addEventListener('click', (e) => { const b = e.target.closest('[data-el]'); if (b) { closeMenus(); addLayer('element', { el: b.dataset.el }); } });
+  document.addEventListener('click', (e) => { if (!e.target.closest('details.menu')) closeMenus(); });
+  document.querySelectorAll('details.menu').forEach((m) => m.addEventListener('toggle', () => { if (m.open) document.querySelectorAll('details.menu[open]').forEach((o) => o !== m && o.removeAttribute('open')); }));
+
+  $('#lpIcons').innerHTML = ICON_NAMES.map((n) => `<button type="button" role="radio" data-icon-name="${n}" title="${n.replace(/-/g, ' ')}" aria-label="${n.replace(/-/g, ' ')}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PACK_ICONS[n]}</svg></button>`).join('');
+
   $('#addText').addEventListener('click', () => addLayer('text'));
   $('#addImage').addEventListener('change', async (e) => {
     const file = e.target.files[0];
@@ -532,53 +578,159 @@ function wireEditorUI() {
       addLayer('image', { img, src: img.src, name: file.name });
     } catch { toast('Could not read that image.'); }
   });
-  const bind = (id, key, conv = (v) => v, evt = 'input') => $(id).addEventListener(evt, (e) => {
+
+  // property bindings: live while typing or dragging, one history step on change
+  const edit = (fn, live = true) => (e) => {
     const L = selectedLayer();
     if (!L) return;
-    L[key] = conv(e.target.value);
-    syncProps(L, id);
+    fn(L, e.target, e);
+    syncProps(L, e.target.id);
     editor.render();
-    layersChanged('live');
-  });
-  bind('#lpText', 'text');
-  bind('#lpFont', 'font', String, 'change');
-  bind('#lpColor', 'color');
-  bind('#lpRot', 'rot', Number); bind('#lpRotR', 'rot', Number);
-  bind('#lpOpacityR', 'opacity', Number);
-  const setSize = (v) => { const L = selectedLayer(); if (!L) return; if (L.type === 'image') L.w = v; else L.size = v; syncProps(L); editor.render(); layersChanged('live'); };
-  $('#lpSize').addEventListener('input', (e) => { const v = parseFloat(e.target.value); if (v > 0) setSize(v); });
-  $('#lpSizeR').addEventListener('input', (e) => setSize(+e.target.value));
-  for (const id of ['#lpText', '#lpColor', '#lpRotR', '#lpSizeR', '#lpOpacityR', '#lpSize', '#lpRot']) $(id).addEventListener('change', () => layersChanged('commit'));
-  $('#lpBold').addEventListener('click', () => { const L = selectedLayer(); if (!L) return; L.weight = L.weight >= 700 ? 400 : 800; syncProps(L); editor.render(); layersChanged('commit'); });
+    layersChanged(live && e.type === 'input' ? 'live' : 'commit');
+  };
+  const on = (id, evt, fn) => { $(id).addEventListener(evt, edit(fn)); if (evt === 'input') $(id).addEventListener('change', () => selectedLayer() && layersChanged('commit')); };
+  on('#lpText', 'input', (L, t) => (L.text = t.value));
+  on('#lpFont', 'change', (L, t) => { L.font = t.value; loadFontFor(L); });
+  $('#lpBold').addEventListener('click', edit((L) => (L.weight = (L.weight || 400) >= 700 ? 400 : 800)));
+  $('#lpItalic').addEventListener('click', edit((L) => { L.italic = !L.italic; loadFontFor(L); }));
+  on('#lpColor', 'input', (L, t) => (L.color = t.value));
+  $('#lpAlign').addEventListener('click', edit((L, t, e) => { const b = e.target.closest('[data-align]'); if (b) L.align = b.dataset.align; }));
+  on('#lpOutline', 'input', (L, t) => { L.outline = t.value; if (!(L.ow > 0)) L.ow = 0.3; });
+  on('#lpOwR', 'input', (L, t) => { L.ow = +t.value; if (!L.outline) L.outline = '#ffffff'; });
+  on('#lpLsR', 'input', (L, t) => (L.ls = +t.value));
+  on('#lpCurveR', 'input', (L, t) => (L.curve = +t.value));
+  on('#lpFillOn', 'change', (L, t) => (L.fill = t.checked ? $('#lpFill').value : null));
+  on('#lpFill', 'input', (L, t) => (L.fill = t.value));
+  on('#lpStrokeOn', 'change', (L, t) => { L.stroke = t.checked ? $('#lpStroke').value : null; if (t.checked && !(L.sw > 0)) L.sw = 0.5; });
+  on('#lpStroke', 'input', (L, t) => { L.stroke = t.value; if (!(L.sw > 0)) L.sw = 0.5; });
+  on('#lpSw', 'input', (L, t) => { const v = parseFloat(t.value); if (v > 0) L.sw = Math.min(20, v); });
+  on('#lpRadiusR', 'input', (L, t) => (L.radius = +t.value));
+  on('#lpPointsR', 'input', (L, t) => (L.points = +t.value));
+  on('#lpCode', 'input', (L, t) => (L.data.code = t.value.replace(/\D/g, '').slice(0, 13)));
+  $('#lpCode').addEventListener('change', (e) => { const L = selectedLayer(); if (L?.el === 'barcode') e.target.value = normaliseEAN(L.data.code); });
+  on('#lpQr', 'input', (L, t) => (L.data.text = t.value));
+  on('#lpNTitle', 'input', (L, t) => (L.data.title = t.value));
+  on('#lpNBasis', 'input', (L, t) => (L.data.basis = t.value));
+  on('#lpNRows', 'input', (L, t) => (L.data.rows = t.value));
+  on('#lpLegal', 'input', (L, t) => (L.data.lines = t.value));
+  $('#lpIcons').addEventListener('click', edit((L, t, e) => { const b = e.target.closest('[data-icon-name]'); if (b) L.data.icon = b.dataset.iconName; }));
+  on('#lpElColor', 'input', (L, t) => (L.color = t.value));
+  $('#lpPalette').addEventListener('click', edit((L, t, e) => { const b = e.target.closest('[data-c]'); if (b) setMainColor(L, b.dataset.c); }));
+  const setSize = (L, v) => { if (!(v > 0)) return; if (L.type === 'text') L.size = Math.min(300, v); else L.w = Math.min(2000, v); };
+  on('#lpSize', 'input', (L, t) => setSize(L, parseFloat(t.value)));
+  on('#lpSizeR', 'input', (L, t) => setSize(L, +t.value));
+  on('#lpH', 'input', (L, t) => { const v = parseFloat(t.value); if (v > 0) L.h = Math.min(2000, v); });
+  on('#lpHR', 'input', (L, t) => (L.h = +t.value));
+  on('#lpRot', 'input', (L, t) => { const v = parseFloat(t.value); if (Number.isFinite(v)) L.rot = v; });
+  on('#lpRotR', 'input', (L, t) => (L.rot = +t.value));
+  on('#lpOpacityR', 'input', (L, t) => (L.opacity = +t.value));
+
   $('#layerProps').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-act]');
+    const b = e.target.closest('[data-act], [data-place]');
     const L = selectedLayer();
     if (!b || !L) return;
+    if (b.dataset.place) placeOnPanel(L, b.dataset.place);
     const list = state.design.layers, i = list.indexOf(L);
-    if (b.dataset.act === 'center') { const q = model.byId[L.panel]; if (q) { L.u = 0.5; L.v = 0.5; } }
     if (b.dataset.act === 'up' && i < list.length - 1) [list[i], list[i + 1]] = [list[i + 1], list[i]];
     if (b.dataset.act === 'down' && i > 0) [list[i], list[i - 1]] = [list[i - 1], list[i]];
-    if (b.dataset.act === 'dup') { const c = { ...L, id: newLayer(L.type).id, u: Math.min(0.95, L.u + 0.06), v: Math.max(0.05, L.v - 0.06) }; list.splice(i + 1, 0, c); editor.select(c.id); }
-    if (b.dataset.act === 'del') { list.splice(i, 1); editor.select(null); }
+    if (b.dataset.act === 'dup') duplicateLayer(L);
+    if (b.dataset.act === 'del') deleteLayer(L);
     editor.render();
     layersChanged('commit');
   });
+
+  $('#undo').addEventListener('click', undo);
+  $('#redo').addEventListener('click', redo);
+
   document.addEventListener('keydown', (e) => {
+    const typing = /input|select|textarea/i.test(document.activeElement?.tagName);
+    const mod = e.ctrlKey || e.metaKey, key = e.key.toLowerCase();
+    if (mod && !typing && key === 'z') { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if (mod && !typing && key === 'y') { e.preventDefault(); redo(); return; }
     const L = selectedLayer();
-    if (!L || /input|select|textarea/i.test(document.activeElement?.tagName)) return;
-    if (e.key === 'Delete' || e.key === 'Backspace') { state.design.layers.splice(state.design.layers.indexOf(L), 1); editor.select(null); layersChanged('commit'); e.preventDefault(); return; }
+    if (!L || typing) return;
+    if (e.key === 'Escape') { editor.select(null); return; }
+    if (mod && key === 'd') { e.preventDefault(); duplicateLayer(L); editor.render(); layersChanged('commit'); return; }
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteLayer(L); layersChanged('commit'); return; }
     const step = e.shiftKey ? 10 : 1, d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, step], ArrowDown: [0, -step] }[e.key];
-    if (!d) return;
+    if (!d || L.locked) return;
     e.preventDefault();
     const [x, y] = layerCenter(model, L);
     pinToPanel(model, L, x + d[0], y + d[1]);
     editor.render();
     layersChanged('commit');
   });
+
+  $('#checkList').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-id]');
+    if (b) { editor.select(b.dataset.id); $('#layerProps').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  });
+
+  // web fonts change text widths once they arrive
+  document.fonts?.addEventListener?.('loadingdone', () => { resetTextLayout(); editor.render(); schedulePaint3D(); runPrintCheck(); });
   renderLayerPanel();
 }
 
+function loadFontFor(L) {
+  document.fonts?.load(fontCSS(L, 40), L.text || 'Aa').then(() => { resetTextLayout(); editor.render(); schedulePaint3D(); }).catch(() => {});
+}
+
 function selectedLayer() { return state.design.layers.find((L) => L.id === editor.selected) || null; }
+
+function duplicateLayer(L) {
+  const list = state.design.layers;
+  const c = { ...L, data: L.data ? { ...L.data } : L.data, id: newLayer(L.type).id, locked: false, u: Math.min(0.95, L.u + 0.06), v: Math.max(0.05, L.v - 0.06) };
+  list.splice(list.indexOf(L) + 1, 0, c);
+  editor.select(c.id);
+}
+
+function deleteLayer(L) {
+  state.design.layers.splice(state.design.layers.indexOf(L), 1);
+  editor.select(null);
+}
+
+function mainColor(L) {
+  if (L.type === 'text') return L.color;
+  if (L.type === 'shape') return L.shape === 'line' ? L.stroke : L.fill || L.stroke;
+  return L.color;
+}
+
+function setMainColor(L, c) {
+  if (L.type === 'text') L.color = c;
+  else if (L.type === 'shape') { if (L.shape === 'line') L.stroke = c; else L.fill = c; }
+  else if (L.type === 'element') L.color = c;
+}
+
+// align the layer's rotated outline to its panel, keeping a 3 mm safe margin
+function placeOnPanel(L, where) {
+  const q = model.byId[L.panel];
+  if (!q || L.locked) return;
+  const xs = q.pts.map((p) => p[0]), ys = q.pts.map((p) => p[1]);
+  const P = { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  const cs = layerCorners(model, L), [cx, cy] = layerCenter(model, L);
+  const B = { minX: Math.min(...cs.map((p) => p[0])), maxX: Math.max(...cs.map((p) => p[0])), minY: Math.min(...cs.map((p) => p[1])), maxY: Math.max(...cs.map((p) => p[1])) };
+  const m = Math.min(3, (P.maxX - P.minX - (B.maxX - B.minX)) / 2, (P.maxY - P.minY - (B.maxY - B.minY)) / 2);
+  const M = Math.max(0, m);
+  let x = cx, y = cy;
+  if (where === 'left') x = P.minX + M + (cx - B.minX);
+  if (where === 'right') x = P.maxX - M - (B.maxX - cx);
+  if (where === 'hcenter') x = (P.minX + P.maxX) / 2;
+  if (where === 'bottom') y = P.minY + M + (cy - B.minY);
+  if (where === 'top') y = P.maxY - M - (B.maxY - cy);
+  if (where === 'vmiddle') y = (P.minY + P.maxY) / 2;
+  const b = { w: P.maxX - P.minX, h: P.maxY - P.minY };
+  L.u = (x - P.minX) / b.w;
+  L.v = (y - P.minY) / b.h;
+  // step inward until clear of heat seals (pouch and pillow-pack ends and fins)
+  const dir = { left: [0.5, 0], right: [-0.5, 0], top: [0, -0.5], bottom: [0, 0.5] }[where];
+  if (!dir || !model.zones.length) return;
+  let i = 0;
+  for (; i < 160 && printCheck(model, [L]).some((it) => /heat-seal/.test(it.msg)); i++) {
+    L.u += dir[0] / b.w;
+    L.v += dir[1] / b.h;
+  }
+  if (i) { L.u += (dir[0] * 4) / b.w; L.v += (dir[1] * 4) / b.h; } // plus 2 mm breathing room
+}
 
 function addLayer(type, extra = {}) {
   if (!model) return;
@@ -594,23 +746,55 @@ function addLayer(type, extra = {}) {
     rot = Math.round((Math.atan2(-fr.up[0], fr.up[1]) * 180) / Math.PI);
   }
   const span = q ? Math.min(...['w', 'h'].map((k) => { const v = q.pts.map((p) => p[k === 'w' ? 0 : 1]); return Math.max(...v) - Math.min(...v); })) : Math.min(fr.w, fr.h);
-  const L = type === 'text'
-    ? newLayer('text', { text: 'Your text', size: Math.max(3, Math.min(40, Math.round(span * 0.12))), font: 'Display', weight: 800, color: contrastInk(state.design.color) === '#ffffff' ? '#e5a912' : '#0b1a5c', rot })
-    : newLayer('image', { w: Math.max(8, span * 0.5), rot, ...extra });
+  const ink = contrastInk(state.design.color) === '#ffffff' ? '#ffffff' : '#1b1d21';
+  const accent = contrastInk(state.design.color) === '#ffffff' ? '#e5a912' : '#0b1a5c';
+  const r1 = (v) => Math.round(v * 10) / 10;
+  let L;
+  if (type === 'text') {
+    // readable on whatever it lands on: a filled shape underneath, else the pack colour
+    const under = layerAt(model, state.design.layers.filter((l) => l.type === 'shape' && l.fill), x, y);
+    const color = under ? (contrastInk(under.fill) === '#ffffff' ? '#ffffff' : '#0b1a5c') : accent;
+    L = newLayer('text', { text: 'Your text', size: Math.max(3, Math.min(40, Math.round(span * 0.12))), font: activeKit?.font || 'Display', weight: 800, color, align: 'center', rot });
+  } else if (type === 'image') {
+    L = newLayer('image', { w: r1(Math.max(8, span * 0.5)), rot, ...extra });
+  } else if (type === 'shape') {
+    const k = extra.shape, wide = { rect: [0.6, 0.3], ellipse: [0.4, 0.4], burst: [0.42, 0.42], ribbon: [0.75, 0.18], line: [0.6, 0] }[k] || [0.5, 0.3];
+    L = newLayer('shape', {
+      shape: k, w: r1(span * wide[0]), h: r1(Math.max(1, span * wide[1])), rot,
+      fill: k === 'line' ? null : accent, stroke: k === 'line' ? ink : null, sw: k === 'line' ? 0.6 : 0.5,
+      radius: k === 'rect' ? r1(span * 0.04) : 0, points: 16,
+    });
+  } else {
+    const def = ELEMENTS[extra.el];
+    const w = extra.el === 'veg' || extra.el === 'nonveg' ? def.w : r1(Math.min(def.w, span * 0.9));
+    L = newLayer('element', { el: extra.el, data: def.data(), w, rot, color: extra.el === 'icon' ? ink : '#1b1d21' });
+  }
   pinToPanel(model, L, x, y);
-  state.design.layers.push(L);
-  if (state.view === '3d') setView(NARROW() ? '2d' : 'split');
-  requestAnimationFrame(() => { editor.select(L.id); layersChanged('commit'); if (type === 'text') $('#lpText').select(); });
+  // background shapes slide in beneath text they would otherwise cover
+  const list = state.design.layers;
+  const covered = type === 'shape' && L.fill ? list.findIndex((l) => l.type === 'text' && !l.hidden && layerAt(model, [L], ...layerCenter(model, l))) : -1;
+  if (covered >= 0) list.splice(covered, 0, L); else list.push(L);
+  editor.select(L.id);
+  layersChanged('commit');
+  if (type === 'text') requestAnimationFrame(() => $('#lpText').select());
+  const warn = printCheck(model, [L]).find((i) => i.level === 'warn');
+  if (warn && type === 'element') toast(warn.msg);
 }
 
 function renderLayerPanel() {
   const list = $('#layerList'), L = selectedLayer();
-  list.innerHTML = state.design.layers.slice().reverse().map((x) => `<li><button type="button" data-id="${x.id}" aria-current="${x.id === editor.selected}">
-    ${icon(x.type === 'text' ? 'type' : 'image-plus')}<span>${x.type === 'text' ? esc(x.text || 'Text') : esc(x.name || 'Image')}</span><small>${esc(model?.byId[x.panel]?.name || '')}</small></button></li>`).join('')
-    || '<li class="empty">No layers yet. Tap a panel on the dieline, then add text or an image.</li>';
-  list.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', () => {
-    if (state.view === '3d') setView(NARROW() ? '2d' : 'split');
-    editor.select(b.dataset.id);
+  list.innerHTML = state.design.layers.slice().reverse().map((x) => `<li class="${x.hidden ? 'is-hidden' : ''}">
+    <button type="button" data-id="${x.id}" aria-current="${x.id === editor.selected}">${icon(x.type === 'element' ? EL_ICON[x.el] || 'badge-check' : LAYER_ICON[x.type])}<span>${esc(layerName(x))}</span><small>${esc(model?.byId[x.panel]?.name || '')}</small></button>
+    <button type="button" class="lbtn" data-vis="${x.id}" aria-pressed="${!!x.hidden}" title="${x.hidden ? 'Show' : 'Hide'}" aria-label="${x.hidden ? 'Show' : 'Hide'} layer">${icon(x.hidden ? 'eye-off' : 'eye')}</button>
+    <button type="button" class="lbtn" data-lock="${x.id}" aria-pressed="${!!x.locked}" title="${x.locked ? 'Unlock' : 'Lock'}" aria-label="${x.locked ? 'Unlock' : 'Lock'} layer">${icon(x.locked ? 'lock' : 'lock-open')}</button></li>`).join('')
+    || '<li class="empty">No layers yet. Tap a panel (on the dieline or the 3D model), then add text, an image, a shape or a pack label.</li>';
+  list.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', () => editor.select(b.dataset.id)));
+  list.querySelectorAll('button[data-vis], button[data-lock]').forEach((b) => b.addEventListener('click', () => {
+    const x = state.design.layers.find((l) => l.id === (b.dataset.vis || b.dataset.lock));
+    if (!x) return;
+    if (b.dataset.vis) x.hidden = !x.hidden; else x.locked = !x.locked;
+    editor.render();
+    layersChanged('commit');
   }));
   $('#layerProps').hidden = !L;
   if (L) syncProps(L);
@@ -618,18 +802,264 @@ function renderLayerPanel() {
 
 function syncProps(L, skip) {
   const set = (id, v) => { if (id !== skip) $(id).value = v; };
-  document.querySelectorAll('#layerProps [data-for="text"]').forEach((n) => (n.hidden = L.type !== 'text'));
-  set('#lpText', L.text || '');
-  set('#lpFont', L.font || 'Sans');
-  set('#lpColor', L.color || '#000000');
-  $('#lpBold').setAttribute('aria-pressed', String(L.weight >= 700));
-  const size = L.type === 'image' ? L.w : L.size;
+  const tokens = [L.type, `${L.type}:${L.shape || L.el}`];
+  document.querySelectorAll('#layerProps [data-for]').forEach((n) => (n.hidden = !n.dataset.for.split(' ').some((t) => tokens.includes(t))));
+  if (L.type === 'text') {
+    set('#lpText', L.text || '');
+    set('#lpFont', L.font || 'Sans');
+    set('#lpColor', L.color || '#000000');
+    $('#lpBold').setAttribute('aria-pressed', String((L.weight || 400) >= 700));
+    $('#lpItalic').setAttribute('aria-pressed', String(!!L.italic));
+    document.querySelectorAll('#lpAlign [data-align]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.align === (L.align || 'center'))));
+    set('#lpOutline', L.outline || '#ffffff');
+    set('#lpOwR', L.ow || 0);
+    set('#lpLsR', L.ls || 0);
+    set('#lpCurveR', L.curve || 0);
+    $('#lpCurveVal').textContent = L.curve ? (L.curve > 0 ? `arch ${L.curve}` : `smile ${-L.curve}`) : 'straight';
+  }
+  if (L.type === 'shape') {
+    $('#lpFillOn').checked = !!L.fill; set('#lpFill', L.fill || '#e5a912');
+    $('#lpStrokeOn').checked = !!L.stroke; set('#lpStroke', L.stroke || '#1b1d21');
+    set('#lpSw', +(L.sw || 0.5).toFixed(2));
+    set('#lpRadiusR', L.radius || 0);
+    set('#lpPointsR', L.points || 16);
+    set('#lpH', +(L.h || 1).toFixed(1)); set('#lpHR', L.h || 1);
+    $('#lpHR').max = Math.max(200, Math.ceil((L.h || 1) * 2));
+  }
+  if (L.type === 'element') {
+    const d = L.data || {};
+    if (L.el === 'barcode') set('#lpCode', d.code || '');
+    if (L.el === 'qr') set('#lpQr', d.text || '');
+    if (L.el === 'nutrition') { set('#lpNTitle', d.title || ''); set('#lpNBasis', d.basis || ''); set('#lpNRows', d.rows || ''); }
+    if (L.el === 'legal') set('#lpLegal', d.lines || '');
+    if (L.el === 'icon') document.querySelectorAll('#lpIcons [data-icon-name]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.iconName === d.icon)));
+    set('#lpElColor', L.color || '#1b1d21');
+  }
+  // brand colours for the layer's main colour (not for photos, barcodes or diet marks)
+  const pal = $('#lpPalette');
+  const fixed = L.type === 'image' || ['barcode', 'veg', 'nonveg'].includes(L.el);
+  pal.innerHTML = fixed ? '' : `<span>${activeKit ? esc(activeKit.name) : 'Colours'}</span>` + paletteColors().map((c) =>
+    `<button type="button" data-c="${c}" style="background:${c}" title="${c}" aria-label="Use ${c}"${c === mainColor(L) ? ' aria-current="true"' : ''}></button>`).join('');
+  const size = L.type === 'text' ? L.size : L.w;
   set('#lpSize', +size.toFixed(1)); set('#lpSizeR', size);
-  $('#lpSizeLabel').textContent = L.type === 'image' ? 'Width' : 'Text size';
+  $('#lpSizeR').max = Math.max(200, Math.ceil(size * 2));
+  $('#lpSizeLabel').textContent = L.type === 'text' ? 'Text size' : 'Width';
   set('#lpRot', Math.round(L.rot)); set('#lpRotR', Math.round(L.rot));
   set('#lpOpacityR', L.opacity ?? 1);
   const item = $(`#layerList [data-id="${L.id}"] span`);
-  if (item && L.type === 'text') item.textContent = L.text || 'Text';
+  if (item) item.textContent = layerName(L);
+}
+
+function paletteColors() {
+  const used = state.design.layers.flatMap((L) => [L.color, L.fill, L.stroke]).filter((c) => /^#[0-9a-f]{6}$/i.test(c || ''));
+  const base = activeKit ? activeKit.colors : [state.design.color, ...DEFAULT_PALETTE];
+  return [...new Set([...base, ...used].map((c) => c.toLowerCase()))].slice(0, 12);
+}
+
+function shapeGlyph(k) {
+  const d = { rect: '<rect x="3" y="6" width="18" height="12" rx="2"/>', ellipse: '<circle cx="12" cy="12" r="8"/>', line: '<path d="M4 12h16"/>', ribbon: '<path d="M2 7h20l-3 5 3 5H2l3-5z"/>', burst: '<path d="m12 2 2.1 3.4 3.9-.9-.4 4 3.4 2.2-3 2.6 1.4 3.7-4-.2L13.6 20 12 16.4 10.4 20l-1.8-3.2-4 .2L6 13.3 3 10.7l3.4-2.2-.4-4 3.9.9z"/>' }[k];
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+}
+
+function elementGlyph(k) {
+  if (k === 'veg') return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="#fff" stroke="#14903b" stroke-width="2.4"/><circle cx="12" cy="12" r="5" fill="#14903b"/></svg>';
+  if (k === 'nonveg') return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" fill="#fff" stroke="#7a3b12" stroke-width="2.4"/><path d="M12 6.5 17.5 16h-11z" fill="#7a3b12"/></svg>';
+  return icon({ barcode: 'scan-barcode', qr: 'qr-code', nutrition: 'info', legal: 'indian-rupee', icon: 'badge-check' }[k] || 'badge-check');
+}
+
+// ---------- 3D: pick and drag layers on the model ----------
+
+function wire3DEditing() {
+  const host = $('#view3d'), canvas = viewer.renderer.domElement;
+  let drag = null, tap = null, hover = 0;
+  const pickLayer = (e) => {
+    const p = viewer.pick(e.clientX, e.clientY);
+    return { p, L: p && model ? layerAt(model, state.design.layers, p[0], p[1], 1) : null };
+  };
+  host.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || e.target !== canvas || !model) return;
+    const { p, L } = pickLayer(e);
+    tap = { x: e.clientX, y: e.clientY, p, L };
+    // phones: dragging a layer needs "Rotate" mode, so the page can still scroll
+    const live = e.pointerType !== 'touch' || viewer.controls.enabled;
+    if (!L || !live) return;
+    e.stopPropagation();
+    e.preventDefault();
+    if (editor.selected !== L.id) editor.select(L.id);
+    const c = layerCenter(model, L);
+    drag = { L, off: [c[0] - p[0], c[1] - p[1]], moved: false };
+    host.setPointerCapture(e.pointerId);
+  }, { capture: true });
+  host.addEventListener('pointermove', (e) => {
+    if (drag) {
+      e.stopPropagation();
+      const p = viewer.pick(e.clientX, e.clientY);
+      if (!p) return;
+      drag.moved = true;
+      pinToPanel(model, drag.L, p[0] + drag.off[0], p[1] + drag.off[1]);
+      editor.render();
+      layersChanged('live');
+      return;
+    }
+    if (e.pointerType === 'mouse' && !e.buttons && !hover) {
+      hover = requestAnimationFrame(() => { hover = 0; canvas.classList.toggle('can-move', !!pickLayer(e).L); });
+    }
+  }, { capture: true });
+  const end = (e) => {
+    if (drag) {
+      e.stopPropagation();
+      try { host.releasePointerCapture(e.pointerId); } catch {}
+      const moved = drag.moved;
+      drag = null; tap = null;
+      if (moved) layersChanged('commit');
+      return;
+    }
+    if (tap && e.type === 'pointerup' && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) < 6) {
+      if (tap.L) editor.select(tap.L.id);
+      else {
+        editor.select(null);
+        if (tap.p) setActivePanel(panelAt(model, tap.p[0], tap.p[1])?.id || null);
+      }
+    }
+    tap = null;
+  };
+  host.addEventListener('pointerup', end, { capture: true });
+  host.addEventListener('pointercancel', end, { capture: true });
+}
+
+function setActivePanel(id) {
+  activePanel = id;
+  const host = $('#svgHost');
+  host.querySelectorAll('#Hit .active').forEach((n) => n.classList.remove('active'));
+  if (id) host.querySelector(`#Hit [data-panel="${id}"]`)?.classList.add('active');
+  if (id) toast(`New layers go on the ${model.byId[id].name.toLowerCase()} panel`);
+}
+
+// ---------- undo / redo ----------
+
+const undoStack = { past: [], future: [], cur: null };
+const layerSig = (ls) => JSON.stringify(ls, (k, v) => (k === 'img' || k === 'src' ? undefined : v));
+const cloneLayers = (ls) => ls.map((L) => ({ ...L, data: L.data ? { ...L.data } : L.data }));
+
+function resetHistory() {
+  const ls = state.design.layers;
+  undoStack.past = []; undoStack.future = [];
+  undoStack.cur = { sig: layerSig(ls), layers: cloneLayers(ls) };
+  updateHistoryButtons();
+}
+
+function commitHistory() {
+  const ls = state.design.layers, sig = layerSig(ls);
+  if (!undoStack.cur) return resetHistory();
+  if (sig === undoStack.cur.sig) return;
+  undoStack.past.push(undoStack.cur);
+  if (undoStack.past.length > 100) undoStack.past.shift();
+  undoStack.cur = { sig, layers: cloneLayers(ls) };
+  undoStack.future = [];
+  updateHistoryButtons();
+}
+
+function undo() { if (undoStack.past.length) { undoStack.future.push(undoStack.cur); undoStack.cur = undoStack.past.pop(); applyHistory(); } }
+function redo() { if (undoStack.future.length) { undoStack.past.push(undoStack.cur); undoStack.cur = undoStack.future.pop(); applyHistory(); } }
+
+function applyHistory() {
+  const ls = state.design.layers;
+  ls.splice(0, ls.length, ...cloneLayers(undoStack.cur.layers));
+  if (!ls.some((L) => L.id === editor.selected)) editor.selected = null;
+  editor.render();
+  paint3D();
+  renderLayerPanel();
+  runPrintCheck();
+  updateHistoryButtons();
+  account?.markDirty();
+}
+
+function updateHistoryButtons() {
+  $('#undo').disabled = !undoStack.past.length;
+  $('#redo').disabled = !undoStack.future.length;
+}
+
+// ---------- print check ----------
+
+function runPrintCheck() {
+  if (!model) return;
+  const issues = printCheck(model, state.design.layers), warn = issues.filter((i) => i.level === 'warn').length;
+  const count = $('#checkCount');
+  count.textContent = warn ? `${warn} to fix` : issues.length ? `${issues.length} tip${issues.length > 1 ? 's' : ''}` : 'OK';
+  count.className = 'count' + (warn ? ' warn' : '');
+  $('#checkList').innerHTML = issues.length
+    ? issues.map((i) => `<li><button type="button" class="${i.level}" data-id="${i.id}">${icon(i.level === 'warn' ? 'triangle-alert' : 'info')}<span><b>${esc(i.name)}</b>${esc(i.msg)}</span></button></li>`).join('')
+    : `<li class="clean">${state.design.layers.length ? 'Every layer sits inside its panel, clear of folds and cuts.' : 'Add layers and they are checked here for folds, cut lines, small text, image resolution and barcode size.'}</li>`;
+}
+
+// ---------- brand kits (saved in this browser) ----------
+
+const KIT_KEY = 'packstudio.brandkits.v1';
+let activeKit = null;
+
+function loadKits() { try { return JSON.parse(localStorage.getItem(KIT_KEY)) || []; } catch { return []; } }
+function storeKits(kits) {
+  try { localStorage.setItem(KIT_KEY, JSON.stringify(kits)); return true; }
+  catch { toast('Could not save the brand kit in this browser (storage full or blocked).'); return false; }
+}
+
+function renderKits() {
+  const sel = $('#kitSel'), kits = loadKits();
+  sel.innerHTML = '<option value="">Brand kit…</option>' + kits.map((k) => `<option value="${esc(k.id)}">${esc(k.name)}</option>`).join('');
+  sel.value = activeKit && kits.some((k) => k.id === activeKit.id) ? activeKit.id : '';
+  $('#kitDel').hidden = !sel.value;
+}
+
+function wireBrandKits() {
+  $('#kitSave').addEventListener('click', () => {
+    const name = (prompt('Name this brand kit', activeKit?.name || state.design.brand || 'My brand') || '').trim().slice(0, 40);
+    if (!name) return;
+    const d = state.design;
+    const colors = [...new Set([d.color, ...d.layers.flatMap((L) => [L.color, L.fill, L.stroke, L.outline])].filter((c) => /^#[0-9a-f]{6}$/i.test(c || '')).map((c) => c.toLowerCase()))];
+    for (const c of DEFAULT_PALETTE) if (colors.length < 6 && !colors.includes(c)) colors.push(c);
+    const kits = loadKits(), old = kits.find((k) => k.name.toLowerCase() === name.toLowerCase());
+    const kit = {
+      id: old?.id || 'K' + crypto.randomUUID().slice(0, 8), name, colors: colors.slice(0, 10),
+      font: d.layers.find((L) => L.type === 'text')?.font || 'Display',
+      brand: d.brand, tagline: d.tagline, pattern: d.pattern,
+      logo: d.logo ? imgToDataURL(d.logo, 600) : null,
+    };
+    if (old) kits[kits.indexOf(old)] = kit; else kits.push(kit);
+    if (!storeKits(kits)) return;
+    activeKit = kit;
+    renderKits();
+    if (selectedLayer()) syncProps(selectedLayer());
+    toast(`Saved brand kit “${name}”. Pick it on any pack to apply its colours, name and logo.`);
+  });
+  $('#kitSel').addEventListener('change', async (e) => {
+    const kit = loadKits().find((k) => k.id === e.target.value) || null;
+    activeKit = kit;
+    $('#kitDel').hidden = !kit;
+    if (kit) {
+      const d = state.design;
+      d.color = kit.colors[0] || d.color;
+      if (PATTERNS.includes(kit.pattern)) d.pattern = kit.pattern;
+      d.brand = kit.brand ?? d.brand; d.tagline = kit.tagline ?? d.tagline;
+      $('#brand').value = d.brand; $('#tagline').value = d.tagline;
+      if (kit.logo) {
+        try {
+          d.logo = await loadImageURL(kit.logo);
+          $('#logoLabel').textContent = 'Logo'; $('#logoLabel').parentElement.classList.add('has');
+        } catch {}
+      }
+      markDesign(); redrawArt(); writeHash();
+      toast(`Applied “${kit.name}”. Its colours are in each layer's palette.`);
+    }
+    if (selectedLayer()) syncProps(selectedLayer());
+  });
+  $('#kitDel').addEventListener('click', () => {
+    if (!activeKit || !confirm(`Delete the brand kit “${activeKit.name}”?`)) return;
+    storeKits(loadKits().filter((k) => k.id !== activeKit.id));
+    activeKit = null;
+    renderKits();
+    if (selectedLayer()) syncProps(selectedLayer());
+  });
+  renderKits();
 }
 
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
@@ -651,6 +1081,11 @@ function imgToDataURL(img, max = 1600) {
 }
 
 function thumbnail() {
+  if (editor.selected) paint3D(1024, { clean: true });
+  try { return thumbnailShot(); } finally { if (editor.selected) paint3D(); }
+}
+
+function thumbnailShot() {
   const src = viewer.renderer.domElement, w = 360, h = Math.round((w * src.height) / Math.max(1, src.width)) || 270;
   viewer.renderer.render(viewer.scene, viewer.camera);
   const c = document.createElement('canvas');
@@ -731,12 +1166,14 @@ editor = new Editor({
   getModel: () => model,
   getLayers: () => state.design.layers,
   onChange: layersChanged,
-  onSelect: () => renderLayerPanel(),
+  onSelect: () => { renderLayerPanel(); schedulePaint3D(); },
   pxToMm: () => (vb ? vb.w / ($('#svgHost').clientWidth || 1) : 1),
 });
 hydrateIcons();
 setupTouchLocks();
 wireEditorUI();
+wireBrandKits();
+wire3DEditing();
 selectTemplate(state.tpl, { fromHash: true });
 setView(state.view);
 wireUI();

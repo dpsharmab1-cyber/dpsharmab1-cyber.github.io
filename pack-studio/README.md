@@ -26,8 +26,20 @@ Type dimensions → get a print-ready dieline and a folding 3D mockup, in the br
 - **Live dieline**: cut, crease, 3 mm bleed, glue and heat-seal zones, zipper and tear-notch marks, with pan/zoom.
 - **Folding 3D preview**: panels fold in a realistic order. Print stays outside and the board colour shows inside.
 - **Design**: colours, patterns, brand name and tagline, logo, or full artwork mapped 1:1 from the dieline.
-- **Artwork editor**: add text and image layers on any panel; drag, resize and rotate them on the dieline and see
-  them live on the 3D model. Layers are pinned to their panel, so they follow it when the pack is resized.
+- **Artwork editor**: text, image, shape and pack-label layers on any panel. Drag, resize and rotate them on the dieline
+  **or directly on the 3D model** (clicks are mapped through the model's UVs). Layers are pinned to their panel, so they follow
+  it when the pack is resized.
+  - Text: multi-line, six fonts including Hindi (Noto Sans Devanagari) and Playfair, bold/italic, alignment, letter spacing,
+    outline, and curved text (arch or smile) for round labels and cups.
+  - Shapes: rectangle with corner radius, circle, line, starburst badge, ribbon banner; fill and line colours.
+  - Pack labels: veg and non-veg food-type marks, MRP and legal-details block, nutrition table, EAN-13 barcode
+    (check digit computed), QR code, and 40 care and diet icons.
+  - Layers panel with hide and lock, snapping to panel centres, align-to-panel buttons (with a 3 mm safe margin, stepping
+    clear of heat seals), undo and redo (Ctrl+Z / Ctrl+Shift+Z), duplicate (Ctrl+D), arrow-key nudge.
+  - **Print check**: flags layers that cross a fold or the cut line, sit on a heat seal or too close to an edge, text under
+    6 pt, low-resolution images, undersized or sample barcodes, small QR codes and legal text below a safe size.
+  - **Brand kits**: save colours, font, name, tagline and logo, apply them to any pack; kit colours appear in every layer's palette.
+    Kits are saved in the browser for now.
 - **Phones**: the previews let the page scroll; tap "Rotate" or "Pan & zoom" to interact with them.
 - **Exports**: SVG dieline, PDF (1:1 with `CutContour` and `Crease` spot colours), DXF (R12, mm),
   GLB 3D model, PNG mockup, and an SVG proof with artwork.
@@ -54,7 +66,8 @@ engine.js      compiles any net: cut lines, creases, bleed, fold axes, stats
 dieline.js     SVG dieline + the artwork canvas (flat coords == dieline coords)
 viewer.js      3D: panels form a parent→child tree; each folds about its hinge
 exporters.js   SVG / PDF / DXF writers (GLB + PNG come from the viewer)
-editor.js      artwork layers: on-dieline editing and painting onto the 3D texture
+editor.js      artwork layers: text layout, shapes, on-dieline editing, 3D texture painting, print check
+elements.js    pack labels: veg marks, EAN-13, QR, nutrition table, MRP block, icons
 cloud.js       browser storage (IndexedDB) and Supabase accounts, projects, Razorpay checkout
 account.js     sign-in, My projects, Save/autosave and Upgrade dialogs
 app.js         UI, smart input, share links
@@ -89,7 +102,7 @@ containers built from lathe profiles).
    more flexibles (side-gusset and flat-bottom bags, spouted pouches), rigid boxes, cups and displays.
 2. **Print accuracy**: per-material thickness compensation on every panel, and a printer-verified test pack for each template.
 3. **Accounts and projects**: team sharing, version history, auto-renewing subscriptions.
-4. **Editor**: place artwork by clicking on the 3D model, more text tools, saved brand kits.
+4. **Editor**: brand kits in the account (shared across devices and teams), image cropping and masks, more label templates.
 5. **Rendering**: HDRI scenes, materials (foil, gloss, emboss), turntable video export.
 6. **AI**: describe a product and get structure, size and a first design.
 7. **Business**: printer marketplace and ordering prints from inside the studio.
@@ -99,4 +112,5 @@ containers built from lathe profiles).
 Any static server works: `python3 -m http.server` in the repo root, then open `/pack-studio/`.
 Nothing loads from a CDN and there is no build step. Open-source pieces are vendored with their licences:
 three.js (MIT) and supabase-js (MIT) in `studio/js/vendor/`, Inter and Plus Jakarta Sans (OFL) in `assets/fonts/`, Lucide icons (ISC)
-in `assets/icons.js`.
+in `assets/icons.js` and `studio/js/pack-icons.js`, qrcode-generator (MIT) in `studio/js/vendor/`, Noto Sans Devanagari and
+Playfair Display (OFL) in `assets/fonts/`.
