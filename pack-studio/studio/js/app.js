@@ -1219,5 +1219,5 @@ createCloud().then((cloud) => {
 const askQ = new URLSearchParams(location.search).get('q');
 if (askQ) { $('#askInput').value = askQ; runAsk(askQ); history.replaceState(null, '', location.pathname + location.hash); }
 
-// handy for debugging in the console
-window.packStudio = { state, get model() { return model; }, get account() { return account; }, viewer, parseAsk, runAsk, selectTemplate, doExport, snapshotProject, restoreProject };
+// debugging handle for local development and automated tests only
+if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname) || new URLSearchParams(location.search).has('debug')) window.packStudio = { state, get model() { return model; }, get account() { return account; }, viewer, parseAsk, runAsk, selectTemplate, doExport, snapshotProject, restoreProject };
