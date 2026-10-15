@@ -15,17 +15,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="assets/planet-red.webp">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <canvas id="stars" aria-hidden="true"></canvas>
-
-<!-- ============ INTRO: into the black hole ============ -->
-<div id="intro" aria-hidden="true">
-  <img class="bh" src="assets/blackhole.webp" alt="">
-  <p class="intro-word"><span>DEEPAK SHARMA</span></p>
-</div>
 
 <!-- ============ NAV ============ -->
 <header class="nav" id="nav">
@@ -42,43 +35,44 @@
 
 <main id="main">
 
-  <!-- 1 · Landing (Figma "Landing page") -->
-  <section id="landing" class="sec dark landing" data-theme="dark">
-    <div class="planet-red" aria-hidden="true"><img src="assets/planet-red.webp" alt=""></div>
-    <h1 class="pf" aria-label="Portfolio 2026">
-      <span class="pf-col pf-a lens-v" aria-hidden="true">
-        <span class="pf-l red">PO</span><span class="pf-l red">RT</span><span class="pf-l red">FO</span>
-      </span>
-      <span class="pf-col pf-b" aria-hidden="true">
-        <span class="pf-l cream">20</span><span class="pf-l cream">26</span><span class="pf-l red">LIO</span>
-      </span>
-    </h1>
-    <div class="slab glass-panel" aria-hidden="true"></div>
-    <dl class="hero-stats">
-      <div><dt>7+</dt><dd>Years in<br>design</dd></div>
-      <div><dt>6</dt><dd>Roles since<br>2018</dd></div>
-      <div><dt>4</dt><dd>Core<br>disciplines</dd></div>
-    </dl>
-    <p class="hero-role">GRAPHIC DESIGNER</p>
-    <p class="scroll-hint"><span>Scroll</span></p>
+  <!-- 1 · Landing (Figma "Landing page"): one artboard, scaled to fit any screen -->
+  <section id="landing" class="sec stage landing" data-theme="dark">
+    <div class="board">
+      <div class="bh" aria-hidden="true"></div>
+      <h1 class="pf" aria-label="Portfolio 2026">
+        <span class="pf-col pf-a" aria-hidden="true">
+          <span class="pf-l blue">PO</span><span class="pf-l blue">RT</span><span class="pf-l blue">FO</span>
+        </span>
+        <span class="pf-col pf-b" aria-hidden="true">
+          <span class="pf-l cream">20</span><span class="pf-l cream">26</span><span class="pf-l blue">LIO</span>
+        </span>
+      </h1>
+      <div class="slab glass-panel" aria-hidden="true"><i class="shine"></i></div>
+      <dl class="hero-stats">
+        <div><dt>7+</dt><dd>Years in<br>design</dd></div>
+        <div><dt>6</dt><dd>Roles since<br>2018</dd></div>
+        <div><dt>4</dt><dd>Core<br>disciplines</dd></div>
+      </dl>
+      <p class="hero-role">GRAPHIC DESIGNER</p>
+    </div>
   </section>
 
-  <!-- 2 · About (Figma "About me") -->
-  <section id="about" class="sec dark about" data-theme="dark">
-    <div class="about-top">
-      <div class="about-left">
-        <p class="eyebrow red" data-reveal="words">About me</p>
-        <div class="lens-wrap">
-          <h2 class="t-anton about-title red lens-h" data-split>DEEPAK SHARMA</h2>
-          <div class="bar glass-panel" aria-hidden="true"></div>
-        </div>
-        <p class="about-body red" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
-        <dl class="stats">
-          <div><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
-          <div><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
-          <div><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
-        </dl>
+  <!-- 2 · About (Figma "About me"): the same artboard system -->
+  <section id="about" class="sec stage about" data-theme="dark">
+    <div class="board">
+      <div class="paper" aria-hidden="true"></div>
+      <div class="tear-row" aria-hidden="true"><img src="assets/tear-bottom.svg" alt=""><img src="assets/tear-bottom.svg" alt=""><img src="assets/tear-bottom.svg" alt=""></div>
+      <p class="eyebrow blue ab-eyebrow" data-reveal="words">About me</p>
+      <div class="lens-wrap ab-titlewrap">
+        <h2 class="t-anton about-title blue" data-split>DEEPAK SHARMA</h2>
+        <div class="bar glass-panel" aria-hidden="true"><i class="shine"></i></div>
       </div>
+      <p class="about-body blue" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
+      <dl class="stats">
+        <div><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
+        <div><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
+        <div><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
+      </dl>
       <div class="xp">
         <p class="xp-head" data-reveal="words">EXPERIENCE</p>
         <ol class="xp-list">
@@ -90,16 +84,20 @@
           <li><span>2018 — 2019</span><b>Junior Graphic Designer</b><em>theblogsmart.com</em></li>
         </ol>
       </div>
-    </div>
-    <div class="paper">
-      <img class="tear tear-down" src="assets/tear-bottom.svg" alt="" aria-hidden="true">
       <div class="skills">
-        <div class="skill-col"><p class="skill-head">DESIGN</p>
-          <ul class="chips"><li>Visual Design</li><li>Branding</li><li>Logo design</li><li>UI / UX</li><li>Packaging</li><li>Social Media</li><li>Print designing</li><li>Typography &amp; color</li></ul></div>
-        <div class="skill-col"><p class="skill-head">TOOLS</p>
-          <ul class="chips"><li>Figma</li><li>Photoshop</li><li>Illustrator</li><li>InDesign</li><li>Blender 3D</li><li>Spine 2D</li><li>Canva</li><li>Corel Draw</li></ul></div>
-        <div class="skill-col"><p class="skill-head">WEB, AI &amp; TEAMS</p>
-          <ul class="chips"><li>WordPress</li><li>WooCommerce</li><li>AI design tools</li><li>AI workflows</li><li>Cross-functional leadership</li></ul></div>
+        <p class="skill-head" style="--x:73">DESIGN</p>
+        <p class="skill-head" style="--x:578">TOOLS</p>
+        <p class="skill-head" style="--x:1044">WEB, AI &amp; TEAMS</p>
+        <ul class="chips">
+          <li style="--x:57;--y:768;--w:125">Visual Design</li><li style="--x:200;--y:768;--w:99">Branding</li><li style="--x:314;--y:768;--w:121">Logo design</li>
+          <li style="--x:57;--y:825;--w:80">UI / UX</li><li style="--x:154;--y:825;--w:109">Packaging</li><li style="--x:278;--y:825;--w:123">Social Media</li>
+          <li style="--x:57;--y:882;--w:144">Print designing</li><li style="--x:218;--y:882;--w:172">Typography &amp; color</li>
+          <li style="--x:563;--y:771;--w:77">Figma</li><li style="--x:662;--y:771;--w:111">Photoshop</li><li style="--x:793;--y:771;--w:102">Illustrator</li>
+          <li style="--x:563;--y:828;--w:96">InDesign</li><li style="--x:673;--y:828;--w:112">Blender 3D</li><li style="--x:798;--y:828;--w:96">Spine 2D</li>
+          <li style="--x:563;--y:885;--w:76">Canva</li><li style="--x:673;--y:885;--w:111">Corel Draw</li>
+          <li style="--x:1029;--y:758;--w:111">WordPress</li><li style="--x:1155;--y:759;--w:145">WooCommerce</li><li style="--x:1316;--y:758;--w:139">AI design tools</li>
+          <li style="--x:1029;--y:826;--w:126">AI workflows</li><li style="--x:1165;--y:826;--w:232">Cross-functional leadership</li>
+        </ul>
       </div>
     </div>
   </section>

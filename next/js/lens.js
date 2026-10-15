@@ -11,14 +11,18 @@ const PROFILES = {
   // it back over itself near the rims
   bar: (t) => 1.55 * t - 2.15 * t * t * t,
   // the slab bends hard only near its right edge, smearing the letters there
+  // the slab folds the type back on itself near its right edge, like the rim of
+  // thick glass reflecting what is beside it (returns a share of the width)
   slab: (u) => {
-    const k = Math.min(1, Math.max(0, (u - 0.72) / 0.28));
-    return (u - 0.5) * 0.08 - k * k * 0.9;
+    const u0 = 0.8, w = 0.05;                     // fold line and how soft its corner is
+    const x = u - u0;
+    const soft = x < -w ? 0 : x > w ? x : (x + w) * (x + w) / (4 * w);
+    return -2 * soft;
   },
 };
 
 export class Lens {
-  constructor(el, { axis = 'h', chroma = 0.12, depth = 0.5 } = {}) {
+  constructor(el, { axis = 'h', chroma = 0.12, depth = 0.5, soft = 0.6 } = {}) {
     this.el = el;
     this.axis = axis;
     this.chroma = chroma;
@@ -41,7 +45,8 @@ export class Lens {
       <feDisplacementMap in="SourceGraphic" in2="dmap" xChannelSelector="R" yChannelSelector="G" result="d3"/>
       <feColorMatrix in="d3" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
       <feComposite in="r" in2="g" operator="arithmetic" k2="1" k3="1" result="rg"/>
-      <feComposite in="rg" in2="b" operator="arithmetic" k2="1" k3="1" result="glass"/>
+      <feComposite in="rg" in2="b" operator="arithmetic" k2="1" k3="1" result="split"/>
+      <feGaussianBlur in="split" stdDeviation="${soft}" result="glass"/>
       <feComposite in="glass" in2="map" operator="in" result="inside"/>
       <feComposite in="SourceGraphic" in2="map" operator="out" result="outside"/>
       <feMerge><feMergeNode in="outside"/><feMergeNode in="inside"/></feMerge>`;
@@ -60,13 +65,12 @@ export class Lens {
     if (Math.abs(a - this.la) < 0.08 && Math.abs(L - this.lb) < 0.08 && w === this.lw) return;
     this.la = a; this.lb = L; this.lw = w;
     if (Math.abs(L - this.size) > 0.5) this.build(L);
-    const r = this.el.getBoundingClientRect();
     const pad = 400;                              // the band always spans the type
     if (this.axis === 'h') {
-      this.img.setAttribute('x', -pad); this.img.setAttribute('width', r.width + 2 * pad);
+      this.img.setAttribute('x', -pad); this.img.setAttribute('width', this.el.offsetWidth + 2 * pad);
       this.img.setAttribute('y', a.toFixed(2)); this.img.setAttribute('height', L.toFixed(2));
     } else {
-      this.img.setAttribute('y', -pad); this.img.setAttribute('height', r.height + 2 * pad);
+      this.img.setAttribute('y', -pad); this.img.setAttribute('height', this.el.offsetHeight + 2 * pad);
       this.img.setAttribute('x', a.toFixed(2)); this.img.setAttribute('width', L.toFixed(2));
     }
   }
@@ -82,10 +86,12 @@ export class Lens {
     const prof = h ? PROFILES.bar : PROFILES.slab;
     const vals = [];
     for (let i = 0; i < n; i++) vals.push(prof(h ? ((i + 0.5) / n) * 2 - 1 : (i + 0.5) / n));
-    const peak = Math.max(...vals.map(Math.abs)) || 1;
-    const S = L * this.depth * 2;                 // feDisplacementMap scale (px)
+    // bars are normalised to their depth; the slab profile is already in widths
+    const peak = h ? Math.max(...vals.map(Math.abs)) || 1 : 1;
+    const amp = h ? L * this.depth : L;
+    const S = Math.max(...vals.map((v) => Math.abs(v / peak))) * amp * 2 + 2;   // feDisplacementMap scale (px)
     for (let i = 0; i < n; i++) {
-      const d = (vals[i] / peak) * L * this.depth; // px
+      const d = (vals[i] / peak) * amp;            // px
       const v = Math.round(128 + (d / S) * 255);
       for (let j = 0; j < 2; j++) {
         const k = (h ? (i * 2 + j) : (j * n + i)) * 4;

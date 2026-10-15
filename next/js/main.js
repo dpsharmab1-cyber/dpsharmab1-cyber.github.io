@@ -25,7 +25,7 @@ lenis.stop();
 
 // ---------------------------------------------------------------- stars
 const stars = new Stars($('#stars'));
-gsap.ticker.add((t) => { stars.scroll = lenis.animatedScroll || scrollY; stars.draw(t); });
+gsap.ticker.add((t, dt) => stars.frame(t, Math.min(0.05, dt / 1000), lenis.animatedScroll || scrollY, app.bhDoc));
 
 // ---------------------------------------------------------------- helpers
 // letters rise in from below as a block arrives, and lift out above as it
@@ -86,24 +86,27 @@ class Cursor {
 }
 app.cursor = new Cursor();
 
-function magnet(el, k = 0.35, max = 14) {
+// glass buttons swell under the pointer (they stay in place); the round icon
+// inside leans a little toward it
+function magnet(el) {
   if (!fine || reduced) return;
-  const xTo = gsap.quickTo(el, 'x', { duration: 0.6, ease: 'power3.out' });
-  const yTo = gsap.quickTo(el, 'y', { duration: 0.6, ease: 'power3.out' });
   const icon = el.querySelector('.pill-arrow');
+  el.addEventListener('pointerenter', () => gsap.to(el, { scale: 1.07, duration: 0.6, ease: 'power3.out', overwrite: 'auto' }));
   el.addEventListener('pointermove', (e) => {
+    if (!icon) return;
     const r = el.getBoundingClientRect();
-    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
-    xTo(gsap.utils.clamp(-max, max, dx * k)); yTo(gsap.utils.clamp(-max, max, dy * k));
-    if (icon) gsap.to(icon, { x: dx * 0.12, y: dy * 0.12, duration: 0.6, ease: 'power3.out' });
+    gsap.to(icon, { x: (e.clientX - (r.left + r.width / 2)) * 0.06, y: (e.clientY - (r.top + r.height / 2)) * 0.12, duration: 0.5, ease: 'power3.out' });
   });
-  el.addEventListener('pointerleave', () => { xTo(0); yTo(0); if (icon) gsap.to(icon, { x: 0, y: 0, duration: 0.8, ease: 'elastic.out(1, .5)' }); });
+  el.addEventListener('pointerleave', () => {
+    gsap.to(el, { scale: 1, duration: 0.9, ease: 'elastic.out(1, .55)', overwrite: 'auto' });
+    if (icon) gsap.to(icon, { x: 0, y: 0, duration: 0.8, ease: 'elastic.out(1, .5)' });
+  });
 }
 
 // ---------------------------------------------------------------- lenses
 const lenses = [];
 function barLens(title, bar, { rel = 0.62, size = null, drift = 0.35, scrub = true, chroma = 0.14 } = {}) {
-  const lens = new Lens(title, { axis: 'h', chroma, depth: 0.55 });
+  const lens = new Lens(title, { axis: 'h', chroma: chroma * 0.5, depth: 0.55, soft: 0.7 });
   const st = { off: 0, mouse: 0, m: 0 };
   const place = () => {
     const th = title.offsetHeight;
@@ -129,22 +132,83 @@ gsap.ticker.add(() => lenses.forEach((l) => { if (!l.on) return; l.st.m += (l.st
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.ready]); } catch (e) {}
 
-  // landing wordmark: each line rises out of its own mask
+  // ---------------- artboards: Landing and About scale as whole frames
+  const root = document.documentElement;
+  const LB = $('#landing .board'), AB = $('#about .board');
+  const fit = () => {
+    const w = innerWidth, h = innerHeight;
+    const portrait = w / h < 0.8;
+    root.classList.toggle('portrait', portrait);
+    const s = portrait ? Math.min(w / 430, h / 932) : Math.min(w / 1512, h / 982);
+    LB.style.setProperty('--s', s);
+    AB.style.setProperty('--s', Math.min(w / 1512, h / 982));
+    if (portrait) AB.style.setProperty('--paper-top', ($('.about .skills').offsetTop - 70) + 'px');
+    // the black hole's centre in page coordinates: every star drifts toward it
+    const bw = portrait ? 430 : 1512, bh = portrait ? 932 : 982;
+    const cx = portrait ? 302 : 1145, cy = portrait ? 19 : 300;
+    const left = (w - bw * s) / 2, top = $('#landing').offsetTop + (h - bh * s) / 2;
+    app.bhDoc = { x: left + cx * s, y: top + cy * s };
+    app.boardMap = (x, y) => ({ x: left + x * s, y: top + y * s });
+  };
+  fit();
+  addEventListener('resize', fit);
+
+  // the black hole, rebuilt live from the Figma frame
+  const bhWrap = $('.bh');
+  try { bhWrap.innerHTML = await (await fetch('assets/blackhole.svg')).text(); } catch (e) {}
+  const NS = 'http://www.w3.org/2000/svg';
+  const C = { x: 1145, y: 300 };
+  const inner = bhWrap.querySelector('.bh-stars');
+  const fall = [];
+  if (inner) {
+    // the stars inside the sphere fall slowly inward, as if being swallowed
+    inner.replaceChildren();
+    for (let i = 0; i < 70; i++) {
+      const el = document.createElementNS(NS, 'circle');
+      el.setAttribute('r', (0.7 + Math.random() * 1.5).toFixed(2));
+      el.setAttribute('fill', '#fff');
+      inner.append(el);
+      fall.push({ el, a: Math.random() * 6.283, r: 20 + Math.random() * 330, sp: 5 + Math.random() * 9, o: 0.3 + Math.random() * 0.6 });
+    }
+  }
+  const glowG = bhWrap.querySelector('.bh-glow');
+  const glowRect = glowG?.querySelector('rect');
+  if (glowRect) {
+    // the light inside the sphere keeps flowing, held by its mask
+    const wave = document.createElementNS(NS, 'g');
+    glowG.insertBefore(wave, glowRect); wave.append(glowRect);
+    gsap.to(wave, { x: 30, y: -22, rotation: 6, svgOrigin: `${C.x} ${C.y}`, duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.to(glowRect, { scale: 1.05, svgOrigin: `${C.x} ${C.y}`, duration: 13, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  }
+  let landOn = true;
+  new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
+  gsap.ticker.add((t, dt) => {
+    if (!landOn || !fall.length) return;
+    const d = Math.min(0.05, dt / 1000);
+    for (const p of fall) {
+      p.r -= (p.sp + p.r * 0.05) * d;
+      p.a += d * 0.06;
+      if (p.r < 6) { p.r = 300 + Math.random() * 60; p.a = Math.random() * 6.283; }
+      p.el.setAttribute('cx', (C.x + Math.cos(p.a) * p.r).toFixed(1));
+      p.el.setAttribute('cy', (C.y + Math.sin(p.a) * p.r * 0.86).toFixed(1));
+      p.el.setAttribute('opacity', (p.o * Math.min(1, (p.r - 6) / 90)).toFixed(3));
+    }
+  });
+  try { stars.seed(await (await fetch('assets/stars.json')).json(), app.boardMap); } catch (e) {}
+
+  // landing wordmark: each line rises out of its own mask; glass slab over it
   $$('.pf-l').forEach((l) => { l.innerHTML = `<span>${l.textContent}</span>`; });
-  const slabLens = new Lens($('.pf'), { axis: 'v', chroma: 0.18, depth: 0.45 });
+  const slabLens = new Lens($('.pf'), { axis: 'v', chroma: 0.06, depth: 0.2, soft: 0.9 });
   const slabState = { w: 0, x: 0, mx: 0, m: 0 };
   const placeSlab = () => {
-    const pf = $('.pf').getBoundingClientRect();
-    const slab = $('.slab');
+    const slab = $('.slab'), pf = $('.pf');
     const w = slab.offsetWidth * slabState.w;
     const x = slabState.x + slabState.m;
     slab.style.transform = `translate3d(${x.toFixed(1)}px,0,0) scaleX(${slabState.w.toFixed(4)})`;
-    slabLens.set(x - pf.left, Math.max(4, w));
+    slabLens.set(x - pf.offsetLeft, Math.max(4, w));
   };
-  let slabOn = true;
-  new IntersectionObserver(([e]) => { slabOn = e.isIntersecting; }).observe($('#landing'));
-  gsap.ticker.add(() => { if (!slabOn) return; slabState.m += (slabState.mx - slabState.m) * 0.05; placeSlab(); });
-  if (fine) $('#landing').addEventListener('pointermove', (e) => { slabState.mx = (e.clientX / innerWidth - 0.3) * 60; });
+  gsap.ticker.add(() => { if (!landOn) return; slabState.m += (slabState.mx - slabState.m) * 0.05; placeSlab(); });
+  if (fine) $('#landing').addEventListener('pointermove', (e) => { slabState.mx = (e.clientX / innerWidth - 0.3) * 40; });
 
   // text splits
   const aboutChars = splitChars($('.about-title'));
@@ -161,49 +225,28 @@ async function boot() {
   gsap.ticker.add((t, dt) => app.projects.update(Math.min(0.05, dt / 1000)));
 
   // glass bars over the big titles
-  barLens($('.about-title'), $('.about .bar'), { rel: 0.72, drift: 0.18 });
+  barLens($('.about-title'), $('.about .bar'), { rel: 0.78, drift: 0.1 });
   barLens($('.content-title'), $('.content .bar'), { rel: 0.5, drift: 0.3 });
   barLens($('.connect-title'), $('.connect .bar'), { rel: 0.5, drift: 0.4, chroma: 0.2 });
 
-  // ---------------- intro: into the black hole, out into the landing
-  const intro = $('#intro');
+  // ---------------- landing: builds in on load, lifts out as you leave
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-  const skip = reduced || /[?&]skip/.test(location.search);
-  if (skip) { intro.remove(); stars.alpha = 1; }
-  else {
-    tl.to(stars, { alpha: 1, duration: 2, ease: 'power1.out' }, 0)
-      .to('#intro .bh', { opacity: 1, scale: 1, duration: 2.2, ease: 'expo.out' }, 0.1)
-      .fromTo('#intro .bh', { rotate: -14 }, { rotate: 4, duration: 3.2, ease: 'sine.inOut' }, 0.1)
-      .to('.intro-word span', { yPercent: 0, duration: 1, ease: 'expo.out' }, 0.6)
-      .to('.intro-word span', { yPercent: -110, duration: 0.7, ease: 'expo.in' }, 2.15)
-      // the dive: the hole swells past the edges of the screen and the dark swallows it
-      .to('#intro .bh', { scale: 9, opacity: 0, filter: 'blur(14px)', duration: 1.5, ease: 'expo.in' }, 2.2)
-      .to(intro, { backgroundColor: 'rgba(0,0,0,0)', duration: 0.6, ease: 'power1.out' }, 3.35)
-      .add(() => intro.remove(), 3.95);
-  }
-  const t0 = skip ? 0 : 3.2;
   gsap.set('.pf-l > span', { yPercent: 105 });
-  gsap.set('.planet-red', { xPercent: 28, yPercent: -10, rotate: 16, opacity: 0 });
-  gsap.set(slabState, { w: 0 });
-  tl.to('.planet-red', { xPercent: 0, yPercent: 0, rotate: 0, opacity: 1, duration: 2.4, ease: 'expo.out' }, t0)
-    .to('.pf-l > span', { yPercent: 0, duration: 1.3, ease: 'expo.out', stagger: { each: 0.09, from: 'start' } }, t0 + 0.15)
-    .to(slabState, { w: 1, duration: 1.4, ease: 'expo.inOut' }, t0 + 0.35)
-    .from('.hero-stats > div, .hero-role', { y: 24, opacity: 0, duration: 1, stagger: 0.08 }, t0 + 0.9)
-    .from('.nav > *', { y: -30, opacity: 0, duration: 1, stagger: 0.1 }, t0 + 0.7)
-    .add(() => { document.documentElement.classList.remove('is-loading'); lenis.start(); app.afterIntro?.(); }, t0 + 1.2);
-
-  // ---------------- landing: the planet turns away as you leave
-  gsap.fromTo('.planet-red img', { rotate: -5 }, { rotate: 5, duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1, transformOrigin: '62% 48%' });
-  gsap.timeline({ scrollTrigger: { trigger: '#landing', start: 'top top', end: 'bottom top', scrub: 0.8 } })
-    .to('.planet-red', { rotate: -22, xPercent: -14, yPercent: -18, scale: 1.18, ease: 'none' }, 0)
-    .to('.pf', { yPercent: -18, opacity: 0.15, ease: 'none' }, 0)
-    .to(slabState, { x: () => innerWidth * 0.22, ease: 'none' }, 0)
-    .to('.hero-stats, .hero-role', { y: -60, opacity: 0, ease: 'none' }, 0);
-  if (fine) {
-    const px = gsap.quickTo('.planet-red', 'x', { duration: 1.6, ease: 'power3.out' });
-    const py = gsap.quickTo('.planet-red', 'y', { duration: 1.6, ease: 'power3.out' });
-    $('#landing').addEventListener('pointermove', (e) => { px((e.clientX / innerWidth - 0.5) * -40); py((e.clientY / innerHeight - 0.5) * -26); });
-  }
+  gsap.set('.hero-stats > div, .hero-role', { y: 26, opacity: 0 });
+  tl.to(stars, { alpha: 1, duration: 1.8, ease: 'power1.out' }, 0)
+    .fromTo('.bh', { opacity: 0 }, { opacity: 1, duration: 2.2, ease: 'power2.out' }, 0)
+    .to('.pf-l > span', { yPercent: 0, duration: 1.3, stagger: 0.09 }, 0.25)
+    .to(slabState, { w: 1, duration: 1.4, ease: 'expo.inOut' }, 0.45)
+    .to('.hero-stats > div, .hero-role', { y: 0, opacity: 1, duration: 1, stagger: 0.08 }, 0.9)
+    .add(() => { document.documentElement.classList.remove('is-loading'); lenis.start(); app.afterIntro?.(); }, 0.6);
+  const landOut = gsap.timeline({ paused: true })
+    .to('.pf-l > span', { yPercent: -105, duration: 0.8, ease: 'expo.in', stagger: 0.05 }, 0)
+    .to('.hero-stats > div, .hero-role', { y: -26, opacity: 0, duration: 0.6, ease: 'expo.in', stagger: 0.05 }, 0)
+    .to(slabState, { w: 0, duration: 0.9, ease: 'expo.inOut' }, 0);
+  // the menu stays away on the landing and arrives once you move on
+  ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: 'bottom 45%',
+    onLeave: () => { landOut.play(); nav.classList.add('is-shown'); },
+    onEnterBack: () => { landOut.reverse(); nav.classList.remove('is-shown'); } });
 
   // ---------------- about
   inOut(aboutChars, '.about-title', { stagger: 0.03 });
@@ -220,12 +263,13 @@ async function boot() {
     ScrollTrigger.create({ trigger: el, start: 'top 90%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.6, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
   });
   gsap.from('.stats > div', { y: 50, opacity: 0, duration: 1.1, ease: 'expo.out', stagger: 0.1, scrollTrigger: { trigger: '.stats', start: 'top 92%', toggleActions: 'play reverse play reverse' } });
-  // the paper slides up over the dark
-  gsap.fromTo('.about .paper', { y: () => 120 * unit() }, { y: 0, ease: 'none', scrollTrigger: { trigger: '.about .paper', start: 'top bottom', end: 'top 45%', scrub: 0.8 } });
-  $$('.skill-col').forEach((col) => {
-    const chips = $$('.chips li', col);
-    gsap.from(chips, { y: 40, opacity: 0, rotate: () => gsap.utils.random(-8, 8), scale: 0.9, duration: 0.9, ease: 'back.out(1.6)', stagger: 0.045, scrollTrigger: { trigger: col, start: 'top 88%', toggleActions: 'play reverse play reverse' } });
-  });
+  // skill heads and chips rise in and fall away, like the type
+  const skillsT = root.classList.contains('portrait') ? { trigger: '.about .skills', start: 'top 85%', end: 'bottom 5%' } : { trigger: '#about', start: 'top 30%', end: 'bottom 15%' };
+  const pills = $$('.about .skill-head, .about .chips li');
+  gsap.set(pills, { y: 26, opacity: 0 });
+  const showPills = () => gsap.to(pills, { y: 0, opacity: 1, duration: 0.9, ease: 'expo.out', stagger: 0.025, overwrite: true });
+  const hidePills = (dir) => gsap.to(pills, { y: -26 * dir, opacity: 0, duration: 0.5, ease: 'expo.in', stagger: 0.012, overwrite: true });
+  ScrollTrigger.create({ ...skillsT, onEnter: showPills, onEnterBack: showPills, onLeave: () => hidePills(1), onLeaveBack: () => hidePills(-1) });
 
   // ---------------- works intro: Saturn turns while the title passes under glass
   gsap.to('.sat-back, .sat-front', { rotate: 3, duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1, transformOrigin: '50% 50%' });
@@ -257,11 +301,9 @@ async function boot() {
     .fromTo('.wheel-lens', { yPercent: 55, scale: 0.8, rotate: -40 }, { yPercent: 0, scale: 1, rotate: 0, ease: 'none' }, 0)
     .from('.fsheet', { y: () => 140 * unit(), stagger: 0.08, ease: 'none' }, 0.1);
 
-  // the torn edges drift a little against the scroll, like paper sliding
-  $$('.tear').forEach((t) => gsap.fromTo(t, { y: () => 26 * unit() }, { y: () => -26 * unit(), ease: 'none', scrollTrigger: { trigger: t.parentElement, start: 'top bottom', end: 'bottom top', scrub: 1 } }));
 
   // magnets
-  $$('.pill-btn, .nav a, .pj-close').forEach((el) => magnet(el));
+  $$('.pill-btn, .nav-pill, .nav-contact, .pj-close').forEach((el) => magnet(el));
 
   ScrollTrigger.refresh();
 }
