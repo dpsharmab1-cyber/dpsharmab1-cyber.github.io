@@ -15,7 +15,8 @@
 <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/glass-slab.webp" as="image">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -32,41 +33,48 @@
 </header>
 
 <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span><span class="cursor-ring"><b class="cursor-label"></b></span></div>
+<div class="peek" aria-hidden="true"><img alt=""></div>
 
-<!-- The whole page is one artboard (Figma "Whole portfolio", 1512 px wide),
-     scaled as a piece so every element keeps its place on any screen. -->
+<!-- One 1512 px artboard made of the three Figma frames (Landing and About me,
+     Content and cards, Connect and contact and Footer), scaled as a piece.
+     Every position below is Figma px, relative to its section. -->
 <main id="main">
  <div class="board" id="board">
   <img class="scenery" src="assets/scenery.svg" alt="" aria-hidden="true">
 
-  <!-- 1 · landing -->
+  <!-- 1 · landing (A 0) -->
   <section id="landing" class="sec" data-theme="dark" style="--top:0;--h:982">
+   <div class="land">
     <div class="bh" aria-hidden="true"></div>
     <h1 class="pf" aria-label="Portfolio 2026">
-      <span class="pf-col" aria-hidden="true"><span class="pf-l cream">PO</span><span class="pf-l cream">RT</span><span class="pf-l cream">FO</span></span>
-      <span class="pf-col" aria-hidden="true"><span class="pf-l red">20</span><span class="pf-l red">26</span><span class="pf-l cream">LIO</span></span>
+      <span class="pf-l cream" style="--x:130;--y:160" aria-hidden="true"><span>PO</span></span>
+      <span class="pf-l cream" style="--x:130;--y:350" aria-hidden="true"><span>RT</span></span>
+      <span class="pf-l cream" style="--x:130;--y:540" aria-hidden="true"><span>FOLIO</span></span>
+      <span class="pf-l red" style="--x:330.344;--y:158.9" aria-hidden="true"><span>20</span></span>
+      <span class="pf-l red" style="--x:330.344;--y:348.9" aria-hidden="true"><span>26</span></span>
     </h1>
-    <div class="slab glass-panel" aria-hidden="true"><i class="shine"></i></div>
-    <dl class="hero-stats pop">
-      <div><dt>7+</dt><dd>Years in<br>design</dd></div>
-      <div><dt>6</dt><dd>Roles since<br>2018</dd></div>
-      <div><dt>4</dt><dd>Core<br>disciplines</dd></div>
+    <div class="glass glass-slab" data-glass="v" aria-hidden="true"><i class="glint"></i></div>
+    <dl class="hero-stats">
+      <div class="pop" style="--x:130"><dt>7+</dt><dd>Years in<br>design</dd></div>
+      <div class="pop" style="--x:266"><dt>6</dt><dd>Roles since<br>2018</dd></div>
+      <div class="pop" style="--x:411"><dt>4</dt><dd>Core<br>disciplines</dd></div>
     </dl>
     <p class="hero-role pop">GRAPHIC DESIGNER</p>
+   </div>
   </section>
 
-  <!-- 2 · about -->
-  <section id="about" class="sec" data-theme="dark" style="--top:982;--h:1154">
-    <p class="eyebrow cream ab-eyebrow" data-reveal="words">About me</p>
-    <div class="lens-wrap ab-titlewrap">
+  <!-- 2 · about (A 982) -->
+  <section id="about" class="sec" data-theme="dark" style="--top:982;--h:1371">
+    <p class="eyebrow cream ab-eyebrow" data-reveal="words">ABOUT ME</p>
+    <div class="ab-titlewrap">
       <h2 class="t-anton about-title cream" data-split>DEEPAK SHARMA</h2>
-      <div class="bar glass-panel" aria-hidden="true"><i class="shine"></i></div>
+      <div class="glass glass-about" aria-hidden="true"><i class="glint"></i></div>
     </div>
     <p class="about-body cream" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
     <dl class="stats">
-      <div><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
-      <div><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
-      <div><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
+      <div style="--x:72"><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
+      <div style="--x:227"><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
+      <div style="--x:391"><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
     </dl>
     <div class="xp">
       <p class="xp-head" data-reveal="words">EXPERIENCE</p>
@@ -80,74 +88,72 @@
       </ol>
     </div>
     <div class="skills">
-      <p class="skill-head" style="--x:73">DESIGN</p>
+      <p class="skill-head" style="--x:72">DESIGN</p>
       <p class="skill-head" style="--x:578">TOOLS</p>
       <p class="skill-head" style="--x:1044">WEB, AI &amp; TEAMS</p>
       <ul class="chips">
-        <li style="--x:57;--y:768;--w:125">Visual Design</li><li style="--x:200;--y:768;--w:99">Branding</li><li style="--x:314;--y:768;--w:121">Logo design</li>
-        <li style="--x:57;--y:825;--w:80">UI / UX</li><li style="--x:154;--y:825;--w:109">Packaging</li><li style="--x:278;--y:825;--w:123">Social Media</li>
-        <li style="--x:57;--y:882;--w:144">Print designing</li><li style="--x:218;--y:882;--w:172">Typography &amp; color</li>
-        <li style="--x:563;--y:771;--w:77">Figma</li><li style="--x:662;--y:771;--w:111">Photoshop</li><li style="--x:793;--y:771;--w:102">Illustrator</li>
-        <li style="--x:563;--y:828;--w:96">InDesign</li><li style="--x:673;--y:828;--w:112">Blender 3D</li><li style="--x:798;--y:828;--w:96">Spine 2D</li>
-        <li style="--x:563;--y:885;--w:76">Canva</li><li style="--x:673;--y:885;--w:111">Corel Draw</li>
-        <li style="--x:1029;--y:758;--w:111">WordPress</li><li style="--x:1155;--y:759;--w:145">WooCommerce</li><li style="--x:1316;--y:758;--w:139">AI design tools</li>
-        <li style="--x:1029;--y:826;--w:126">AI workflows</li><li style="--x:1165;--y:826;--w:232">Cross-functional leadership</li>
+        <li style="--x:57;--y:1104;--w:125">Visual Design</li><li style="--x:200;--y:1104;--w:99">Branding</li><li style="--x:314;--y:1104;--w:121">Logo design</li>
+        <li style="--x:57;--y:1161;--w:80">UI / UX</li><li style="--x:154;--y:1161;--w:109">Packaging</li><li style="--x:278;--y:1161;--w:123">Social Media</li>
+        <li style="--x:57;--y:1218;--w:144">Print designing</li><li style="--x:218;--y:1218;--w:172">Typography &amp; color</li>
+        <li style="--x:563;--y:1107;--w:77">Figma</li><li style="--x:662;--y:1107;--w:111">Photoshop</li><li style="--x:793;--y:1107;--w:102">Illustrator</li>
+        <li style="--x:563;--y:1164;--w:96">InDesign</li><li style="--x:673;--y:1164;--w:112">Blender 3D</li><li style="--x:798;--y:1164;--w:96">Spine 2D</li>
+        <li style="--x:563;--y:1221;--w:76">Canva</li><li style="--x:673;--y:1221;--w:111">Corel Draw</li>
+        <li style="--x:1029;--y:1094;--w:111">WordPress</li><li style="--x:1155;--y:1095;--w:145">WooCommerce</li><li style="--x:1316;--y:1094;--w:139">AI design tools</li>
+        <li style="--x:1029;--y:1162;--w:126">AI workflows</li><li style="--x:1165;--y:1162;--w:232">Cross-functional leadership</li>
       </ul>
     </div>
   </section>
 
-  <!-- 3 · works intro: Saturn -->
-  <section id="works" class="sec" data-theme="dark" style="--top:2136;--h:1164">
+  <!-- marquee band (A 2353) -->
+  <div class="sec marquee" style="--top:2353;--h:102" aria-hidden="true">
+    <div class="mq-track"><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span></div>
+  </div>
+
+  <!-- 3 · works intro: Saturn (B 0) -->
+  <section id="works" class="sec" data-theme="dark" style="--top:2455;--h:1400">
     <div class="saturn" aria-hidden="true"></div>
-    <div class="content-copy">
-      <div class="lens-wrap">
-        <h2 class="t-anton content-title" data-split>CONTENT</h2>
-        <div class="bar glass-panel bar-wide" aria-hidden="true"><i class="shine"></i></div>
-      </div>
-      <p class="t-anton think" data-split>THINK BEYOND</p>
-    </div>
-    <a class="pill-btn dark-pill see-more pop" href="#projects"><span>SEE MORE</span><i class="pill-arrow"><svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg></i></a>
+    <h2 class="t-anton content-title red" data-split>CONTENT</h2>
+    <div class="glass glass-content" aria-hidden="true"><i class="glint"></i></div>
+    <p class="t-anton think red" data-split>THINK BEYOND</p>
+    <a class="pill pill-light see-more pop" href="#projects"><span>SEE MORE</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
   </section>
 
-  <!-- 4 · projects -->
-  <section id="projects" class="sec" data-theme="light" style="--top:3300;--h:1511">
+  <!-- 4 · projects (B 1400) -->
+  <section id="projects" class="sec" data-theme="light" style="--top:3855;--h:1055">
     <h2 class="t-anton proj-title" data-split>CONTENT</h2>
-    <div class="labels" aria-hidden="true"></div>
-    <div class="blinds" role="list" aria-label="Nine selected projects"></div>
-    <p class="proj-hint pop"><span class="proj-count">01 / 09</span> Drag or scroll to browse · click to open</p>
+    <div class="cards" aria-hidden="true"></div>
+    <ul class="labels" aria-label="Nine selected projects"></ul>
   </section>
 
-  <!-- 5 · let's connect -->
-  <section id="connect" class="sec" data-theme="dark" style="--top:4811;--h:789">
+  <!-- 5 · let's connect (C 0) -->
+  <section id="connect" class="sec" data-theme="light" data-nav-theme="dark" style="--top:4910;--h:760">
     <p class="eyebrow cn-eyebrow" data-reveal="words">CONTACT</p>
-    <div class="lens-wrap cn-titlewrap">
-      <h2 class="t-anton connect-title" data-split>LET’S CONNECT</h2>
-      <div class="bar glass-panel bar-wide bar-thin" aria-hidden="true"><i class="shine"></i></div>
-    </div>
+    <h2 class="t-anton connect-title red" data-split>LET’S CONNECT</h2>
+    <div class="glass glass-connect" aria-hidden="true"><i class="glint"></i></div>
     <p class="connect-lead" data-reveal="lines">Tell me what you’re building: a brand, an app, a launch campaign.<br>I’ll reply within 24 hours with ideas, a timeline and a quote.</p>
-    <a class="pill-btn dark-pill cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="pill-arrow light"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></i></a>
+    <a class="pill pill-dark cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
   </section>
 
-  <!-- 6 · contact -->
-  <section id="contact" class="sec" data-theme="light" style="--top:5600;--h:960">
+  <!-- 6 · contact (C 760) -->
+  <section id="contact" class="sec" data-theme="light" style="--top:5670;--h:977">
     <div class="sheets" aria-hidden="true"><i></i><i></i><i></i></div>
     <p class="eyebrow ct-eyebrow" data-reveal="words">CONTACT</p>
     <h2 class="t-anton contact-title red" data-split>LET’S WORK TOGETHER.</h2>
-    <p class="contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership roles, and to freelance projects. I reply within a day.</p>
+    <p class="contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects. I reply within a day.</p>
     <form class="contact-form" name="contact" novalidate>
       <p class="form-title pop">I’M REACHING OUT ABOUT</p>
       <div class="topics" role="radiogroup" aria-label="Topic">
-        <button type="button" role="radio" aria-checked="true" class="topic pop is-on">A New Project</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop">A Design Role</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop">Just Saying hi</button>
+        <button type="button" role="radio" aria-checked="true" class="topic pop is-on" style="--x:788.26">A New Project</button>
+        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:962.52">A Design Role</button>
+        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:1136.78">Just Saying hi</button>
       </div>
-      <label class="field pop" style="--x:787;--y:422"><span>Name</span><input name="name" autocomplete="name"></label>
-      <label class="field pop" style="--x:1045;--y:422"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
-      <label class="field pop" style="--x:787;--y:501"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
-      <label class="field pop" style="--x:1045;--y:501"><span>Company or link</span><input name="company" autocomplete="organization"></label>
-      <label class="field field-msg pop"><span>Message*</span><textarea name="message" required></textarea></label>
+      <label class="field pop" style="--x:788;--y:338.5"><span>Name</span><input name="name" autocomplete="name"></label>
+      <label class="field pop" style="--x:1046;--y:338.5"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+      <label class="field pop" style="--x:788;--y:424.5"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
+      <label class="field pop" style="--x:1046;--y:424.5"><span>Company or link</span><input name="company" autocomplete="organization"></label>
+      <label class="field field-msg pop" style="--x:788;--y:520.5"><span>Message*</span><textarea name="message" required></textarea></label>
       <div class="form-foot">
-        <button class="pill-btn light-pill send pop" type="submit"><span>Send Message</span><i class="pill-arrow"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></i></button>
+        <button class="pill pill-light send pop" type="submit"><span>Send Message</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></button>
         <p class="form-status" aria-live="polite"></p>
       </div>
     </form>
@@ -158,18 +164,14 @@
     </dl>
   </section>
 
-  <!-- 7 · footer -->
-  <footer id="footer" class="sec" data-theme="dark" style="--top:6560;--h:1072">
-    <div class="wheel" aria-hidden="true"><img class="w-ring" src="assets/wheel-ring.svg" alt=""><img class="w-inner" src="assets/wheel-inner.svg" alt=""><img class="w-petals" src="assets/wheel-petals.svg" alt=""></div>
-    <div class="foot-glass">
-      <div class="fsheet fsheet-1"><div class="wheel wheel-lens" aria-hidden="true"><img class="w-ring" src="assets/wheel-ring.svg" alt=""><img class="w-inner" src="assets/wheel-inner.svg" alt=""><img class="w-petals" src="assets/wheel-petals.svg" alt=""></div></div>
-      <div class="fsheet fsheet-2"></div>
-      <div class="fsheet fsheet-3"><i class="shine"></i></div>
-    </div>
+  <!-- 7 · footer (C 1737) -->
+  <footer id="footer" class="sec" data-theme="dark" style="--top:6647;--h:1209">
+    <div class="wheel" aria-hidden="true"></div>
+    <div class="glass glass-sheets" aria-hidden="true"><i class="glint"></i></div>
     <div class="foot-copy">
-      <p class="eyebrow cream" data-reveal="words">CONTACT</p>
+      <p class="eyebrow" data-reveal="words">CONTACT</p>
       <h2 class="foot-title" data-reveal="lines">© 2026 DEEPAK SHARMA ·<br>VISUAL DESIGNER,<br>HYDERABAD</h2>
-      <p class="foot-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership roles, and to freelance projects.<br>I reply within a day.</p>
+      <p class="foot-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects.<br>I reply within a day.</p>
       <p class="foot-links pop"><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a><a href="frame-studio/" target="_blank" rel="noopener">Frame Studio · free design tool ↗</a><a href="#landing">Back to top ↑</a></p>
     </div>
   </footer>
@@ -181,7 +183,13 @@
   <button class="pj-close" type="button" aria-label="Close project"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 
-<svg class="defs" width="0" height="0" aria-hidden="true"><defs></defs></svg>
+<svg class="defs" width="0" height="0" aria-hidden="true"><defs>
+  <!-- living glass: Figma's render of each panel, bent a few px by slow noise -->
+  <filter id="glass-live" x="-2%" y="-10%" width="104%" height="120%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.006 0.018" numOctaves="2" seed="4" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</defs></svg>
 
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>

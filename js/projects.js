@@ -1,131 +1,95 @@
-// Nine works as tall black panels standing like blinds (Figma "Content
-// projects"): as the section scrolls by, or when dragged, they slide past the
-// centre where they turn edge-on; hover turns one to face you; a click expands
-// it into its project page. Positions are artboard px (the board is scaled).
+// Nine works as the Figma "stacked cards": ten black panels standing in
+// perspective, a name under each. The panels rise into place as the section
+// arrives and float a little; hovering one lifts it, lights its name and shows
+// the work beside the pointer; a click opens its project page.
 import Lenis from '../vendor/lenis.mjs';
 import { PROJECTS } from './data.js';
 
 const { gsap, ScrollTrigger, SplitText } = window;
-const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 4v15M6 13l6 6 6-6"/></svg>';
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
+const NS = 'http://www.w3.org/2000/svg';
+// label centres in the frame (artboard px)
+const LAB_X = [-8, 154, 316, 478, 660, 856, 1052, 1248, 1444];
 
-export class Projects {
+export class Cards {
   constructor(app) {
     this.app = app;
     this.sec = document.getElementById('projects');
-    this.wrap = this.sec.querySelector('.blinds');
+    this.box = this.sec.querySelector('.cards');
     this.labWrap = this.sec.querySelector('.labels');
-    this.countEl = this.sec.querySelector('.proj-count');
-    this.n = PROJECTS.length;
-    this.c = 0.5;          // centre position (float); panels rest either side of it
-    this.goal = 0.5;
-    this.items = PROJECTS.map((p, i) => this.build(p, i));
+    this.peek = document.querySelector('.peek');
     this.page = new ProjectPage(app, this);
-    this.bindDrag();
-    this.pin();
-    // the panels rise out of the floor as the section arrives
-    this.rise = { v: 0 };
-    new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }).observe(this.sec);
-    ScrollTrigger.create({ trigger: this.sec, start: 'top 75%',
-      onEnter: () => gsap.to(this.rise, { v: 1, duration: 1.8, ease: 'expo.out', overwrite: true }),
-      onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }) });
+    this.labs = PROJECTS.map((p, i) => this.label(p, i));
+    this.ready = this.build();
   }
 
-  build(p, i) {
-    const el = document.createElement('div');
-    el.className = 'blind';
-    el.setAttribute('role', 'listitem');
-    el.tabIndex = 0;
-    el.setAttribute('aria-label', `${p.no}. ${p.title}, ${p.kind}. Open project`);
-    el.innerHTML = `<i class="blind-cap"></i><div class="blind-face"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"><b class="blind-no">${p.no}</b></div><i class="blind-spine"></i><i class="blind-edge"></i>`;
-    this.wrap.append(el);
-    const lab = document.createElement('div');
-    lab.className = 'lab';
-    lab.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" tabindex="-1">SEE MORE <i>${ARROW}</i></button>`;
-    this.labWrap.append(lab);
-    const it = { p, i, el, lab, hot: 0, hotT: 0, img: el.querySelector('img'), spine: el.querySelector('.blind-spine'), edge: el.querySelector('.blind-edge') };
-    el.addEventListener('pointerenter', () => { it.hotT = 1; el.classList.add('is-hot'); this.app.cursor?.state('big', 'VIEW'); });
-    el.addEventListener('pointerleave', () => { it.hotT = 0; el.classList.remove('is-hot'); this.app.cursor?.state(); });
-    const open = () => { if (!this.dragged) this.page.open(i, el.querySelector('.blind-face')); };
-    el.addEventListener('click', open);
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-    lab.querySelector('button').addEventListener('click', open);
-    return it;
+  label(p, i) {
+    const li = document.createElement('li');
+    li.className = 'lab';
+    li.style.setProperty('--x', LAB_X[i]);
+    li.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" aria-label="Open ${p.title}">SEE MORE <i>${ARROW}</i></button>`;
+    this.labWrap.append(li);
+    li.querySelector('button').addEventListener('click', () => this.page.open(i, this.cardOf[i]?.el || null));
+    li.addEventListener('pointerenter', () => this.hot(i, true));
+    li.addEventListener('pointerleave', () => this.hot(i, false));
+    return li;
   }
 
-  // the scroll walks the panels past the centre while the section goes by
-  pin() {
-    const steps = this.n - 2;
-    this.st = ScrollTrigger.create({
-      trigger: this.wrap, start: 'top 85%', end: 'bottom 15%',
-      onUpdate: (s) => { if (!this.dragging) this.goal = 0.5 + s.progress * steps; },
+  async build() {
+    try { this.box.innerHTML = await (await fetch('assets/cards.svg')).text(); } catch (e) { return; }
+    const groups = [...this.box.querySelectorAll('.card')];
+    this.cards = groups.map((el) => {
+      // outer: entrance; hov: hover lift; flo: idle float
+      const hov = document.createElementNS(NS, 'g'), flo = document.createElementNS(NS, 'g');
+      while (el.firstChild) flo.append(el.firstChild);
+      hov.append(flo); el.append(hov);
+      const b = el.getBBox();
+      const cx = b.x + b.width / 2;
+      let i = 0, best = 1e9;
+      LAB_X.forEach((x, k) => { if (Math.abs(x - cx) < best) { best = Math.abs(x - cx); i = k; } });
+      return { el, hov, flo, cx, i };
     });
-  }
-
-  bindDrag() {
-    let sx = 0, sc = 0, down = false;
-    const S = () => this.spacing();
-    this.wrap.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = e.clientX; sc = this.goal; });
-    addEventListener('pointermove', (e) => {
-      if (!down) return;
-      const dx = e.clientX - sx;
-      if (Math.abs(dx) > 6) { this.dragged = true; this.dragging = true; }
-      if (this.dragging) this.goal = Math.min(0.5 + this.n - 2, Math.max(0.5, sc - dx / (S() * (this.app.scale || 1))));
-    });
-    addEventListener('pointerup', () => {
-      if (!down) return;
-      down = false;
-      if (this.dragging) {
-        // settle on a resting spot and move the page scroll to match
-        this.goal = Math.round(this.goal - 0.5) + 0.5;
-        const st = this.st, steps = this.n - 2;
-        const y = st.start + ((this.goal - 0.5) / steps) * (st.end - st.start);
-        this.app.lenis.scrollTo(y, { duration: 0.8 });
-        setTimeout(() => { this.dragging = false; }, 850);
-      }
-      setTimeout(() => { this.dragged = false; }, 0);
-    });
-  }
-
-  spacing() { return 190; }                      // artboard px between panels
-
-  update(dt) {
-    if (this.away) return;          // off screen: nothing to move
-    const k = 1 - Math.exp(-dt * 7);
-    this.c += (this.goal - this.c) * k;
-    const S = this.spacing(), W = 1512;
-    const theta = 71;
-    let near = 0, best = 1e9;
-    for (const it of this.items) {
-      it.hot += (it.hotT - it.hot) * (1 - Math.exp(-dt * 9));
-      // the row loops, so panels always stand on both sides of the centre
-      const n = this.n;
-      const p = ((((it.i - this.c + n / 2) % n) + n) % n) - n / 2;
-      if (Math.abs(p) < best) { best = Math.abs(p); near = it.i; }
-      const x = p * S;
-      const side = Math.max(-1, Math.min(1, p / 0.55));
-      const ang = -theta * side * (1 - it.hot * 0.82);
-      const z = it.hot * 90 - Math.abs(p) * 6;
-      const r = Math.min(1, Math.max(0, this.rise.v * 1.5 - Math.abs(p) * 0.08));
-      const vis = Math.abs(x) < W * 0.62 + S && r > 0.001;
-      it.el.style.visibility = vis ? '' : 'hidden';
-      if (!vis) continue;
-      const ry = (1 - r) * (1 - r) * 0.55 * this.wrap.offsetHeight;
-      it.el.style.transform = `translate3d(${x.toFixed(1)}px, ${(ry - it.hot * 18).toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${(ang + (1 - r) * 30 * Math.sign(-p || 1)).toFixed(2)}deg)`;
-      it.el.style.opacity = r.toFixed(3);
-      it.el.style.zIndex = String(Math.round(Math.abs(p) * 10 + it.hot * 100));
-      // the red spine is always on the panel's outer edge
-      const outerLeft = p < 0;
-      it.spine.style.left = outerLeft ? '0' : 'auto'; it.spine.style.right = outerLeft ? 'auto' : '0';
-      it.edge.style.left = outerLeft ? 'auto' : '0'; it.edge.style.right = outerLeft ? '0' : 'auto';
-      const ap = Math.abs(p);
-      const blur = Math.max(0, ap - 0.6) * 2.2;
-      it.lab.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
-      it.lab.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-      const fall = document.documentElement.classList.contains('portrait') ? 1.4 : 0.18;   // phones: only the centre names
-      it.lab.style.opacity = String(Math.max(0, 1 - Math.max(0, ap - 0.6) * fall));
+    this.cardOf = {};
+    for (const c of this.cards) if (!this.cardOf[c.i] || Math.abs(LAB_X[c.i] - c.cx) < Math.abs(LAB_X[c.i] - this.cardOf[c.i].cx)) this.cardOf[c.i] = c;
+    for (const c of this.cards) {
+      c.el.setAttribute('role', 'button');
+      c.el.setAttribute('tabindex', '0');
+      c.el.setAttribute('aria-label', `Open ${PROJECTS[c.i].title}`);
+      c.el.addEventListener('pointerenter', () => this.hot(c.i, true, c));
+      c.el.addEventListener('pointerleave', () => this.hot(c.i, false, c));
+      c.el.addEventListener('click', () => this.page.open(c.i, c.el));
+      c.el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.page.open(c.i, c.el); } });
+      gsap.to(c.flo, { y: -6 - Math.random() * 6, duration: 2.6 + Math.random() * 1.6, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: Math.random() * 2 });
     }
-    const label = `${String(near + 1).padStart(2, '0')} / ${String(this.n).padStart(2, '0')}`;
-    if (this.countEl.textContent !== label) this.countEl.textContent = label;
+    // rise in from the floor, the middle first; sink back on the way out
+    const order = [...this.cards].sort((a, b) => Math.abs(a.cx - 756) - Math.abs(b.cx - 756)).map((c) => c.el);
+    gsap.set(order, { y: 260, opacity: 0 });
+    const labs = this.labs;
+    gsap.set(labs, { y: 24, opacity: 0 });
+    const show = () => { gsap.to(order, { y: 0, opacity: 1, duration: 1.5, ease: 'expo.out', stagger: 0.07, overwrite: true }); gsap.to(labs, { y: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.04, delay: 0.4, overwrite: true }); };
+    const hide = (dir) => { gsap.to(order, { y: 200 * dir, opacity: 0, duration: 0.7, ease: 'expo.in', stagger: 0.03, overwrite: true }); gsap.to(labs, { y: 20 * dir, opacity: 0, duration: 0.5, ease: 'expo.in', overwrite: true }); };
+    ScrollTrigger.create({ trigger: this.sec, start: 'top 65%', end: 'bottom 20%', onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
+    // the work follows the pointer over the cards
+    addEventListener('pointermove', (e) => { this.px = e.clientX; this.py = e.clientY; });
+    gsap.ticker.add(() => {
+      if (!this.peekOn) return;
+      this.qx = (this.qx ?? this.px) + (this.px - (this.qx ?? this.px)) * 0.16;
+      this.qy = (this.qy ?? this.py) + (this.py - (this.qy ?? this.py)) * 0.16;
+      this.peek.style.transform = `translate3d(${(this.qx + 28).toFixed(1)}px, ${(this.qy - 190).toFixed(1)}px, 0)`;
+    });
+  }
+
+  hot(i, on, card) {
+    this.labs.forEach((l, k) => l.classList.toggle('is-hot', on && k === i));
+    const c = card || this.cardOf?.[i];
+    if (c) { c.el.classList.toggle('is-hot', on); gsap.to(c.hov, { y: on ? -22 : 0, duration: on ? 0.7 : 0.9, ease: on ? 'expo.out' : 'elastic.out(1, .6)', overwrite: true }); }
+    if (!matchMedia('(pointer: fine)').matches) return;
+    if (card) {
+      this.app.cursor?.state(on ? 'big' : null, on ? 'OPEN' : '');
+      if (on) { const p = PROJECTS[i]; this.peek.querySelector('img').src = p.cover.thumb || p.cover.src; this.qx = this.px; this.qy = this.py; }
+      this.peekOn = on;
+      this.peek.classList.toggle('is-on', on);
+    }
   }
 }
 

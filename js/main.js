@@ -1,10 +1,9 @@
-// Portfolio 2026: one scaled artboard, smooth scroll and the motion of every
-// section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis (MIT,
-// darkroom.engineering) eases the scroll; js/lens.js bends type under glass.
+// Portfolio 2026 (v7): one scaled artboard, smooth scroll and the motion of
+// every section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis
+// (MIT, darkroom.engineering) eases the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Lens } from './lens.js';
 import { Stars } from './stars.js';
-import { Projects } from './projects.js';
+import { Cards } from './projects.js';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -12,28 +11,29 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fine = matchMedia('(pointer: fine)').matches;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const app = (window.__v6 = {});
+const app = (window.__v7 = {});
 const root = document.documentElement;
-const BOARD_W = 1512, BOARD_H = 7632, FRAME_H = 982;
-const BH = { x: 1145, y: 300 };                 // black hole centre, artboard px
+const BOARD_W = 1512, BOARD_H = 7856, FRAME_H = 982;
+const BH = { x: 1198.5, y: 379 };                // black hole centre, artboard px
 const NS = 'http://www.w3.org/2000/svg';
+// board rows where the page is dark (the menu turns light-on-dark there)
+const DARK = [[0, 1890], [2353, 3690], [5100, 5650], [6647, BOARD_H]];
 
 // ---------------------------------------------------------------- scale
-// the artboard is scaled so one Figma frame (1512 x 982) fills the screen
 function fit() {
   const w = innerWidth, h = innerHeight;
-  // portrait phones: the landing gets a tall 430 x 932 board, framed sections
-  // show the centre 1000 px of their frames, About and Contact flow
   const portrait = w / h < 0.8;
   root.classList.toggle('portrait', portrait);
   if (portrait) {
-    const zl = Math.min(w / 430, h / 932), left = (w - 430 * zl) / 2;
+    const zl = w / 560;
     root.style.setProperty('--zl', zl);
     root.style.setProperty('--z', w / 1000);
+    root.style.setProperty('--zt', w / 721);
     root.style.setProperty('--u', (w / BOARD_W) + 'px');
     app.scale = w / 1000;
-    app.bhDoc = { x: left + 302 * zl, y: 19 * zl };
-    app.boardMap = (x, y) => ({ x: left + (x / BOARD_W) * 430 * zl, y: (y / FRAME_H) * 932 * zl });
+    app.toBoard = null;
+    app.bhDoc = { x: (BH.x - 940) * zl, y: (BH.y - 330 + 50) * zl * 0.786 };
+    app.boardMap = (x, y) => ({ x: x * zl * 0.37, y: y * zl });
     return;
   }
   const s = Math.min(w / BOARD_W, h / FRAME_H);
@@ -44,6 +44,7 @@ function fit() {
   const left = (w - BOARD_W * s) / 2;
   app.bhDoc = { x: left + BH.x * s, y: BH.y * s };
   app.boardMap = (x, y) => ({ x: left + x * s, y: y * s });
+  app.toBoard = (docY) => docY / s;
 }
 fit();
 
@@ -61,10 +62,10 @@ gsap.ticker.add((t, dt) => stars.frame(t, Math.min(0.05, dt / 1000), lenis.anima
 
 // ---------------------------------------------------------------- helpers
 // letters rise in as a block arrives and lift out as it leaves (both ways)
-function inOut(targets, trigger, { from = 115, stagger = 0.022, duration = 1, start = 'top 82%', end = 'bottom 12%', rotate = 4 } = {}) {
+function inOut(targets, trigger, { from = 115, stagger = 0.022, duration = 1, start = 'top 82%', end = 'bottom 12%', rotate = 4, onShow, onHide } = {}) {
   gsap.set(targets, { yPercent: from, rotate });
-  const show = () => gsap.to(targets, { yPercent: 0, rotate: 0, duration, ease: 'expo.out', stagger, overwrite: true });
-  const hide = (dir) => gsap.to(targets, { yPercent: dir * from, rotate: dir * rotate, duration: duration * 0.7, ease: 'expo.in', stagger: stagger * 0.6, overwrite: true });
+  const show = () => { gsap.to(targets, { yPercent: 0, rotate: 0, duration, ease: 'expo.out', stagger, overwrite: true }); onShow?.(); };
+  const hide = (dir) => { gsap.to(targets, { yPercent: dir * from, rotate: dir * rotate, duration: duration * 0.7, ease: 'expo.in', stagger: stagger * 0.6, overwrite: true, delay: onHide ? 0.35 : 0 }); onHide?.(); };
   ScrollTrigger.create({ trigger, start, end, onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
 }
 // pills, buttons and small blocks fade up in and lift out the same way
@@ -81,20 +82,62 @@ const split = (el, type) => {
   return type === 'chars' ? s.chars : type === 'lines' ? s.lines : s.words;
 };
 
+// ---------------------------------------------------------------- glass
+// Each panel is Figma's own render of its glass. It slides over the type once
+// the letters land (and off before they leave), bends a few px with slow
+// noise, carries a travelling glint and catches the light under the pointer.
+const glasses = [];
+function glass(el, { axis = 'h', period = 7 } = {}) {
+  const g = { el, axis, wipe: 0, on: false, t: Math.random() * period, period };
+  new IntersectionObserver(([e]) => { g.on = e.isIntersecting; el.classList.toggle('is-live', g.on && !reduced); }, { rootMargin: '10% 0px' }).observe(el);
+  if (fine) {
+    const zone = el.closest('.sec');
+    zone.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (((e.clientX - r.left) / r.width) * 100).toFixed(1));
+      el.style.setProperty('--my', (((e.clientY - r.top) / r.height) * 100).toFixed(1));
+      const near = axis === 'h' ? Math.abs(e.clientY - (r.top + r.height / 2)) < r.height * 2.5 : e.clientX < r.right + 120;
+      el.style.setProperty('--mo', near ? 1 : 0);
+    });
+    zone.addEventListener('pointerleave', () => el.style.setProperty('--mo', 0));
+  }
+  g.show = (d = 1.3) => gsap.to(g, { wipe: 1, duration: d, ease: 'expo.inOut', overwrite: true });
+  g.hide = (d = 0.6) => gsap.to(g, { wipe: 0, duration: d, ease: 'expo.in', overwrite: true });
+  glasses.push(g);
+  return g;
+}
+const turb = document.querySelector('#glass-live feTurbulence');
+gsap.ticker.add((t, dt) => {
+  // the noise drifts, so the bend of the light never sits still
+  if (turb && !reduced) turb.setAttribute('baseFrequency', `${(0.006 + Math.sin(t * 0.35) * 0.0015).toFixed(5)} ${(0.018 + Math.cos(t * 0.27) * 0.004).toFixed(5)}`);
+  for (const g of glasses) {
+    g.el.style.setProperty('--wipe', g.wipe.toFixed(4));
+    if (g.axis === 'v') g.el.parentElement.style.setProperty('--gw', g.wipe.toFixed(4));
+    if (g.ext) g.ext.forEach((x) => { x.style.opacity = g.wipe.toFixed(3); });
+    if (!g.on) continue;
+    g.t += dt / 1000;
+    const k = (g.t % g.period) / g.period;              // glint: a quick pass, then rest
+    const pos = -30 + Math.min(1, k / 0.45) * 160;
+    g.el.style.setProperty(g.axis === 'h' ? '--gx' : '--gy', pos.toFixed(2));
+  }
+});
+
 // ---------------------------------------------------------------- nav
 const nav = $('#nav');
 const links = $$('[data-nav]', nav);
-const secs = $$('.sec');
+const secs = $$('section.sec, footer.sec');
 const navMap = { landing: 'landing', about: 'about', works: 'works', projects: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
 gsap.ticker.add(() => {
-  // the section under the menu decides its colours and the active link
   const probe = 60;
   let cur = secs[0];
   for (const sec of secs) { const r = sec.getBoundingClientRect(); if (r.top <= probe && r.bottom > probe) cur = sec; }
+  let light;
+  if (app.toBoard) { const y = app.toBoard((lenis.animatedScroll || scrollY) + probe); light = !DARK.some(([a, b]) => y >= a && y < b); }
+  else light = cur.dataset.theme === 'light';
+  nav.classList.toggle('on-light', light);
   if (cur === app.navSec) return;
   app.navSec = cur;
   links.forEach((a) => a.classList.toggle('is-on', a.dataset.nav === navMap[cur.id]));
-  nav.classList.toggle('on-light', cur.dataset.theme === 'light');
 });
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]');
@@ -113,8 +156,9 @@ class Cursor {
     if (!fine || reduced) return;
     root.classList.add('has-cursor');
     addEventListener('pointermove', (e) => { this.x = e.clientX; this.y = e.clientY; });
-    document.addEventListener('pointerover', (e) => { if (!this.forced && e.target.closest('a, button, .chips li, input, textarea')) this.el.classList.add('is-link'); });
-    document.addEventListener('pointerout', (e) => { if (e.target.closest('a, button, .chips li, input, textarea')) this.el.classList.remove('is-link'); });
+    const hot = 'a, button, .chips li, input, textarea';
+    document.addEventListener('pointerover', (e) => { if (!this.forced && e.target.closest(hot)) this.el.classList.add('is-link'); });
+    document.addEventListener('pointerout', (e) => { if (e.target.closest(hot)) this.el.classList.remove('is-link'); });
     gsap.ticker.add(() => {
       this.rx += (this.x - this.rx) * 0.18; this.ry += (this.y - this.ry) * 0.18;
       this.dot.style.transform = `translate3d(${this.x}px,${this.y}px,0)`;
@@ -125,15 +169,15 @@ class Cursor {
 }
 app.cursor = new Cursor();
 
-// glass buttons swell under the pointer and stay in place; the icon leans in
+// glass buttons swell under the pointer and stay in place; the dot leans in
 function swell(el) {
   if (!fine || reduced) return;
-  const icon = el.querySelector('.pill-arrow');
+  const icon = el.querySelector('.dot');
   el.addEventListener('pointerenter', () => gsap.to(el, { scale: 1.07, duration: 0.6, ease: 'power3.out', overwrite: 'auto' }));
   el.addEventListener('pointermove', (e) => {
     if (!icon) return;
     const r = el.getBoundingClientRect();
-    gsap.to(icon, { x: (e.clientX - (r.left + r.width / 2)) * 0.06, y: (e.clientY - (r.top + r.height / 2)) * 0.12, duration: 0.5, ease: 'power3.out' });
+    gsap.to(icon, { x: (e.clientX - (r.left + r.width / 2)) * 0.05, y: (e.clientY - (r.top + r.height / 2)) * 0.12, duration: 0.5, ease: 'power3.out' });
   });
   el.addEventListener('pointerleave', () => {
     gsap.to(el, { scale: 1, duration: 0.9, ease: 'elastic.out(1, .55)', overwrite: 'auto' });
@@ -141,66 +185,27 @@ function swell(el) {
   });
 }
 
-// ---------------------------------------------------------------- glass over type
-const lenses = [];
-function barLens(title, bar, { rel = 0.5, drift = 0.1, chroma = 0.07 } = {}) {
-  const lens = new Lens(title, { axis: 'h', chroma, depth: 0.55, soft: 0.7 });
-  const st = { off: 0, mouse: 0, m: 0 };
-  const place = () => {
-    const th = title.offsetHeight, h = bar.offsetHeight;
-    const y = th * rel - h / 2 + (st.off + st.m) * th;
-    bar.style.top = (title.offsetTop + y).toFixed(1) + 'px';
-    lens.set(y, h);
-  };
-  const item = { place, st, on: true };
-  new IntersectionObserver(([e]) => { item.on = e.isIntersecting; }, { rootMargin: '20% 0px' }).observe(title);
-  lenses.push(item);
-  gsap.fromTo(st, { off: -drift }, { off: drift, ease: 'none', scrollTrigger: { trigger: title, start: 'top bottom', end: 'bottom top', scrub: 0.6 } });
-  if (fine) {
-    const sec = title.closest('.sec');
-    sec.addEventListener('pointermove', (e) => { const r = title.getBoundingClientRect(); st.mouse = gsap.utils.clamp(-0.25, 0.25, ((e.clientY - r.top) / r.height - 0.5) * 0.3); });
-    sec.addEventListener('pointerleave', () => { st.mouse = 0; });
-  }
-}
-gsap.ticker.add(() => lenses.forEach((l) => { if (!l.on) return; l.st.m += (l.st.mouse - l.st.m) * 0.06; l.place(); }));
-
 // ---------------------------------------------------------------- build
 async function boot() {
-  try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.ready]); } catch (e) {}
+  try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.load('500 20px Montserrat'), document.fonts.ready]); } catch (e) {}
   const svg = async (url) => { try { return await (await fetch(url)).text(); } catch (e) { return ''; } };
-
-  // phone tears between the flowing sections (hidden on the artboard layout)
-  const tear = (parent, src, css = {}) => { const i = new Image(); i.src = src; i.alt = ''; i.className = 'tear-ph'; Object.assign(i.style, css); parent.prepend(i); };
-  tear($('#about .skills'), 'assets/tear-bottom.svg');
-  tear($('#works'), 'assets/tear-top.svg', { top: '-150px', height: '200px' });
-  tear($('#projects'), 'assets/tear-bottom.svg', { top: '-60px', height: '260px' });
-  tear($('#connect'), 'assets/tear-top.svg', { top: '-150px', height: '200px' });
-  tear($('#contact'), 'assets/tear-bottom.svg', { top: '-30px', height: '120px' });
-  tear($('#footer'), 'assets/tear-top.svg', { top: '-150px', height: '200px' });
+  const [bhSvg, satSvg, wheelSvg] = await Promise.all([svg('assets/blackhole.svg'), svg('assets/saturn.svg'), svg('assets/wheel.svg')]);
 
   // ---------------- the black hole, live from the frame
   const bh = $('.bh');
-  bh.innerHTML = await svg('assets/blackhole.svg');
+  bh.innerHTML = bhSvg;
   const fall = [];
-  const inner = bh.querySelector('.bh-stars-g g[mask]');
+  const inner = bh.querySelector('.bh-in');
   if (inner) {
     // the stars inside the sphere fall slowly inward, as if being swallowed
-    inner.replaceChildren();
-    for (let i = 0; i < 70; i++) {
+    for (let i = 0; i < 80; i++) {
       const el = document.createElementNS(NS, 'circle');
-      el.setAttribute('r', (0.7 + Math.random() * 1.5).toFixed(2));
+      el.setAttribute('r', (0.7 + Math.random() * 1.6).toFixed(2));
       el.setAttribute('fill', '#fff');
       inner.append(el);
       fall.push({ el, a: Math.random() * 6.283, r: 20 + Math.random() * 330, sp: 5 + Math.random() * 9, o: 0.3 + Math.random() * 0.6 });
     }
-  }
-  const glowRect = bh.querySelector('.bh-glow rect');
-  if (glowRect) {
-    // the light inside the sphere keeps flowing, held by its mask
-    const wave = document.createElementNS(NS, 'g');
-    glowRect.parentNode.insertBefore(wave, glowRect); wave.append(glowRect);
-    gsap.to(wave, { x: 30, y: -22, rotation: 6, svgOrigin: `${BH.x} ${BH.y}`, duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    gsap.to(glowRect, { scale: 1.05, svgOrigin: `${BH.x} ${BH.y}`, duration: 13, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.to(inner.children, { opacity: 0.35, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: { each: 0.08, from: 'random' } });
   }
   let landOn = true;
   new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
@@ -209,33 +214,45 @@ async function boot() {
     const d = Math.min(0.05, dt / 1000);
     for (const p of fall) {
       p.r -= (p.sp + p.r * 0.05) * d;
-      p.a += d * 0.06;
-      if (p.r < 6) { p.r = 300 + Math.random() * 60; p.a = Math.random() * 6.283; }
+      p.a += d * 0.08;
+      if (p.r < 6) { p.r = 310 + Math.random() * 40; p.a = Math.random() * 6.283; }
       p.el.setAttribute('cx', (BH.x + Math.cos(p.a) * p.r).toFixed(1));
-      p.el.setAttribute('cy', (BH.y + Math.sin(p.a) * p.r * 0.86).toFixed(1));
+      p.el.setAttribute('cy', (BH.y + Math.sin(p.a) * p.r).toFixed(1));
       p.el.setAttribute('opacity', (p.o * Math.min(1, (p.r - 6) / 90)).toFixed(3));
     }
   });
-  try { stars.seed(await (await fetch('assets/stars.json')).json(), app.boardMap); } catch (e) {}
+  try {
+    const all = await (await fetch('assets/stars.json')).json();
+    stars.seed(all.filter((s) => s[1] < FRAME_H), app.boardMap);
+  } catch (e) {}
 
-  // ---------------- Saturn, live from the frame: its rings sway on their own
-  $('.saturn').innerHTML = await svg('assets/saturn.svg');
-  gsap.fromTo('.saturn .sat-back, .saturn .sat-front', { rotation: -1.6 }, { rotation: 1.6, svgOrigin: '756 2672', duration: 10, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  // ---------------- Saturn: its rings sway on their own
+  $('.saturn').innerHTML = satSvg;
+  gsap.fromTo('.saturn .sat-back, .saturn .sat-front', { rotation: -1.2 }, { rotation: 1.2, svgOrigin: '756 475', duration: 10, ease: 'sine.inOut', yoyo: true, repeat: -1 });
 
-  // ---------------- landing: wordmark + glass slab
-  $$('.pf-l').forEach((l) => { l.innerHTML = `<span>${l.textContent}</span>`; });
-  const slabLens = new Lens($('.pf'), { axis: 'v', chroma: 0.06, depth: 0.2, soft: 0.9 });
-  const slab = { w: 0, mx: 0, m: 0 };
-  gsap.ticker.add(() => {
-    if (!landOn) return;
-    slab.m += (slab.mx - slab.m) * 0.05;
-    const el = $('.slab');
-    el.style.transform = `translate3d(${slab.m.toFixed(1)}px,0,0) scaleX(${slab.w.toFixed(4)})`;
-    slabLens.set(slab.m - $('.pf').offsetLeft, Math.max(4, el.offsetWidth * slab.w));
-  });
-  if (fine) $('#landing').addEventListener('pointermove', (e) => { slab.mx = (e.clientX / innerWidth - 0.3) * 40; });
+  // ---------------- footer wheel
+  $('.wheel').innerHTML = wheelSvg + '<img class="dome" src="assets/glass-dome.webp" alt="">';
+
+  // ---------------- glass panels
+  const gSlab = glass($('.glass-slab'), { axis: 'v', period: 8 });
+  const gAbout = glass($('.glass-about'), { period: 6.5 });
+  const gContent = glass($('.glass-content'), { period: 9 });
+  const gConnect = glass($('.glass-connect'), { period: 8 });
+  // wide screens: the full-width bars run on past the artboard as plain glass
+  for (const g of [gContent, gConnect]) {
+    g.ext = [-1, 1].map((side) => {
+      const x = document.createElement('i');
+      x.className = 'bar-x';
+      Object.assign(x.style, { top: getComputedStyle(g.el).top, height: g.el.offsetHeight + 'px', left: side < 0 ? '-2000px' : '1512px' });
+      g.el.parentElement.append(x);
+      return x;
+    });
+  }
+  const gSheets = glass($('.glass-sheets'), { period: 10 });
+  gSheets.wipe = 1;
 
   // ---------------- splits
+  $$('.pf-l').forEach((l) => l.classList.add('pf-ready'));
   const chars = (sel) => split($(sel), 'chars');
   const aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
   const connectC = chars('.connect-title'), contactC = chars('.contact-title');
@@ -248,29 +265,28 @@ async function boot() {
   gsap.set('#landing .pop', { y: 26, opacity: 0 });
   tl.to(stars, { alpha: 1, duration: 1.8, ease: 'power1.out' }, 0)
     .fromTo('.bh', { opacity: 0 }, { opacity: 1, duration: 2.2, ease: 'power2.out' }, 0)
-    .to('.pf-l > span', { yPercent: 0, duration: 1.3, stagger: 0.09 }, 0.25)
-    .to(slab, { w: 1, duration: 1.4, ease: 'expo.inOut' }, 0.45)
-    .to('#landing .pop', { y: 0, opacity: 1, duration: 1, stagger: 0.08 }, 0.9)
+    .to('.pf-l > span', { yPercent: 0, duration: 1.3, stagger: 0.08 }, 0.25)
+    .add(() => gSlab.show(1.4), 1.05)
+    .to('#landing .pop', { y: 0, opacity: 1, duration: 1, stagger: 0.08 }, 1.2)
     .add(() => { root.classList.remove('is-loading'); lenis.start(); app.afterIntro?.(); }, 0.6);
   const landOut = gsap.timeline({ paused: true })
-    .to('.pf-l > span', { yPercent: -105, duration: 0.8, ease: 'expo.in', stagger: 0.05 }, 0)
-    .to('#landing .pop', { y: -26, opacity: 0, duration: 0.6, ease: 'expo.in', stagger: 0.05 }, 0)
-    .to(slab, { w: 0, duration: 0.9, ease: 'expo.inOut' }, 0);
+    .add(() => gSlab.hide(0.7), 0)
+    .to('.pf-l > span', { yPercent: -105, duration: 0.8, ease: 'expo.in', stagger: 0.05 }, 0.3)
+    .to('#landing .pop', { y: -26, opacity: 0, duration: 0.6, ease: 'expo.in', stagger: 0.05 }, 0);
+  const landBack = () => { gsap.to('.pf-l > span', { yPercent: 0, duration: 1.2, ease: 'expo.out', stagger: 0.06, overwrite: true }); gsap.to('#landing .pop', { y: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.06, overwrite: true }); gSlab.show(1.3); };
   // the menu stays away on the landing and arrives once you move on
   ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: 'bottom 45%',
-    onLeave: () => { landOut.play(); nav.classList.add('is-shown'); },
-    onEnterBack: () => { landOut.reverse(); nav.classList.remove('is-shown'); } });
+    onLeave: () => { landOut.restart(); nav.classList.add('is-shown'); },
+    onEnterBack: () => { landOut.pause(); landBack(); nav.classList.remove('is-shown'); } });
 
-  // ---------------- type in and out, section by section
-  barLens($('.about-title'), $('#about .bar'), { rel: 0.78, drift: 0.08 });
-  barLens($('.content-title'), $('#works .bar'), { rel: 0.56, drift: 0.1 });
-  barLens($('.connect-title'), $('#connect .bar'), { rel: 0.62, drift: 0.12, chroma: 0.1 });
-  inOut(aboutC, '.about-title', { stagger: 0.03 });
-  inOut(contentC, '.content-title', { stagger: 0.05, duration: 1.2, start: 'top 75%' });
-  inOut(thinkC, '.think', { stagger: 0.03, start: 'top 88%' });
-  inOut(projC, '.proj-title', { stagger: 0.05, start: 'top 85%', end: 'bottom -60%' });
-  inOut(connectC, '.connect-title', { stagger: 0.035, start: 'top 80%' });
-  inOut(contactC, '.contact-title', { stagger: 0.025, start: 'top 85%' });
+  // ---------------- type in and out; each glass bar slides over its title once it lands
+  const withGlass = (g) => ({ onShow: () => gsap.delayedCall(0.55, () => g.show()), onHide: () => g.hide() });
+  inOut(aboutC, '.about-title', { stagger: 0.03, ...withGlass(gAbout) });
+  inOut(contentC, '.content-title', { stagger: 0.05, duration: 1.2, start: 'top 80%', ...withGlass(gContent) });
+  inOut(thinkC, '.think', { stagger: 0.03, start: 'top 90%' });
+  inOut(projC, '.proj-title', { stagger: 0.05, start: 'top 88%', end: 'bottom -60%' });
+  inOut(connectC, '.connect-title', { stagger: 0.035, start: 'top 85%', ...withGlass(gConnect) });
+  inOut(contactC, '.contact-title', { stagger: 0.025, start: 'top 88%' });
   const last = (el) => el.closest('#footer') ? { start: 'top 30%', end: 'bottom top' } : {};
   words.forEach(([el, w]) => inOut(w, el.closest('#footer') ? '#footer' : el, { stagger: 0.04, from: 110, rotate: 0, ...last(el) }));
   lines.forEach(([el, l]) => inOut(l, el.closest('#footer') ? '#footer' : el, { stagger: 0.08, from: 105, rotate: 0, duration: 1.1, ...last(el) }));
@@ -282,41 +298,36 @@ async function boot() {
     ScrollTrigger.create({ trigger: el, start: 'top 92%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.6, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
   });
   pops($$('.stats > div'), '.stats', { start: 'top 92%', end: 'bottom 8%' });
-  pops($$('#about .skill-head, #about .chips li'), '#about .skills', root.classList.contains('portrait') ? { start: 'top 80%', end: 'bottom 5%' } : { start: 'top 20%', end: 'bottom -10%' });
+  pops($$('#about .skill-head, #about .chips li'), '#about .chips li', { start: 'top 92%', end: 'bottom -10%' });
 
-  // works, projects, connect, contact, footer: their pills and blocks
+  // works, connect, contact, footer: their pills and blocks
   pops($$('#works .pop'), '#works .see-more', { start: 'top 96%', end: 'bottom 4%' });
-  pops($$('#projects .pop'), '#projects', { start: 'top 60%', end: 'bottom 30%' });
   pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 96%', end: 'bottom 4%' });
   pops($$('#contact .pop'), '#contact', { start: 'top 55%', end: 'bottom 10%' });
   pops($$('#footer .pop'), '#footer', { start: 'top 30%', end: 'bottom top' });
-  gsap.fromTo('#works .saturn', { scale: 0.9 }, { scale: 1.04, ease: 'none', transformOrigin: '50% 50%', scrollTrigger: { trigger: '#works', start: 'top bottom', end: 'bottom top', scrub: 0.9 } });
-  gsap.from('.sheets i', { y: 80, duration: 1.4, ease: 'expo.out', stagger: 0.12, scrollTrigger: { trigger: '#contact', start: 'top 70%', toggleActions: 'play none none reverse' } });
+  gsap.fromTo('#works .saturn', { scale: 0.92, yPercent: 6 }, { scale: 1.03, yPercent: -4, ease: 'none', transformOrigin: '50% 50%', scrollTrigger: { trigger: '#works', start: 'top bottom', end: 'bottom top', scrub: 0.9 } });
+  gsap.from('.sheets i', { y: 70, duration: 1.4, ease: 'expo.out', stagger: 0.12, scrollTrigger: { trigger: '#contact', start: 'top 75%', toggleActions: 'play none none reverse' } });
 
-  // projects: the panels walk past the centre as the section scrolls by
-  app.projects = new Projects(app);
-  gsap.ticker.add((t, dt) => app.projects.update(Math.min(0.05, dt / 1000)));
+  // marquee: an endless, steady run that leans on the scroll speed
+  const track = $('.mq-track');
+  const unit = track.innerHTML, unitW = track.scrollWidth, pair = unitW / 4;
+  while (track.scrollWidth < track.parentElement.offsetWidth + unitW * 2) track.insertAdjacentHTML('beforeend', unit);
+  // start where the frame has it: a "Welcome" at x -194
+  let mx = ((2000 - 194) % pair) - pair * 2, boost = 0;
+  lenis.on('scroll', (l) => { boost = Math.min(6, Math.abs(l.velocity) * 0.25); });
+  gsap.ticker.add((t, dt) => { boost *= 0.94; mx -= (0.9 + boost) * (dt / 16.7); if (mx < -unitW) mx += unitW; track.style.transform = `translate3d(${mx.toFixed(2)}px,0,0)`; });
 
-  // footer: the wheel turns and rises out of the glass
-  gsap.to('.w-ring', { rotate: 360, duration: 120, ease: 'none', repeat: -1 });
-  gsap.to('.w-inner', { rotate: -360, duration: 90, ease: 'none', repeat: -1 });
-  gsap.to('.w-petals', { rotate: 360, duration: 200, ease: 'none', repeat: -1 });
-  gsap.timeline({ scrollTrigger: { trigger: '#footer', start: 'top bottom', end: 'top 10%', scrub: 0.9 } })
-    .fromTo('#footer > .wheel', { yPercent: 40, scale: 0.85, rotate: -30 }, { yPercent: 0, scale: 1, rotate: 0, ease: 'none' }, 0)
-    .fromTo('.wheel-lens', { yPercent: 40, scale: 0.85, rotate: -30 }, { yPercent: 0, scale: 1, rotate: 0, ease: 'none' }, 0);
+  // projects: the stacked cards
+  app.cards = new Cards(app);
 
-  $$('.pill-btn, .nav-pill, .nav-contact, .pj-close').forEach(swell);
+  // footer: the wheel and its glass rise into place, the glow breathes
+  gsap.timeline({ scrollTrigger: { trigger: '#footer', start: 'top bottom', end: 'top 15%', scrub: 0.9 } })
+    .fromTo('.wheel', { yPercent: 18, scale: 0.9, opacity: 0.2 }, { yPercent: 0, scale: 1, opacity: 1, ease: 'none' }, 0)
+    .fromTo('.glass-sheets', { y: 160 }, { y: 0, ease: 'none' }, 0);
+
+  $$('.pill, .nav-pill, .nav-contact, .pj-close').forEach(swell);
   ScrollTrigger.refresh();
 }
-
-// ---------------------------------------------------------------- footer sheet lens
-$('svg.defs defs').insertAdjacentHTML('beforeend', `<filter id="sheet-lens" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
-  <feTurbulence type="fractalNoise" baseFrequency="0.004 0.03" numOctaves="2" seed="7" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="38" xChannelSelector="R" yChannelSelector="G" result="d"/>
-  <feOffset in="d" dx="5" result="rs"/><feColorMatrix in="rs" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>
-  <feOffset in="d" dx="-5" result="bs"/><feColorMatrix in="bs" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>
-  <feColorMatrix in="d" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>
-  <feComposite in="r" in2="g" operator="arithmetic" k2="1" k3="1" result="rg"/><feComposite in="rg" in2="b" operator="arithmetic" k2="1" k3="1"/></filter>`);
 
 // ---------------------------------------------------------------- contact form (GitHub Pages: the mail app opens, filled in)
 (() => {
