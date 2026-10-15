@@ -1,7 +1,7 @@
-// Nine works as tall glass-black panels standing like blinds (Figma "Content
-// projects"): scrolling through the pinned section, or dragging, slides them
-// past the centre where they turn edge-on; hover turns one to face you; a
-// click expands it into its project page.
+// Nine works as tall black panels standing like blinds (Figma "Content
+// projects"): as the section scrolls by, or when dragged, they slide past the
+// centre where they turn edge-on; hover turns one to face you; a click expands
+// it into its project page. Positions are artboard px (the board is scaled).
 import Lenis from '../vendor/lenis.mjs';
 import { PROJECTS } from './data.js';
 
@@ -36,7 +36,7 @@ export class Projects {
     el.setAttribute('role', 'listitem');
     el.tabIndex = 0;
     el.setAttribute('aria-label', `${p.no}. ${p.title}, ${p.kind}. Open project`);
-    el.innerHTML = `<div class="blind-face"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"><b class="blind-no">${p.no}</b></div><i class="blind-spine"></i><i class="blind-edge"></i>`;
+    el.innerHTML = `<i class="blind-cap"></i><div class="blind-face"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"><b class="blind-no">${p.no}</b></div><i class="blind-spine"></i><i class="blind-edge"></i>`;
     this.wrap.append(el);
     const lab = document.createElement('div');
     lab.className = 'lab';
@@ -52,12 +52,11 @@ export class Projects {
     return it;
   }
 
-  // the section pins while the scroll walks the panels past the centre
+  // the scroll walks the panels past the centre while the section goes by
   pin() {
     const steps = this.n - 2;
     this.st = ScrollTrigger.create({
-      trigger: this.sec, start: 'top top', end: () => '+=' + innerHeight * 0.55 * steps,
-      pin: true, anticipatePin: 1,
+      trigger: this.wrap, start: 'top 85%', end: 'bottom 15%',
       onUpdate: (s) => { if (!this.dragging) this.goal = 0.5 + s.progress * steps; },
     });
   }
@@ -70,7 +69,7 @@ export class Projects {
       if (!down) return;
       const dx = e.clientX - sx;
       if (Math.abs(dx) > 6) { this.dragged = true; this.dragging = true; }
-      if (this.dragging) this.goal = Math.min(0.5 + this.n - 2, Math.max(0.5, sc - dx / S()));
+      if (this.dragging) this.goal = Math.min(0.5 + this.n - 2, Math.max(0.5, sc - dx / (S() * (this.app.scale || 1))));
     });
     addEventListener('pointerup', () => {
       if (!down) return;
@@ -87,14 +86,14 @@ export class Projects {
     });
   }
 
-  spacing() { return this.wrap.clientWidth * (innerWidth < 900 ? 0.36 : 190 / 1512); }
+  spacing() { return 190; }                      // artboard px between panels
 
   update(dt) {
     if (this.away) return;          // off screen: nothing to move
     const k = 1 - Math.exp(-dt * 7);
     this.c += (this.goal - this.c) * k;
-    const S = this.spacing(), W = this.wrap.clientWidth;
-    const theta = innerWidth < 900 ? 58 : 64;
+    const S = this.spacing(), W = 1512;
+    const theta = 71;
     let near = 0, best = 1e9;
     for (const it of this.items) {
       it.hot += (it.hotT - it.hot) * (1 - Math.exp(-dt * 9));
@@ -110,7 +109,7 @@ export class Projects {
       const vis = Math.abs(x) < W * 0.62 + S && r > 0.001;
       it.el.style.visibility = vis ? '' : 'hidden';
       if (!vis) continue;
-      const ry = (1 - r) * (1 - r) * 0.55 * this.wrap.clientHeight;
+      const ry = (1 - r) * (1 - r) * 0.55 * this.wrap.offsetHeight;
       it.el.style.transform = `translate3d(${x.toFixed(1)}px, ${(ry - it.hot * 18).toFixed(1)}px, ${z.toFixed(1)}px) rotateY(${(ang + (1 - r) * 30 * Math.sign(-p || 1)).toFixed(2)}deg)`;
       it.el.style.opacity = r.toFixed(3);
       it.el.style.zIndex = String(Math.round(Math.abs(p) * 10 + it.hot * 100));
@@ -122,8 +121,8 @@ export class Projects {
       const blur = Math.max(0, ap - 0.6) * 2.2;
       it.lab.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`;
       it.lab.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : 'none';
-      const phone = innerWidth < 900;
-      it.lab.style.opacity = String(phone ? Math.max(0, 1 - Math.max(0, ap - 0.55) * 1.6) : Math.max(0, 1 - Math.max(0, ap - 0.6) * 0.18));
+      const fall = document.documentElement.classList.contains('portrait') ? 1.4 : 0.18;   // phones: only the centre names
+      it.lab.style.opacity = String(Math.max(0, 1 - Math.max(0, ap - 0.6) * fall));
     }
     const label = `${String(near + 1).padStart(2, '0')} / ${String(this.n).padStart(2, '0')}`;
     if (this.countEl.textContent !== label) this.countEl.textContent = label;
