@@ -4,7 +4,7 @@
    "Content and cards" (B, y 2455) and "Connect and contact and Footer"
    (C, y 4910). .board is scaled as a piece (--s, set in main.js). Black
    regions are cut out of the paper (assets/scenery.svg) so the live stars
-   show through. Glass panels are Figma's own render (assets/glass-*.webp),
+   show through. Glass panels are live WebGL refraction (js/glass.js),
    kept alive with a slow bend and a travelling glint.
    Type tops: Montserrat baseline - .8585em (line-height 1), Anton
    baseline - .924em.
