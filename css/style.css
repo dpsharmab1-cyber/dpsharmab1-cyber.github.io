@@ -88,7 +88,7 @@ main { position: relative; z-index: 1; height: var(--page-h, 8176px); overflow: 
 .pill-dark .dot { background: #fff; } .pill-dark .dot svg { stroke: #000; }
 
 /* ---------- 1 · landing (A) ---------- */
-.bh { left: 560px; top: -200px; width: 1400px; height: 1180px; pointer-events: none; }
+.bh { left: 200px; top: -350px; width: 1800px; height: 1450px; pointer-events: none; }
 .bh-gl, .bh-fall { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .wheel svg, .bh svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .wheel { will-change: transform; }
@@ -304,7 +304,7 @@ html.has-cursor .cursor { opacity: 1; }
 .portrait #landing { width: 100%; height: max(100svh, calc(1360px * var(--zl))); overflow: hidden; }
 .portrait .land { zoom: var(--zl); width: 560px; height: 1360px; inset: auto; left: 0; top: 0; }
 /* the hole centred, half above the top edge (its centre sits at 638.5, 579 in the 1400 x 1180 box) */
-.portrait .bh { left: -358.5px; top: -579px; width: 1400px; height: 1180px; }
+.portrait .bh { left: -718.5px; top: -729px; width: 1800px; height: 1450px; }
 .portrait .pf, .portrait .glass-slab, .portrait .hero-stats { translate: 0 360px; }
 .portrait .hero-role { left: 130px; top: 1300px; }
 .portrait .nav-pill { width: auto; gap: 16px; padding: 0 14px; }

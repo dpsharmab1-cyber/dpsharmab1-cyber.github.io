@@ -6,6 +6,7 @@ import { Stars } from './stars.js?v=73';
 import { Cards } from './projects.js?v=73';
 import { Glass, type } from './glass.js?v=73';
 import { Saturn } from './saturn.js?v=73';
+import { BlackHole } from './blackhole.js?v=74';
 import { ICONS } from './icons.js?v=73';
 
 const { gsap, ScrollTrigger, SplitText } = window;
@@ -199,46 +200,16 @@ function swell(el) {
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.load('500 20px Montserrat'), document.fonts.ready]); } catch (e) {}
   const svg = async (url) => { try { return await (await fetch(url)).text(); } catch (e) { return ''; } };
-  const [wCore, wOuter, wInner, bhSvg] = await Promise.all([...['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg?v=${V}`)), svg(`assets/blackhole.svg?v=${V}`)]);
+  const [wCore, wOuter, wInner] = await Promise.all(['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg?v=${V}`)));
 
-  // ---------------- the black hole: the Figma art, alive. The light inside the
-  // sphere drifts behind its mask, the disc's glow breathes, and a few stars
-  // inside it fall slowly inward. Stars stay as sparse as the frame has them.
+  // ---------------- the black hole, live in 3D (js/blackhole.js), drawn at
+  // the frame's angle and in its flat layered reds
   const bh = $('.bh');
-  bh.innerHTML = bhSvg;
-  const BHC = { x: 1198.5, y: 379 };
-  const inner = bh.querySelector('.bh-in');
-  const fall = [];
-  if (inner) {
-    for (let i = 0; i < 16; i++) {
-      const el = document.createElementNS(NS, 'circle');
-      el.setAttribute('r', (0.8 + Math.random() * 1.2).toFixed(2));
-      el.setAttribute('fill', '#fff');
-      inner.append(el);
-      fall.push({ el, a: Math.random() * 6.283, r: 60 + Math.random() * 270, sp: 4 + Math.random() * 6, o: 0.3 + Math.random() * 0.5 });
-    }
-  }
-  const glowRect = bh.querySelector('pattern') && bh.querySelector('[fill^="url(#hpattern"]');
-  if (glowRect && !reduced) {
-    gsap.to(glowRect, { x: 26, y: -18, duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  }
-  const disc = bh.querySelectorAll('#hBlackhole > path[fill="#FF0000"]');
-  if (disc.length && !reduced) gsap.to(disc, { opacity: (i) => (i < 2 ? 0.35 : 0.88), duration: 3.6, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: 0.4 });
+  const hole = new BlackHole(bh);
+  addEventListener('resize', () => { hole.sized = false; });
   let landOn = true;
   new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
-  let bf = 0;
-  gsap.ticker.add((t, dt) => {
-    if (!landOn || reduced || (++bf & 1)) return;        // every other frame is plenty
-    const d = Math.min(0.1, dt / 500);
-    for (const p of fall) {
-      p.r -= (p.sp + p.r * 0.04) * d;
-      p.a += d * 0.05;
-      if (p.r < 8) { p.r = 300 + Math.random() * 40; p.a = Math.random() * 6.283; }
-      p.el.setAttribute('cx', (BHC.x + Math.cos(p.a) * p.r).toFixed(1));
-      p.el.setAttribute('cy', (BHC.y + Math.sin(p.a) * p.r).toFixed(1));
-      p.el.setAttribute('opacity', (p.o * Math.min(1, (p.r - 8) / 80)).toFixed(2));
-    }
-  });
+  gsap.ticker.add((t) => { if (landOn) hole.draw(reduced ? 0 : t); });
   try {
     const all = await (await fetch(`assets/stars.json?v=${V}`)).json();
     stars.seed(all.filter((s) => s[1] < FRAME_H), app.boardMap);
@@ -275,7 +246,7 @@ async function boot() {
   const CREAM = '#ffe0b5', RED = '#ff0000';
   const pad = (b, m = 18) => [b[0] - m, b[1] - m, b[2] + 2 * m, b[3] + 2 * m];
   const pill = (sel, band, params, texRect, source) => glass($(sel), { mode: 'pill', rect: pad(band), band, params, texRect, source });
-  const gSlab = pill('.glass-slab', [220, 111, 98, 676], [95, 0.42, 0.06, 1.0], [0, 0, 560, 982],
+  const gSlab = pill('.glass-slab', [220, 111, 98, 676], [70, 1.5, 0.06, 1.0], [0, 0, 560, 982],
     (c) => { for (const [t, x, y, col] of [['PO', 130, 344.785, CREAM], ['RT', 130, 534.785, CREAM], ['FOLIO', 130, 724.785, CREAM]]) type(c, t, x, y, 200, col); });
   const gAbout = pill('.glass-about', [34, 343, 654, 29], [-42, 0.33, 0.06, 0.6], [0, 250, 760, 260], (c) => type(c, 'DEEPAK SHARMA', 72, 399.16, 96, CREAM));
   const gContent = pill('.glass-content', [268, 921, 976, 84], [70, 0.72, 0.05, 0.6], [0, 760, 1512, 400], (c) => type(c, 'CONTENT', 361.48, 1069.9, 250, RED));
