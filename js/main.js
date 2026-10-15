@@ -2,12 +2,11 @@
 // every section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis
 // (MIT, darkroom.engineering) eases the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Stars } from './stars.js';
-import { Cards } from './projects.js';
-import { Glass, type } from './glass.js';
-import { Saturn } from './saturn.js';
-import { BlackHole } from './blackhole.js';
-import { ICONS } from './icons.js';
+import { Stars } from './stars.js?v=73';
+import { Cards } from './projects.js?v=73';
+import { Glass, type } from './glass.js?v=73';
+import { Saturn } from './saturn.js?v=73';
+import { ICONS } from './icons.js?v=73';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -21,6 +20,7 @@ const GAP = 320;                                  // extra room under the skills
 const BOARD_W = 1512, BOARD_H = 7856 + GAP, FRAME_H = 982;
 const BH = { x: 1198.5, y: 379 };                // black hole centre, artboard px
 const NS = 'http://www.w3.org/2000/svg';
+const V = document.documentElement.dataset.v || '1';
 // board rows where the page is dark (the menu turns light-on-dark there)
 const DARK = [[0, 1890], [2353 + GAP, 3690 + GAP], [5100 + GAP, 5650 + GAP], [6647 + GAP, BOARD_H]];
 
@@ -38,7 +38,7 @@ function fit() {
     app.scale = w / 1000;
     app.toBoard = null;
     app.x0 = 0;
-    app.bhDoc = { x: w / 2, y: 0, r: 300 * zl };   // phones: the hole sits half above the top edge
+    app.bhDoc = { x: w / 2, y: 0 };   // phones: the hole sits half above the top edge
     app.boardMap = (x, y) => ({ x: x * zl * 0.37, y: y * zl });
     return;
   }
@@ -48,7 +48,7 @@ function fit() {
   root.style.setProperty('--u', s + 'px');
   root.style.setProperty('--page-h', BOARD_H * s + 'px');
   const left = (w - BOARD_W * s) / 2;
-  app.bhDoc = { x: left + BH.x * s, y: BH.y * s, r: 300 * s };
+  app.bhDoc = { x: left + BH.x * s, y: BH.y * s };
   app.boardMap = (x, y) => ({ x: left + x * s, y: y * s });
   app.toBoard = (docY) => docY / s;
   app.x0 = Math.min(0, -((w / s) - BOARD_W) / 2) - 2;   // first visible board px on the left
@@ -112,18 +112,16 @@ if (fine) {
 gsap.ticker.add((t) => {
   for (const g of glasses) {
     g.c.style.setProperty('--wipe', g.wipe.toFixed(4));
-    // how far the slab now covers: the live letters under it hand over to the glass
-    if (g.magnet === 'x') g.c.parentElement.style.setProperty('--gx', Math.min(g.rect[0] + g.wipe * g.rect[2], g.o.band[0] + g.o.band[2] + g.off.w).toFixed(1));
     if (!g.on || g.wipe <= 0.001) continue;
     // the magnet: a gentle lean toward the pointer while it is near
     const [mx, my] = g.mouse, b = g.o.band;
-    let tx = 0, tw = 0;
-    if (g.monT) {
-      if (g.magnet === 'y') { const d = my - (b[1] + b[3] / 2); if (Math.abs(d) < 260) tx = gsap.utils.clamp(-6, 6, d * 0.045); }
-      else { const d = mx - (b[0] + b[2]); if (d > -260 && d < 320 && my > b[1] && my < b[1] + b[3]) tw = gsap.utils.clamp(-9, 12, d * 0.05); }
+    let tx = 0, ty = 0;
+    if (g.monT && g.magnet !== 'none') {
+      const dx = mx - (b[0] + b[2] / 2), dy = my - (b[1] + b[3] / 2);
+      if (Math.abs(dx) < b[2] / 2 + 220 && Math.abs(dy) < b[3] / 2 + 220) { tx = gsap.utils.clamp(-6, 6, dx * 0.02); ty = gsap.utils.clamp(-6, 6, dy * 0.04); }
     }
-    g.off.y += (tx - g.off.y) * 0.08;
-    g.off.w += (tw - g.off.w) * 0.08;
+    g.off.x += (tx - g.off.x) * 0.08;
+    g.off.y += (ty - g.off.y) * 0.08;
     if (!reduced) g.draw(t); else if (!g.drawn) { g.draw(0); g.drawn = 1; }
   }
 });
@@ -201,60 +199,57 @@ function swell(el) {
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.load('500 20px Montserrat'), document.fonts.ready]); } catch (e) {}
   const svg = async (url) => { try { return await (await fetch(url)).text(); } catch (e) { return ''; } };
-  const [wCore, wOuter, wInner] = await Promise.all(['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg`)));
+  const [wCore, wOuter, wInner, bhSvg] = await Promise.all([...['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg?v=${V}`)), svg(`assets/blackhole.svg?v=${V}`)]);
 
-  // ---------------- the black hole, in 3D (js/blackhole.js). Stars spiral in
-  // underneath it, stretching into streaks along their orbit as they near the
-  // shadow, then vanish behind it.
+  // ---------------- the black hole: the Figma art, alive. The light inside the
+  // sphere drifts behind its mask, the disc's glow breathes, and a few stars
+  // inside it fall slowly inward. Stars stay as sparse as the frame has them.
   const bh = $('.bh');
-  const fallC = document.createElement('canvas');
-  fallC.className = 'bh-fall';
-  bh.append(fallC);
-  const hole = new BlackHole(bh);
-  const fx = fallC.getContext('2d');
-  const BW = 1400, BHH = 1180, CX = 638.5, CY = 579, SHADOW = 300;
-  const fall = Array.from({ length: 56 }, () => ({ a: Math.random() * 6.283, r: SHADOW + Math.random() * 360, sp: 0.8 + Math.random() * 1.6, o: 0.35 + Math.random() * 0.6, s: 0.6 + Math.random() * 1.2 }));
-  const fallSize = () => { const k = Math.min(1, (devicePixelRatio || 1) * (app.scale || 1)); fallC.width = Math.round(BW * k); fallC.height = Math.round(BHH * k); fx.setTransform(k, 0, 0, k, 0, 0); hole.sized = false; };
-  fallSize(); addEventListener('resize', fallSize);
+  bh.innerHTML = bhSvg;
+  const BHC = { x: 1198.5, y: 379 };
+  const inner = bh.querySelector('.bh-in');
+  const fall = [];
+  if (inner) {
+    for (let i = 0; i < 16; i++) {
+      const el = document.createElementNS(NS, 'circle');
+      el.setAttribute('r', (0.8 + Math.random() * 1.2).toFixed(2));
+      el.setAttribute('fill', '#fff');
+      inner.append(el);
+      fall.push({ el, a: Math.random() * 6.283, r: 60 + Math.random() * 270, sp: 4 + Math.random() * 6, o: 0.3 + Math.random() * 0.5 });
+    }
+  }
+  const glowRect = bh.querySelector('pattern') && bh.querySelector('[fill^="url(#hpattern"]');
+  if (glowRect && !reduced) {
+    gsap.to(glowRect, { x: 26, y: -18, duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  }
+  const disc = bh.querySelectorAll('#hBlackhole > path[fill="#FF0000"]');
+  if (disc.length && !reduced) gsap.to(disc, { opacity: (i) => (i < 2 ? 0.35 : 0.88), duration: 3.6, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: 0.4 });
   let landOn = true;
   new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
+  let bf = 0;
   gsap.ticker.add((t, dt) => {
-    if (!landOn) return;
-    const d = Math.min(0.05, dt / 1000);
-    hole.draw(reduced ? 0 : t);
-    fx.clearRect(0, 0, BW, BHH);
-    fx.strokeStyle = '#fff'; fx.lineCap = 'round';
+    if (!landOn || reduced || (++bf & 1)) return;        // every other frame is plenty
+    const d = Math.min(0.1, dt / 500);
     for (const p of fall) {
-      // falls faster and orbits faster the closer it gets
-      const pull = SHADOW / p.r;
-      p.r -= p.sp * (12 + 140 * pull * pull * pull) * d;
-      const w = 0.12 + 1.6 * pull * pull * pull;
-      p.a += w * d;
-      if (p.r < SHADOW) { p.r = SHADOW + 260 + Math.random() * 120; p.a = Math.random() * 6.283; continue; }
-      // the stretch: an arc along the orbit, longer near the horizon
-      const len = Math.min(0.45, 0.003 + w * 0.16 * pull * pull);
-      fx.globalAlpha = p.o * Math.min(1, (p.r - SHADOW) / 50) * Math.min(1, (SHADOW + 380 - p.r) / 100);
-      fx.lineWidth = p.s * (1 - 0.4 * pull);
-      fx.beginPath();
-      fx.arc(CX, CY, p.r, p.a - len, p.a);
-      fx.stroke();
+      p.r -= (p.sp + p.r * 0.04) * d;
+      p.a += d * 0.05;
+      if (p.r < 8) { p.r = 300 + Math.random() * 40; p.a = Math.random() * 6.283; }
+      p.el.setAttribute('cx', (BHC.x + Math.cos(p.a) * p.r).toFixed(1));
+      p.el.setAttribute('cy', (BHC.y + Math.sin(p.a) * p.r).toFixed(1));
+      p.el.setAttribute('opacity', (p.o * Math.min(1, (p.r - 8) / 80)).toFixed(2));
     }
   });
   try {
-    const all = await (await fetch('assets/stars.json')).json();
+    const all = await (await fetch(`assets/stars.json?v=${V}`)).json();
     stars.seed(all.filter((s) => s[1] < FRAME_H), app.boardMap);
   } catch (e) {}
 
-  // ---------------- Saturn, in 3D (js/saturn.js)
+  // ---------------- Saturn, in 3D (js/saturn.js): a slow, quiet turn
   const sat = (app.saturn = new Saturn($('.saturn')));
   let satOn = false;
   new IntersectionObserver(([e]) => { satOn = e.isIntersecting; }, { rootMargin: '10% 0px' }).observe($('.saturn'));
-  const satPlace = () => sat.place(root.classList.contains('portrait') ? 0 : (app.x0 || 0));
-  satPlace(); addEventListener('resize', satPlace);
-  // on touch screens the scroll tilts it instead of the pointer
-  let satScroll = 0;
-  if (!fine) ScrollTrigger.create({ trigger: '#works', start: 'top bottom', end: 'bottom top', onUpdate: (s) => { satScroll = (s.progress - 0.5) * 1.4; } });
-  gsap.ticker.add((t, dt) => { if (satOn) sat.draw(reduced ? 0 : t, Math.min(0.05, dt / 1000), satScroll); });
+  addEventListener('resize', () => { sat.sized = false; });
+  gsap.ticker.add((t, dt) => { if (satOn) sat.draw(reduced ? 0 : t, Math.min(0.05, dt / 1000)); });
 
   // ---------------- footer wheel: the two mantra rings turn opposite ways
   $('.wheel').innerHTML = `<div class="w-layer">${wCore}</div><div class="w-layer w-outer">${wOuter}</div><div class="w-layer w-inner">${wInner}</div>`;
@@ -269,40 +264,31 @@ async function boot() {
   const outerEl = $('.w-outer'), innerEl = $('.w-inner');
   gsap.ticker.add(() => { outerEl.style.transform = `rotate(${wheelRot.a.toFixed(3)}deg)`; innerEl.style.transform = `rotate(${wheelRot.b.toFixed(3)}deg)`; });
   const drawWheel = (c) => {
-    c.drawImage(iCore, 356, 263, 800, 800);
+    c.drawImage(iCore, 356, 103, 800, 960);
     for (const [im, deg] of [[iOuter, wheelRot.a], [iInner, wheelRot.b]]) {
       c.save(); c.translate(WC.x, WC.y); c.rotate((deg * Math.PI) / 180); c.translate(-WC.x, -WC.y);
-      c.drawImage(im, 356, 263, 800, 800); c.restore();
+      c.drawImage(im, 356, 103, 800, 960); c.restore();
     }
   };
 
-  // ---------------- glass panels, live
-  const X0 = () => app.x0 || 0, FULL = () => 1512 - 2 * X0();
+  // ---------------- glass panels, live: the capsules from the frames
   const CREAM = '#ffe0b5', RED = '#ff0000';
-  const gSlab = glass($('.glass-slab'), { mode: 'slab', rect: [X0(), 0, 350 - X0(), 982], band: [X0(), 0, 328 - X0(), 979], params: [0.85, 60, 0.09, 1.0], texRect: [0, 0, 560, 982],
-    source: (c) => { for (const [t, x, y, col] of [['PO', 130, 344.785, CREAM], ['RT', 130, 534.785, CREAM], ['FOLIO', 130, 724.785, CREAM], ['20', 330.344, 343.717, RED], ['26', 330.344, 533.717, RED]]) type(c, t, x, y, 200, col); } }, { magnet: 'x' });
-  const gAbout = glass($('.glass-about'), { mode: 'bar', rect: [X0(), 344, 735 - X0(), 94], band: [X0(), 358, 721 - X0(), 66], params: [1.0, 0.16, 0.07, 0.7], texRect: [0, 250, 760, 260],
-    source: (c) => type(c, 'DEEPAK SHARMA', 72, 399.16, 96, CREAM) });
-  const gContent = glass($('.glass-content'), { mode: 'bar', rect: [X0(), 888, FULL(), 151], band: [X0(), 902, FULL(), 123], params: [1.0, 0.26, 0.07, 0.7], texRect: [0, 760, 1512, 400],
-    source: (c) => type(c, 'CONTENT', 361.48, 1069.9, 250, RED) });
-  const gConnect = glass($('.glass-connect'), { mode: 'bar', rect: [X0(), 416, FULL(), 72], band: [X0(), 430, FULL(), 44], params: [1.35, 0.3, 0.08, 0.6], texRect: [0, 360, 1512, 220],
-    source: (c) => type(c, 'LET’S CONNECT', 406.25, 512.566, 130, RED) });
-  const gSheets = glass($('.glass-sheets'), { mode: 'sheets', rect: [X0(), 430, FULL(), 779], band: [0, 0, 0, 0], params: [0, 0, 0, 0], edges: [502, 557, 606], dome: [756, 502.5, 66], bg: [0.012, 0.012, 0.014], texRect: [300, 200, 912, 912],
+  const pad = (b, m = 18) => [b[0] - m, b[1] - m, b[2] + 2 * m, b[3] + 2 * m];
+  const pill = (sel, band, params, texRect, source) => glass($(sel), { mode: 'pill', rect: pad(band), band, params, texRect, source });
+  const gSlab = pill('.glass-slab', [220, 111, 98, 676], [95, 0.42, 0.06, 1.0], [0, 0, 560, 982],
+    (c) => { for (const [t, x, y, col] of [['PO', 130, 344.785, CREAM], ['RT', 130, 534.785, CREAM], ['FOLIO', 130, 724.785, CREAM]]) type(c, t, x, y, 200, col); });
+  const gAbout = pill('.glass-about', [34, 343, 654, 29], [-42, 0.33, 0.06, 0.6], [0, 250, 760, 260], (c) => type(c, 'DEEPAK SHARMA', 72, 399.16, 96, CREAM));
+  const gContent = pill('.glass-content', [268, 921, 976, 84], [70, 0.72, 0.05, 0.6], [0, 760, 1512, 400], (c) => type(c, 'CONTENT', 361.48, 1069.9, 250, RED));
+  const gConnect = pill('.glass-connect', [331, 427, 850, 49], [60, 0.45, 0.06, 0.6], [0, 360, 1512, 220], (c) => type(c, 'LET’S CONNECT', 406.25, 512.566, 130, RED));
+  const X0 = () => app.x0 || 0, FULL = () => 1512 - 2 * X0();
+  const gSheets = glass($('.glass-sheets'), { mode: 'sheets', rect: [X0(), 430, FULL(), 779], band: [0, 0, 0, 0], params: [0, 0, 0, 0], edges: [502, 557, 606], dome: [756, 502.5, 66], bg: [0.012, 0.012, 0.014], texRect: [300, 60, 912, 1100],
     maxTex: 1.1, source: drawWheel }, { magnet: 'none' });
   gSheets.wipe = 1;
   // the reflection follows the turning rings (refreshed every few frames)
   let wf = 0;
   gsap.ticker.add(() => { if (gSheets.on && !reduced && gSheets.texK && ++wf % 3 === 0) gSheets.texture(gSheets.texK); });
-  const placeGlass = () => {
-    // the full-width panes always reach both screen edges; the slab and the about bar the left one
-    const x0 = X0(), W = FULL();
-    // phones: the slab starts just above the letters, clear of the black hole
-    const sy = root.classList.contains('portrait') ? 110 : 0;
-    gSlab.place([x0, sy, 350 - x0, 982 - sy]); gSlab.o.band = [x0, sy, 328 - x0, 979 - sy];
-    gAbout.place([x0, 344, 735 - x0, 94]); gAbout.o.band = [x0, 358, 721 - x0, 66];
-    for (const [g, r, b] of [[gContent, [888, 151], [902, 123]], [gConnect, [416, 72], [430, 44]]]) { g.place([x0, r[0], W, r[1]]); g.o.band = [x0, b[0], W, b[1]]; }
-    gSheets.place([x0, 430, W, 779]);
-  };
+  // the footer glass always reaches both screen edges
+  const placeGlass = () => gSheets.place([X0(), 430, FULL(), 779]);
   placeGlass(); addEventListener('resize', placeGlass);
 
   // ---------------- skills: a line on what each one means in practice

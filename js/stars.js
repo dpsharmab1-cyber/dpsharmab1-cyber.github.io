@@ -30,7 +30,7 @@ export class Stars {
     this.w = innerWidth; this.h = innerHeight;
     this.c.width = this.w * dpr; this.c.height = this.h * dpr;
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = Math.round((this.w * this.h) / 4600);
+    const n = Math.round((this.w * this.h) / 15000);   // sparse, as the frames have it
     while (this.s.length < n) this.s.push(this.make(Math.random() * this.w, Math.random() * this.h));
   }
   reborn(s, sx, sy) {

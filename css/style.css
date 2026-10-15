@@ -1,6 +1,6 @@
 /* =========================================================================
    Deepak Sharma — Portfolio 2026 (v7)
-   One 1512 x 7856 artboard: the Figma frames "Landing and About me" (A, y 0),
+   One 1512 x 8176 artboard (the frames plus 320 px of room under the skills): the Figma frames "Landing and About me" (A, y 0),
    "Content and cards" (B, y 2455) and "Connect and contact and Footer"
    (C, y 4910). .board is scaled as a piece (--s, set in main.js). Black
    regions are cut out of the paper (assets/scenery.svg) so the live stars
@@ -39,9 +39,9 @@ img { display: block; max-width: none; }
 
 /* ---------- stage ---------- */
 #stars { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-main { position: relative; z-index: 1; height: var(--page-h, 7856px); overflow: clip; }
-.board { position: absolute; left: 50%; top: 0; width: 1512px; height: 7856px; transform-origin: 50% 0; transform: translateX(-50%) scale(var(--s)); }
-.scenery { position: absolute; left: -2000px; top: 0; width: 5512px; height: 7856px; pointer-events: none; }
+main { position: relative; z-index: 1; height: var(--page-h, 8176px); overflow: clip; }
+.board { position: absolute; left: 50%; top: 0; width: 1512px; height: 8176px; transform-origin: 50% 0; transform: translateX(-50%) scale(var(--s)); }
+.scenery { position: absolute; left: -2000px; top: 0; width: 5512px; height: 8176px; pointer-events: none; }
 .sec { position: absolute; left: 0; top: calc(var(--top) * 1px); width: 1512px; height: calc(var(--h) * 1px); }
 .sec > *, .land > * { position: absolute; }
 .land { position: absolute; inset: 0; }
@@ -90,16 +90,14 @@ main { position: relative; z-index: 1; height: var(--page-h, 7856px); overflow: 
 /* ---------- 1 · landing (A) ---------- */
 .bh { left: 560px; top: -200px; width: 1400px; height: 1180px; pointer-events: none; }
 .bh-gl, .bh-fall { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.wheel svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.wheel svg, .bh svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .wheel { will-change: transform; }
 .w-layer { position: absolute; inset: 0; }
-.w-outer, .w-inner { transform-origin: 50.06% 29.44%; will-change: transform; }
+.w-outer, .w-inner { transform-origin: 50.06% 41.2%; will-change: transform; }
 .saturn-gl { display: block; width: 100%; height: 100%; }
 .pf { inset: 0; font: 400 200px/1 'Anton', sans-serif; text-transform: uppercase; }
 .pf-l { position: absolute; left: calc(var(--x) * 1px); top: calc(var(--y) * 1px); height: 200px; overflow: clip; overflow-clip-margin: .12em; white-space: nowrap; }
 .pf-l > span { display: inline-block; }
-/* under the slab the glass render takes over from the live letters */
-.pf-l.cream { clip-path: inset(-30% -30% -30% max(0px, calc(var(--gx, -999) * 1px - 130px))); }
 .hero-stats { left: 0; top: 848px; color: var(--red); font-size: 20px; line-height: 30px; }
 .hero-stats div { position: absolute; left: calc(var(--x) * 1px); top: 0; white-space: nowrap; }
 .hero-stats dt { font-weight: 700; }
@@ -151,45 +149,38 @@ main { position: relative; z-index: 1; height: var(--page-h, 7856px); overflow: 
 .mq-track span { padding-right: 106px; }
 
 /* ---------- 3 · works intro (B) ---------- */
-.saturn { left: 0; top: 0; width: 1512px; height: 1180px; will-change: transform; touch-action: pan-y; }
-.saturn-gl { cursor: grab; }
-.saturn-gl:active { cursor: grabbing; }
+.saturn { left: 0; top: 0; width: 1512px; height: 1180px; pointer-events: none; will-change: transform; }
 .content-title { left: 361.48px; top: 838.9px; font-size: 250px; }
 .think { left: 679.78px; top: 1102.5px; font-size: 30px; }
 .see-more { left: 756px; top: 1327px; translate: -50% 0; }
 
 
-/* ---------- 4 · projects (B - 1400): books on a shelf ---------- */
+/* ---------- 4 · projects (B - 1400): the Figma panels, with covers ---------- */
 .proj-title { left: 0; top: 97px; width: 1512px; text-align: center; color: #000; }
-.cards { left: 0; top: 200px; width: 1512px; height: 720px; perspective: 1600px; perspective-origin: 50% 40%; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; transform-style: preserve-3d; }
+.cards { left: 0; top: 0; width: 1512px; height: 1055px; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none; }
 .cards:active { cursor: grabbing; }
-.bk { position: absolute; left: 606px; top: 40px; width: 300px; transform-style: preserve-3d; will-change: transform, opacity; }
-.book { position: relative; width: 300px; height: 440px; transform-style: preserve-3d; cursor: pointer; transition: filter .3s; }
-.bk-face { position: absolute; backface-visibility: hidden; }
-.bk-front { inset: 0; transform: translateZ(24px); border-radius: 4px 14px 14px 4px; overflow: hidden; background: #111; box-shadow: inset 6px 0 10px -4px rgba(0,0,0,.45); }
-.bk-front::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.42) 0, rgba(255,255,255,.18) 2.6%, rgba(0,0,0,0) 6%, rgba(0,0,0,0) 80%, rgba(255,255,255,.08)), linear-gradient(180deg, rgba(0,0,0,.28), transparent 30%, transparent 70%, rgba(0,0,0,.3)); pointer-events: none; }
-.bk-cover { position: absolute; inset: 0; }
-.bk-cover img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; transition: transform 1.2s var(--ease); }
-.book:hover .bk-cover img { transform: scale(1.05); }
-.bk-cover.collage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1.4fr 1fr 1fr; gap: 3px; background: #000; }
-.bk-cover.collage img:nth-child(1) { grid-column: 1 / 3; }
-.bk-cover.collage img:nth-child(5) { display: none; }
-.bk-no { position: absolute; z-index: 2; left: 22px; top: 18px; font: 400 40px/1 'Anton', sans-serif; color: var(--cream); text-shadow: 0 2px 12px rgba(0,0,0,.45); pointer-events: none; }
-.bk-back { inset: 0; transform: rotateY(180deg) translateZ(24px); background: #1a1a1a; border-radius: 14px 4px 4px 14px; }
-.bk-spine { top: 0; left: 126px; width: 48px; height: 440px; transform: rotateY(-90deg) translateZ(150px); background: linear-gradient(90deg, #8c0000, #ff1a1a 30%, #e60000 70%, #7a0000); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 22px 0 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
-.bk-spine span { writing-mode: vertical-rl; transform: rotate(180deg); font: 400 20px/1 'Anton', sans-serif; letter-spacing: .04em; text-transform: uppercase; color: var(--cream); white-space: nowrap; overflow: hidden; max-height: 330px; }
-.bk-spine i { font: 400 15px/1 'Anton', sans-serif; font-style: normal; color: rgba(255,224,181,.75); }
-.bk-pages { top: 6px; left: 128px; width: 44px; height: 428px; transform: rotateY(90deg) translateZ(146px); background: repeating-linear-gradient(90deg, #f6efe2 0 2px, #e4dccd 2px 3px); box-shadow: inset 0 0 8px rgba(0,0,0,.15); }
-.bk-top { left: 2px; top: 196px; width: 294px; height: 48px; transform: rotateX(90deg) translateZ(220px); background: repeating-linear-gradient(0deg, #f3ecdf 0 2px, #ddd5c6 2px 3px); }
-.book::after { content: ''; position: absolute; left: 6%; right: 6%; bottom: -14px; height: 26px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.32), transparent); transform: translateZ(-30px) rotateX(90deg); pointer-events: none; }
-.shelf { left: -2000px; top: 680px; width: 5512px; height: 26px; pointer-events: none; background: linear-gradient(180deg, #f1f1f1, #dcdcdc 40%, #c4c4c4 100%); box-shadow: 0 18px 30px -8px rgba(0,0,0,.18), inset 0 1px 0 #fff, inset 0 -2px 0 rgba(0,0,0,.08); }
-.shelf::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 40px; background: linear-gradient(180deg, rgba(0,0,0,.08), transparent); }
-.bk .lab { position: absolute; left: -10px; right: -10px; top: 500px; text-align: center; color: #000; transform: translateZ(60px); }
-.lab b { display: block; font-size: 15px; line-height: 1.2; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lab > span { display: block; font-size: 14px; line-height: 1.5; margin-top: 6px; }
-.lab .btn { margin-top: 14px; }
-.proj-hint { left: 0; top: 1000px; width: 1512px; text-align: center; color: rgba(0,0,0,.45); }
-.hint-ph { display: none; }
+.pn { position: absolute; inset: 0; pointer-events: none; will-change: opacity; }
+.pn-edges { position: absolute; left: 0; top: 0; width: 1512px; height: 1055px; overflow: visible; }
+.pn-face { position: absolute; left: 0; top: 0; width: 300px; height: 600px; transform-origin: 0 0; overflow: hidden; background: #000; pointer-events: auto; cursor: pointer; backface-visibility: hidden; }
+.pn-cover { position: absolute; inset: 0; }
+.pn-cover img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; transition: transform 1s var(--ease), filter .6s var(--ease); }
+.pn-cover.collage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1.3fr 1fr 1fr; gap: 3px; background: #000; }
+.pn-cover.collage img:nth-child(1) { grid-column: 1 / 3; }
+.pn-cover.collage img:nth-child(5) { display: none; }
+.pn-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.08) 34%, rgba(0,0,0,0) 60%); pointer-events: none; transition: opacity .6s var(--ease); }
+.pn.is-hot .pn-cover img { transform: scale(1.06); filter: brightness(1.08); }
+.pn.is-hot .pn-shade { opacity: .4; }
+/* the floor: the panels fade into the paper, as in the frame */
+.cards-floor { position: absolute; left: -2000px; width: 5512px; top: 520px; height: 360px; background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.55) 55%, rgba(255,255,255,.92)); pointer-events: none; z-index: 40; }
+.cards .lab { position: absolute; left: 0; top: 884.5px; width: 170px; margin-left: -85px; text-align: center; color: #000; z-index: 41; will-change: transform, opacity; }
+.lab b { display: block; font-size: 13px; line-height: 1; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .4s var(--ease); }
+.lab > span { display: block; font-size: 13px; line-height: 1; margin-top: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pn-more { margin-top: 15px; display: inline-flex; align-items: center; gap: 8px; height: 18px; padding: 0 0 0 10px; border-radius: 99px; font-size: 8px; color: #000; background: linear-gradient(180deg, #fff, #f2f2f2); box-shadow: 0 2px 6px rgba(0,0,0,.1); transition: scale .5s var(--ease); }
+.pn-more i { width: 18px; height: 17.5px; border-radius: 50%; background: #000; color: #fff; display: grid; place-items: center; }
+.pn-more svg { width: 62%; height: 62%; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.lab.is-hot b { color: var(--red); }
+.lab.is-hot .pn-more { scale: 1.15; }
+.proj-hint { left: 0; top: 995px; width: 1512px; text-align: center; color: rgba(0,0,0,.45); }
 
 /* ---------- 5 · let's connect (C) ---------- */
 .cn-eyebrow { left: 0; top: 351px; width: 1512px; text-align: center; color: #fff; }
@@ -224,7 +215,7 @@ main { position: relative; z-index: 1; height: var(--page-h, 7856px); overflow: 
 .contact-card dt { width: 195px; }
 
 /* ---------- 7 · footer (C - 1737) ---------- */
-.wheel { left: 356px; top: 263px; width: 800px; height: 800px; pointer-events: none; }
+.wheel { left: 356px; top: 103px; width: 800px; height: 960px; pointer-events: none; }
 .foot-copy { left: 161px; top: 874.5px; color: #fff; }
 .foot-copy .eyebrow { color: #fff; }
 .foot-title { font-size: 24px; line-height: 29px; font-weight: 700; color: var(--cream); margin-top: 22.5px; }
@@ -321,27 +312,16 @@ html.has-cursor .cursor { opacity: 1; }
 .portrait .nav-contact { width: auto; padding: 0 12px; }
 
 /* framed sections: the centre 1000 px of the 1512 frame */
-.portrait #works, .portrait #connect, .portrait #footer { zoom: var(--z); width: 1512px; margin-left: -256px; overflow-x: clip; overflow-y: visible; }
+.portrait #works, .portrait #projects, .portrait #connect, .portrait #footer { zoom: var(--z); width: 1512px; margin-left: -256px; overflow-x: clip; overflow-y: visible; }
 .portrait #works { background: #000; height: 1420px; }
 .portrait .see-more, .portrait .cn-btn { scale: 2.2; transform-origin: 50% 0; }
 .portrait .think { font-size: 56px; left: 0; width: 1512px; text-align: center; }
 .portrait #works::after { content: ''; position: absolute; left: 0; right: 0; top: 1240px; height: 180px; background: #fff; z-index: -1; }
-.portrait #projects { background: #fff; height: auto; width: auto; padding: 50px 0 70px; }
-.portrait #projects > * { position: relative; left: auto; top: auto; width: auto; }
-.portrait .proj-title { text-align: center; font-size: 15vw; }
-.portrait .cards { height: auto; perspective: 1100px; perspective-origin: 50% 50%; cursor: default; display: flex; flex-direction: column; align-items: center; gap: 54px; padding: 40px 0 10px; }
-.portrait .bk { position: relative; left: auto; top: auto; width: 74vw; }
-.portrait .book { width: 74vw; height: calc(74vw * 1.42); }
-.portrait .bk-spine { left: calc(37vw - 22px); width: 44px; height: calc(74vw * 1.42); transform: rotateY(-90deg) translateZ(37vw); }
-.portrait .bk-pages { left: calc(37vw - 20px); width: 40px; height: calc(74vw * 1.42 - 12px); transform: rotateY(90deg) translateZ(calc(37vw - 4px)); }
-.portrait .bk-top { display: none; }
-.portrait .bk-front { transform: translateZ(22px); }
-.portrait .bk .lab { position: relative; top: auto; left: auto; right: auto; margin-top: 22px; transform: none; }
-.portrait .lab b { font-size: 18px; }
-.portrait .lab .btn { display: inline-flex; }
-.portrait .shelf { display: none; }
-.portrait .proj-hint { text-align: center; margin-top: 30px; }
-.portrait .hint-wide { display: none; } .portrait .hint-ph { display: inline; }
+.portrait #projects { background: #fff; height: 1100px; }
+.portrait .proj-title { font-size: 110px; top: 40px; }
+.portrait .cards .lab b { font-size: 26px; white-space: normal; line-height: 1.1; }
+.portrait .cards .lab > span, .portrait .pn-more { display: none; }
+.portrait .proj-hint { top: 1010px; font-size: 26px; }
 .portrait #connect { background: #000; height: 760px; }
 .portrait #connect > * { translate: 0 -170px; }
 .portrait .cn-eyebrow { font-size: 32px; }
@@ -372,7 +352,7 @@ html.has-cursor .cursor { opacity: 1; }
 .portrait .xp-list li { display: grid; grid-template-columns: 36% 1fr; row-gap: 8px; height: auto; padding: 14px 0; border-top: 1px solid rgba(255,255,255,.12); font-size: 13px; }
 .portrait .xp-list span { grid-row: 1 / 3; }
 .portrait #about .skills { position: relative; top: auto; width: auto; height: auto; margin: 150px -22px 0; padding: 60px 22px 110px; background: #fff; }
-.portrait #about .skills::before { content: ''; position: absolute; left: 0; right: 0; top: -118px; height: 140px; background: url(../assets/tear-bottom.svg) center / 100% 100% no-repeat; pointer-events: none; }
+.portrait #about .skills::before { content: ''; position: absolute; left: 0; right: 0; top: -118px; height: 140px; background: url(../assets/tear-bottom.svg?v=73) center / 100% 100% no-repeat; pointer-events: none; }
 .portrait .skills > * { position: relative; left: auto; top: auto; }
 .portrait .skills-title { font-size: 12vw; margin: 12px 0 44px; white-space: normal; }
 .portrait .skill-col { width: auto; margin-bottom: 46px; }

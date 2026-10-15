@@ -32,46 +32,43 @@ float starf(vec2 b, float blur){
   float size = .6 + r2 * 1.1;
   return smoothstep(size + blur, size * .3, d) * (.25 + .75 * r3) * (.6 + .4 * sin(TIME * (1. + r1 * 2.) + r2 * 30.)) / (1. + blur * .45);
 }
+float sdB(vec2 q, vec2 hb, float r){ vec2 d = abs(q) - (hb - r); return length(max(d, 0.)) + min(max(d.x, d.y), 0.) - r; }
 float ch(vec4 c, int i, float bg){ float x = i == 0 ? c.r : i == 1 ? c.g : c.b; return mix(bg, x, c.a); }
 void main(){
   vec2 p = R.xy + vec2(v.x, 1. - v.y) * R.zw;
   vec3 col = BG; float a = 1.;
-  if (MODE < .5) {                                   // ---------------- bar
-    if (p.y < B.y || p.y > B.y + B.w) discard;
-    float t = (p.y - (B.y + B.w * .5)) / (B.w * .5);
-    float d = 1.55 * t - 2.15 * t * t * t;
-    float cx = M.x * MON * .0 + B.x + B.z * .5;
+  if (MODE < 1.5) {                                  // ---------------- capsule
+    // a rounded pane: light bends at its rim and round ends, more the nearer
+    // the edge (thick glass), so type inside folds into arcs and fringes
+    vec2 c = B.xy + B.zw * .5, hb = B.zw * .5;
+    float rr = min(hb.x, hb.y);
+    float sd = sdB(p - c, hb, rr);
+    if (sd > .8) discard;
+    a = smoothstep(.8, -.8, sd);
+    float e = max(0., -sd);
+    vec2 n = normalize(vec2(sdB(p - c + vec2(1., 0.), hb, rr) - sdB(p - c - vec2(1., 0.), hb, rr), sdB(p - c + vec2(0., 1.), hb, rr) - sdB(p - c - vec2(0., 1.), hb, rr)) + 1e-5);
+    float t = clamp(1. - e / rr, 0., 1.);
+    // Figma's glass: the short axis is zoomed (P.y), each line is pushed along
+    // the long axis by the square of its distance from the middle (P.x), so
+    // upright strokes fold into arcs; the rim adds a little extra bend
+    bool horiz = hb.x >= hb.y;
+    float ts = horiz ? (p.y - c.y) / hb.y : (p.x - c.x) / hb.x;
     for (int i = 0; i < 3; i++) {
       float f = 1. + (float(i) - 1.) * P.z;
-      vec2 s = vec2(cx + (p.x - cx) * (1. - P.y * t * t * f), p.y + d * B.w * .5 * P.x * f);
+      vec2 d = p - c, sp;
+      if (horiz) sp = c + vec2(d.x - P.x * ts * ts * f, d.y / (P.y * f));
+      else sp = c + vec2(d.x / (P.y * f), d.y - P.x * ts * ts * f);
+      sp += n * 14. * pow(t, 3.) * f;
       float bgc = i == 0 ? BG.r : i == 1 ? BG.g : BG.b;
-      float val = ch(fr(s, P.w * (.6 + abs(t))), i, bgc);
+      float val = ch(fr(sp, P.w * (.6 + t)), i, bgc);
       if (i == 0) col.r = val; else if (i == 1) col.g = val; else col.b = val;
     }
-    col += .07 * pow(abs(t), 6.);
-    float rim = min(p.y - B.y, B.y + B.w - p.y);
-    col = mix(col, vec3(.27), smoothstep(1.3, 0., rim) * .9);
-    float sx = mod(TIME * 170., R.z + 900.) - 450. + R.x;
-    col += .11 * exp(-pow((p.x - sx + (p.y - B.y) * .7) / 46., 2.));
-  } else if (MODE < 1.5) {                           // ---------------- slab
-    float xr = B.x + B.z;
-    if (p.x > xr) discard;
-    float e = xr - p.x, dz = P.y, q = clamp(1. - e / dz, 0., 1.);
-    float cy = B.y + B.w * .5;
-    for (int i = 0; i < 3; i++) {
-      float f = 1. + (float(i) - 1.) * P.z;
-      float xf = xr - dz;
-      float sx = e < dz ? xf - (p.x - xf) * P.x * f : p.x;
-      float sy = cy + (p.y - cy) * (1. - .42 * q * q * f) + sin(p.y * .012 + TIME * .6) * 3. * q;
-      float bgc = i == 0 ? BG.r : i == 1 ? BG.g : BG.b;
-      float val = ch(fr(vec2(sx, sy), P.w + q * 2.5), i, bgc);
-      if (i == 0) col.r = val; else if (i == 1) col.g = val; else col.b = val;
-    }
-    col += .08 * pow(q, 5.);
-    col = mix(col, vec3(.2), smoothstep(1.3, 0., e) * .9);
-    col = mix(col, vec3(.18), smoothstep(1.3, 0., abs(p.y - (B.y + B.w))) * .8);
-    float sy = mod(TIME * 120., B.w + 700.) - 350. + B.y;
-    col += .09 * exp(-pow((p.y - sy + p.x * .45) / 40., 2.));
+    col += .05 * pow(t, 5.);
+    float lit = .55 + .45 * dot(n, normalize(vec2(-.55, -.85)));
+    col = mix(col, vec3(.36 * lit + .06), smoothstep(1.5, 0., e) * .85);
+    float along = hb.x > hb.y ? p.x - B.x : p.y - B.y, span = max(B.z, B.w);
+    float sx = mod(TIME * 150., span + 700.) - 350.;
+    col += .1 * exp(-pow((along - sx + (hb.x > hb.y ? p.y - B.y : p.x - B.x) * .7) / 40., 2.));
   } else {                                           // ---------------- sheets + dome
     if (p.y < E.x) {
       vec2 dv = p - D.xy; float r = length(dv);
@@ -113,7 +110,7 @@ void main(){
     }
   }
   col += MON * .12 * exp(-dot(p - M, p - M) / (2. * 130. * 130.));
-  gl_FragColor = vec4(col, a);
+  gl_FragColor = vec4(col * a, a);
 }`;
 
 export class Glass {
@@ -121,11 +118,11 @@ export class Glass {
   // band, params [R, D/splay, chroma, frost], source (draw(ctx) in section px), texRect
   constructor(parent, opts) {
     this.o = opts;
-    this.mode = { bar: 0, slab: 1, sheets: 2 }[opts.mode];
+    this.mode = { pill: 0, sheets: 2 }[opts.mode];
     this.c = document.createElement('canvas');
     this.c.className = 'glass ' + (opts.cls || '');
     parent.append(this.c);
-    const gl = (this.gl = this.c.getContext('webgl', { premultipliedAlpha: false, antialias: false, alpha: true }));
+    const gl = (this.gl = this.c.getContext('webgl', { premultipliedAlpha: true, antialias: false, alpha: true }));
     this.ok = !!gl;
     this.off = { x: 0, y: 0, w: 0 };       // magnet offsets
     this.mouse = [-9999, -9999]; this.mon = 0; this.monT = 0;

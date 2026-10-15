@@ -1,18 +1,36 @@
-// The nine works as books standing on a shelf: the project's image is the
-// cover, a red spine carries its title, cream page edges show on the other
-// side. On wide screens the shelf runs the full width; drag with the mouse or
-// swipe (it loops both ways, with a little inertia), or use the arrow keys.
-// The books nearest the centre turn to face you and stay sharp; the rest turn
-// their spines out, step back and blur. On phones the books stand one under
-// another and turn to face you as each one reaches the middle of the screen.
-// A click opens the project page.
+// The nine works on the Figma "stacked cards": the same ten perspective
+// panels, edges and order, each now showing a project's cover, mapped into
+// its panel exactly (a CSS homography). Drag with the mouse or swipe on touch
+// and the works slide from panel to panel, looping both ways. Hover lifts a
+// panel and lights its name; a click opens the project page.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js';
+import { PROJECTS } from './data.js?v=73';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg>';
+const NS = 'http://www.w3.org/2000/svg';
 const fine = matchMedia('(pointer: fine)').matches;
-const portrait = () => document.documentElement.classList.contains('portrait');
+const Y0 = 1400;                       // the section starts at y 1400 of the Figma frame
+const FW = 300, FH = 600;              // the cover's own box before it is mapped
+
+// a homography taking the FW x FH box onto the quad (tl, tr, br, bl)
+function quadMatrix(q) {
+  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
+  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
+  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+  let g = 0, h = 0;
+  if (Math.abs(dx3) > 1e-6 || Math.abs(dy3) > 1e-6) {
+    const den = dx1 * dy2 - dx2 * dy1;
+    g = (dx3 * dy2 - dx2 * dy3) / den;
+    h = (dx1 * dy3 - dx3 * dy1) / den;
+  }
+  const a = x1 - x0 + g * x1, b = x3 - x0 + h * x3, c = x0;
+  const d = y1 - y0 + g * y1, e = y3 - y0 + h * y3, f = y0;
+  return `matrix3d(${a / FW},${d / FW},0,${g / FW},${b / FH},${e / FH},0,${h / FH},0,0,1,0,${c},${f},0,1)`;
+}
+
+const lerp = (a, b, t) => a + (b - a) * t;
+const lerpPts = (A, B, t) => A.map((p, i) => [lerp(p[0], B[i][0], t), lerp(p[1], B[i][1], t)]);
 
 export class Cards {
   constructor(app) {
@@ -21,128 +39,129 @@ export class Cards {
     this.box = this.sec.querySelector('.cards');
     this.page = new ProjectPage(app, this);
     this.n = PROJECTS.length;
-    this.c = 0; this.goal = 0; this.vel = 0;
+    this.off = 0; this.goal = 0; this.vel = 0;
     this.rise = { v: 0 };
-    this.items = PROJECTS.map((p, i) => this.build(p, i));
-    this.bindDrag();
+    this.ready = this.build();
+  }
+
+  async build() {
+    let raw;
+    try { raw = await (await fetch(`assets/cards.json?v=${document.documentElement.dataset.v || 1}`)).json(); } catch (e) { return; }
+    // every slot as face + left strip + right strip + top strip, section px
+    const toS = (P) => P.map(([x, y]) => [x, y - Y0]);
+    const slots = raw.map((s) => {
+      const F = toS(s.face);
+      const edge = (side) => (s[side] ? toS(s[side].p) : (side === 'L' ? [F[0], F[0], F[3], F[3]] : [F[1], F[1], F[2], F[2]]));
+      const top = s.top ? toS(s.top.p) : [F[0], F[1], F[1], F[0]];
+      return { F, L: edge('L'), R: edge('R'), T: top.slice(0, 4), side: (s.L || s.R || {}).fill || '#404040', topFill: (s.top || {}).fill || '#777' };
+    });
+    // a slot beyond each end, so works can slide in and out of view
+    const shift = (s, dx) => ({ ...s, F: s.F.map(([x, y]) => [x + dx, y]), L: s.L.map(([x, y]) => [x + dx, y]), R: s.R.map(([x, y]) => [x + dx, y]), T: s.T.map(([x, y]) => [x + dx, y]) });
+    const k = slots.length;
+    this.slots = [shift(slots[0], -(slots[1].F[0][0] - slots[0].F[0][0]) * 1.4), ...slots, shift(slots[k - 1], (slots[k - 1].F[0][0] - slots[k - 2].F[0][0]) * 1.4)];
+    this.span = k;                                   // positions run 0 .. k (looping)
+    this.step = k / this.n;
+    this.items = PROJECTS.map((p, i) => this.item(p, i));
+    const fade = document.createElement('div');
+    fade.className = 'cards-floor';
+    this.box.append(fade);
+    this.bind();
     new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }, { rootMargin: '10% 0px' }).observe(this.sec);
     ScrollTrigger.create({ trigger: this.sec, start: 'top 70%', end: 'bottom 15%',
-      onEnter: () => gsap.to(this.rise, { v: 1, duration: 1.8, ease: 'expo.out', overwrite: true }),
-      onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.4, ease: 'expo.out', overwrite: true }),
-      onLeave: () => { if (!portrait()) gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }); },
-      onLeaveBack: () => { if (!portrait()) gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }); } });
-    this.measure();
-    addEventListener('resize', () => setTimeout(() => this.measure(), 60));
+      onEnter: () => gsap.to(this.rise, { v: 1, duration: 1.6, ease: 'expo.out', overwrite: true }),
+      onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.3, ease: 'expo.out', overwrite: true }),
+      onLeave: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }),
+      onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }) });
+    this.dirty = true;
     gsap.ticker.add((t, dt) => this.update(Math.min(0.05, dt / 1000)));
   }
 
-  build(p, i) {
-    const bk = document.createElement('div');
-    bk.className = 'bk';
+  item(p, i) {
+    const w = document.createElement('div');
+    w.className = 'pn';
     const cover = p.groups
-      // social: one book, its cover a collage of several clients' posts
-      ? `<div class="bk-cover collage">${p.groups.slice(0, 5).map((g) => `<img src="${g.images[0].thumb || g.images[0].src}" alt="" loading="lazy" decoding="async">`).join('')}</div>`
-      : `<div class="bk-cover"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"></div>`;
-    bk.innerHTML = `<div class="book" tabindex="0" role="button" aria-label="${p.title}, ${p.kind}. Open project">
-        <div class="bk-face bk-front">${cover}<b class="bk-no">${p.no}</b></div>
-        <div class="bk-face bk-back"></div>
-        <div class="bk-face bk-spine"><span>${p.title}</span><i>${p.no}</i></div>
-        <div class="bk-face bk-pages"></div>
-        <div class="bk-face bk-top"></div>
-      </div>
-      <div class="lab"><b>${p.title}</b><span>${p.kind}</span><button type="button" class="pill pill-light btn" tabindex="-1"><span>SEE MORE</span><i class="dot">${ARROW}</i></button></div>`;
-    this.box.append(bk);
-    const book = bk.querySelector('.book'), lab = bk.querySelector('.lab');
-    const it = { p, i, bk, book, lab, last: {} };
-    const open = () => { if (!this.dragged) this.page.open(i, bk.querySelector('.bk-cover')); };
-    book.addEventListener('click', () => {
-      // a book off to the side comes to the centre first
-      const d = this.rel(i);
-      if (!portrait() && Math.abs(d) > 0.6 && !this.dragged) { this.goal = this.c + d; return; }
-      open();
-    });
-    book.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      ? `<div class="pn-cover collage">${p.groups.slice(0, 5).map((g) => `<img src="${g.images[0].thumb || g.images[0].src}" alt="" loading="lazy" decoding="async">`).join('')}</div>`
+      : `<div class="pn-cover"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"></div>`;
+    w.innerHTML = `<svg class="pn-edges" viewBox="0 0 1512 1055" aria-hidden="true"><polygon class="e-l"/><polygon class="e-r"/><polygon class="e-t"/></svg>
+      <div class="pn-face" role="button" tabindex="0" aria-label="${p.title}, ${p.kind}. Open project">${cover}<i class="pn-shade"></i></div>`;
+    const lab = document.createElement('div');
+    lab.className = 'lab';
+    lab.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" class="pn-more" tabindex="-1">SEE MORE <i>${ARROW.replace('M5 12h13M12.5 6.5 18 12l-5.5 5.5', 'M12 5v13M6.5 12.5 12 18l5.5-5.5')}</i></button>`;
+    this.box.append(w);
+    this.box.append(lab);
+    const it = { p, i, w, lab, face: w.querySelector('.pn-face'), el: { l: w.querySelector('.e-l'), r: w.querySelector('.e-r'), t: w.querySelector('.e-t') } };
+    const open = () => { if (!this.dragged) this.page.open(i, it.face); };
+    it.face.addEventListener('click', open);
+    it.face.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     lab.querySelector('button').addEventListener('click', open);
-    book.addEventListener('pointerenter', () => { if (fine && (portrait() || Math.abs(this.rel(i)) < 0.6)) this.app.cursor?.state('big', 'OPEN'); });
-    book.addEventListener('pointerleave', () => this.app.cursor?.state());
+    const hot = (on) => { w.classList.toggle('is-hot', on); lab.classList.toggle('is-hot', on); if (fine) this.app.cursor?.state(on ? 'big' : null, on ? 'OPEN' : ''); };
+    it.face.addEventListener('pointerenter', () => hot(true));
+    it.face.addEventListener('pointerleave', () => hot(false));
     return it;
   }
 
-  rel(i) { const n = this.n; return ((((i - this.c + n / 2) % n) + n) % n) - n / 2; }
-
-  // phones: where each book sits in the page, so the scroll alone places them
-  measure() {
-    const y = this.app.lenis?.animatedScroll || scrollY;
-    for (const it of this.items) { it.bk.style.transform = ''; const r = it.bk.getBoundingClientRect(); it.top = r.top + y; it.h = r.height; it.last = {}; }
-  }
-
-  bindDrag() {
-    let sx = 0, sc = 0, down = false, lx = 0, lt = 0;
-    const px = () => (this.app.scale || 1) * 230;            // screen px per book
-    this.box.addEventListener('pointerdown', (e) => { if (portrait()) return; down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); sc = this.c; this.vel = 0; });
+  bind() {
+    let sx = 0, so = 0, down = false, lx = 0, lt = 0;
+    const px = () => (this.app.scale || 1) * 170;            // screen px per panel
+    this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); so = this.off; this.vel = 0; });
     addEventListener('pointermove', (e) => {
       if (!down) return;
       const dx = e.clientX - sx;
       if (Math.abs(dx) > 6) this.dragged = true;
       if (!this.dragged) return;
       const now = performance.now();
-      this.vel = (-(e.clientX - lx) / px()) / Math.max(0.008, (now - lt) / 1000);
+      this.vel = ((e.clientX - lx) / px()) / Math.max(0.008, (now - lt) / 1000);
       lx = e.clientX; lt = now;
-      this.goal = this.c = sc - dx / px();
+      this.goal = this.off = so + dx / px();
+      this.dirty = true;
     });
     addEventListener('pointerup', () => {
       if (!down) return;
       down = false;
-      if (this.dragged) this.goal = Math.round(this.c + gsap.utils.clamp(-4, 4, this.vel * 0.18));
+      if (this.dragged) this.goal = Math.round((this.off + gsap.utils.clamp(-4, 4, this.vel * 0.2)) / this.step) * this.step;
       setTimeout(() => { this.dragged = false; }, 0);
     });
     this.sec.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') this.goal = Math.round(this.goal) + 1;
-      if (e.key === 'ArrowLeft') this.goal = Math.round(this.goal) - 1;
+      if (e.key === 'ArrowRight') this.goal -= this.step;
+      if (e.key === 'ArrowLeft') this.goal += this.step;
     });
   }
 
-  update(dt) {
-    if (this.away) return;
-    if (portrait()) return this.updatePhone();
-    this.c += (this.goal - this.c) * (1 - Math.exp(-dt * 6));
-    const rise = this.rise.v;
-    // the shelf reaches the screen edges: outer books spread to fill it
-    const half = 756 - (this.app.x0 || 0);
-    const side = Math.max(150, (half - 360 - 90) / 3.4);
-    for (const it of this.items) {
-      const p = this.rel(it.i), ap = Math.abs(p), sg = Math.sign(p) || 1;
-      const x = ap <= 1 ? p * 360 : sg * (360 + (ap - 1) * side);
-      const ang = ap <= 1 ? -p * 24 : -sg * (24 + Math.min(1, ap - 1) * 46);
-      const z = -Math.pow(ap, 1.2) * 120;
-      const r = Math.min(1, Math.max(0, rise * 1.6 - ap * 0.12));
-      const y = (1 - r) * (1 - r) * 420;
-      const blur = Math.round(Math.max(0, ap - 1.15) * 5) / 2;
-      const vis = ap < 4.7 && r > 0.001;
-      const L = it.last;
-      if (L.vis !== vis) { it.bk.style.visibility = vis ? '' : 'hidden'; L.vis = vis; }
-      if (!vis) continue;
-      it.bk.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px)`;
-      it.book.style.transform = `rotateY(${ang.toFixed(2)}deg)`;
-      it.bk.style.opacity = (r * (1 - Math.max(0, ap - 3.6))).toFixed(3);
-      if (L.blur !== blur) { it.book.style.filter = blur ? `blur(${blur}px)` : 'none'; L.blur = blur; }
-      const zi = String(100 - Math.round(ap * 10));
-      if (L.z !== zi) { it.bk.style.zIndex = zi; L.z = zi; }
-      it.lab.style.opacity = Math.max(0, 1 - Math.max(0, ap - 0.55) * 1.6).toFixed(3);
-    }
+  // where a position (0 .. span) sits: between two neighbouring slots
+  at(u) {
+    const S = this.slots, k = Math.floor(u), f = u - k;
+    const A = S[k + 1] || S[S.length - 1], B = S[k + 2] || S[S.length - 1];
+    return { F: lerpPts(A.F, B.F, f), L: lerpPts(A.L, B.L, f), R: lerpPts(A.R, B.R, f), T: lerpPts(A.T, B.T, f), side: f < 0.5 ? A.side : B.side, topFill: f < 0.5 ? A.topFill : B.topFill };
   }
 
-  // phones: each book turns to face you as it reaches the middle of the screen
-  updatePhone() {
-    const y = this.app.lenis?.animatedScroll || scrollY, vh = innerHeight;
+  update(dt) {
+    if (this.away || !this.items) return;
+    const prev = this.off;
+    this.off += (this.goal - this.off) * (1 - Math.exp(-dt * 7));
+    if (Math.abs(this.off - prev) > 1e-4) this.dirty = true;
+    const r = this.rise.v;
+    if (!this.dirty && r === this.lastRise) return;
+    this.dirty = false; this.lastRise = r;
+    const span = this.span + 1;                      // the loop includes one hidden step
     for (const it of this.items) {
-      const e = gsap.utils.clamp(-1, 1, (it.top + it.h * 0.45 - y - vh / 2) / vh);
-      const ang = e * 38, tilt = -e * 6;
-      const key = ang.toFixed(1);
-      if (it.last.k === key) continue;
-      it.last.k = key;
-      it.book.style.transform = `rotateY(${key}deg) rotateX(${tilt.toFixed(2)}deg)`;
-      it.bk.style.opacity = (1 - Math.max(0, Math.abs(e) - 0.55) * 1.2).toFixed(3);
+      const u = ((((it.i * this.step + this.off) % span) + span) % span) - 0.5;   // -0.5 .. span - 0.5
+      const g = this.at(Math.max(-1, Math.min(this.span, u)));
+      const edgeFade = Math.min(1, (u + 0.5) * 3, (this.span - 0.5 - u) * 3);
+      // the panels rise out of the floor, the middle ones first
+      const mid = Math.abs(u - (this.span - 1) / 2) / this.span;
+      const rr = Math.min(1, Math.max(0, r * 1.5 - mid * 0.6));
+      const lift = (1 - rr) * (1 - rr) * 260;
+      const pt = (P) => P.map(([x, y]) => `${x.toFixed(1)},${(y + lift).toFixed(1)}`).join(' ');
+      it.el.l.setAttribute('points', pt(g.L)); it.el.l.setAttribute('fill', g.side);
+      it.el.r.setAttribute('points', pt(g.R)); it.el.r.setAttribute('fill', g.side);
+      it.el.t.setAttribute('points', pt(g.T)); it.el.t.setAttribute('fill', g.topFill);
+      it.face.style.transform = quadMatrix(g.F.map(([x, y]) => [x, y + lift]));
+      const o = Math.max(0, edgeFade) * rr;
+      it.w.style.opacity = o.toFixed(3);
+      it.w.style.zIndex = String(Math.round(Math.abs(u - (this.span - 1) / 2) * 10));
+      const cx = (g.F[0][0] + g.F[1][0]) / 2;
+      it.lab.style.transform = `translate3d(${cx.toFixed(1)}px,${(lift * 0.3).toFixed(1)}px,0)`;
+      it.lab.style.opacity = o.toFixed(3);
     }
   }
 }
