@@ -1,15 +1,13 @@
-// Nine works as the Figma "stacked cards": ten black panels standing in
-// perspective, a name under each. The panels rise into place as the section
-// arrives and float a little; hovering one lifts it, lights its name and shows
-// the work beside the pointer; a click opens its project page.
+// The nine works as glass-edged cards in a looping row. Drag with the mouse
+// or swipe on touch (it loops both ways, with a little inertia), or use the
+// arrow keys. The cards nearest the centre face you and stay sharp; the rest
+// turn away, step back and blur. A click opens the project page.
 import Lenis from '../vendor/lenis.mjs';
 import { PROJECTS } from './data.js';
 
 const { gsap, ScrollTrigger, SplitText } = window;
-const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
-const NS = 'http://www.w3.org/2000/svg';
-// label centres in the frame (artboard px)
-const LAB_X = [-8, 154, 316, 478, 660, 856, 1052, 1248, 1444];
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg>';
+const fine = matchMedia('(pointer: fine)').matches;
 
 export class Cards {
   constructor(app) {
@@ -17,78 +15,106 @@ export class Cards {
     this.sec = document.getElementById('projects');
     this.box = this.sec.querySelector('.cards');
     this.labWrap = this.sec.querySelector('.labels');
-    this.peek = document.querySelector('.peek');
     this.page = new ProjectPage(app, this);
-    this.labs = PROJECTS.map((p, i) => this.label(p, i));
-    this.ready = this.build();
+    this.n = PROJECTS.length;
+    this.c = 0; this.goal = 0; this.vel = 0;
+    this.rise = { v: 0 };
+    this.items = PROJECTS.map((p, i) => this.build(p, i));
+    this.bindDrag();
+    new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }, { rootMargin: '10% 0px' }).observe(this.sec);
+    ScrollTrigger.create({ trigger: this.sec, start: 'top 70%', end: 'bottom 15%',
+      onEnter: () => gsap.to(this.rise, { v: 1, duration: 1.8, ease: 'expo.out', overwrite: true }),
+      onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.4, ease: 'expo.out', overwrite: true }),
+      onLeave: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }),
+      onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }) });
+    gsap.ticker.add((t, dt) => this.update(Math.min(0.05, dt / 1000)));
   }
 
-  label(p, i) {
-    const li = document.createElement('li');
-    li.className = 'lab';
-    li.style.setProperty('--x', LAB_X[i]);
-    li.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" aria-label="Open ${p.title}">SEE MORE <i>${ARROW}</i></button>`;
-    this.labWrap.append(li);
-    li.querySelector('button').addEventListener('click', () => this.page.open(i, this.cardOf[i]?.el || null));
-    li.addEventListener('pointerenter', () => this.hot(i, true));
-    li.addEventListener('pointerleave', () => this.hot(i, false));
-    return li;
-  }
-
-  async build() {
-    try { this.box.innerHTML = await (await fetch('assets/cards.svg')).text(); } catch (e) { return; }
-    const groups = [...this.box.querySelectorAll('.card')];
-    this.cards = groups.map((el) => {
-      // outer: entrance; hov: hover lift; flo: idle float
-      const hov = document.createElementNS(NS, 'g'), flo = document.createElementNS(NS, 'g');
-      while (el.firstChild) flo.append(el.firstChild);
-      hov.append(flo); el.append(hov);
-      const b = el.getBBox();
-      const cx = b.x + b.width / 2;
-      let i = 0, best = 1e9;
-      LAB_X.forEach((x, k) => { if (Math.abs(x - cx) < best) { best = Math.abs(x - cx); i = k; } });
-      return { el, hov, flo, cx, i };
+  build(p, i) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-label', `${p.title}, ${p.kind}. Open project`);
+    const face = p.groups
+      // social: one card, a collage of several clients' posts
+      ? `<div class="card-face collage">${p.groups.slice(0, 6).map((g) => `<img src="${g.images[0].thumb || g.images[0].src}" alt="" loading="lazy" decoding="async">`).join('')}</div>`
+      : `<div class="card-face"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"></div>`;
+    el.innerHTML = `${face}<i class="card-side"></i><b class="card-no">${p.no}</b>`;
+    this.box.append(el);
+    const lab = document.createElement('li');
+    lab.className = 'lab';
+    lab.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" class="pill pill-light btn" tabindex="-1"><span>SEE MORE</span><i class="dot">${ARROW}</i></button>`;
+    this.labWrap.append(lab);
+    const it = { p, i, el, lab, side: el.querySelector('.card-side'), last: {} };
+    const open = () => { if (!this.dragged) this.page.open(i, el.querySelector('.card-face')); };
+    el.addEventListener('click', () => {
+      // a card off to the side comes to the centre first
+      const d = this.rel(i);
+      if (Math.abs(d) > 0.6 && !this.dragged) { this.goal = this.c + d; return; }
+      open();
     });
-    this.cardOf = {};
-    for (const c of this.cards) if (!this.cardOf[c.i] || Math.abs(LAB_X[c.i] - c.cx) < Math.abs(LAB_X[c.i] - this.cardOf[c.i].cx)) this.cardOf[c.i] = c;
-    for (const c of this.cards) {
-      c.el.setAttribute('role', 'button');
-      c.el.setAttribute('tabindex', '0');
-      c.el.setAttribute('aria-label', `Open ${PROJECTS[c.i].title}`);
-      c.el.addEventListener('pointerenter', () => this.hot(c.i, true, c));
-      c.el.addEventListener('pointerleave', () => this.hot(c.i, false, c));
-      c.el.addEventListener('click', () => this.page.open(c.i, c.el));
-      c.el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.page.open(c.i, c.el); } });
-      gsap.to(c.flo, { y: -6 - Math.random() * 6, duration: 2.6 + Math.random() * 1.6, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: Math.random() * 2 });
-    }
-    // rise in from the floor, the middle first; sink back on the way out
-    const order = [...this.cards].sort((a, b) => Math.abs(a.cx - 756) - Math.abs(b.cx - 756)).map((c) => c.el);
-    gsap.set(order, { y: 260, opacity: 0 });
-    const labs = this.labs;
-    gsap.set(labs, { y: 24, opacity: 0 });
-    const show = () => { gsap.to(order, { y: 0, opacity: 1, duration: 1.5, ease: 'expo.out', stagger: 0.07, overwrite: true }); gsap.to(labs, { y: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.04, delay: 0.4, overwrite: true }); };
-    const hide = (dir) => { gsap.to(order, { y: 200 * dir, opacity: 0, duration: 0.7, ease: 'expo.in', stagger: 0.03, overwrite: true }); gsap.to(labs, { y: 20 * dir, opacity: 0, duration: 0.5, ease: 'expo.in', overwrite: true }); };
-    ScrollTrigger.create({ trigger: this.sec, start: 'top 65%', end: 'bottom 20%', onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
-    // the work follows the pointer over the cards
-    addEventListener('pointermove', (e) => { this.px = e.clientX; this.py = e.clientY; });
-    gsap.ticker.add(() => {
-      if (!this.peekOn) return;
-      this.qx = (this.qx ?? this.px) + (this.px - (this.qx ?? this.px)) * 0.16;
-      this.qy = (this.qy ?? this.py) + (this.py - (this.qy ?? this.py)) * 0.16;
-      this.peek.style.transform = `translate3d(${(this.qx + 28).toFixed(1)}px, ${(this.qy - 190).toFixed(1)}px, 0)`;
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    lab.querySelector('button').addEventListener('click', () => this.page.open(i, el.querySelector('.card-face')));
+    el.addEventListener('pointerenter', () => { if (fine && Math.abs(this.rel(i)) < 0.6) this.app.cursor?.state('big', 'OPEN'); });
+    el.addEventListener('pointerleave', () => this.app.cursor?.state());
+    return it;
+  }
+
+  rel(i) { const n = this.n; return ((((i - this.c + n / 2) % n) + n) % n) - n / 2; }
+
+  bindDrag() {
+    let sx = 0, sc = 0, down = false, lx = 0, lt = 0;
+    const px = () => (this.app.scale || 1) * 230;            // screen px per card
+    this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); sc = this.c; this.vel = 0; });
+    addEventListener('pointermove', (e) => {
+      if (!down) return;
+      const dx = e.clientX - sx;
+      if (Math.abs(dx) > 6) this.dragged = true;
+      if (!this.dragged) return;
+      const now = performance.now();
+      this.vel = (-(e.clientX - lx) / px()) / Math.max(0.008, (now - lt) / 1000);
+      lx = e.clientX; lt = now;
+      this.goal = this.c = sc - dx / px();
+    });
+    addEventListener('pointerup', () => {
+      if (!down) return;
+      down = false;
+      if (this.dragged) this.goal = Math.round(this.c + gsap.utils.clamp(-4, 4, this.vel * 0.18));
+      setTimeout(() => { this.dragged = false; }, 0);
+    });
+    this.sec.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') this.goal = Math.round(this.goal) + 1;
+      if (e.key === 'ArrowLeft') this.goal = Math.round(this.goal) - 1;
     });
   }
 
-  hot(i, on, card) {
-    this.labs.forEach((l, k) => l.classList.toggle('is-hot', on && k === i));
-    const c = card || this.cardOf?.[i];
-    if (c) { c.el.classList.toggle('is-hot', on); gsap.to(c.hov, { y: on ? -22 : 0, duration: on ? 0.7 : 0.9, ease: on ? 'expo.out' : 'elastic.out(1, .6)', overwrite: true }); }
-    if (!matchMedia('(pointer: fine)').matches) return;
-    if (card) {
-      this.app.cursor?.state(on ? 'big' : null, on ? 'OPEN' : '');
-      if (on) { const p = PROJECTS[i]; this.peek.querySelector('img').src = p.cover.thumb || p.cover.src; this.qx = this.px; this.qy = this.py; }
-      this.peekOn = on;
-      this.peek.classList.toggle('is-on', on);
+  update(dt) {
+    if (this.away) return;
+    this.c += (this.goal - this.c) * (1 - Math.exp(-dt * 6));
+    const rise = this.rise.v;
+    for (const it of this.items) {
+      const p = this.rel(it.i), ap = Math.abs(p), sg = Math.sign(p) || 1;
+      // centre cards face you; the rest turn away and step back
+      const x = ap <= 1 ? p * 330 : sg * (330 + (ap - 1) * 175);
+      const ang = ap <= 1 ? -p * 18 : -sg * (18 + Math.min(1, ap - 1) * 40);
+      const z = -Math.pow(ap, 1.25) * 110;
+      const r = Math.min(1, Math.max(0, rise * 1.6 - ap * 0.12));
+      const y = (1 - r) * (1 - r) * 420;
+      const blur = Math.round(Math.max(0, ap - 1.15) * 5) / 2;     // px, in half steps
+      const vis = ap < 4.6 && r > 0.001;
+      const L = it.last;
+      if (L.vis !== vis) { it.el.style.visibility = it.lab.style.visibility = vis ? '' : 'hidden'; L.vis = vis; }
+      if (!vis) continue;
+      it.el.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) rotateY(${ang.toFixed(2)}deg)`;
+      it.el.style.opacity = (r * (1 - Math.max(0, ap - 3.4))).toFixed(3);
+      if (L.blur !== blur) { it.el.style.filter = blur ? `blur(${blur}px)` : 'none'; L.blur = blur; }
+      const zi = String(100 - Math.round(ap * 10));
+      if (L.z !== zi) { it.el.style.zIndex = zi; L.z = zi; }
+      const left = p < 0;
+      if (L.left !== left) { it.side.classList.toggle('on-left', !left); L.left = left; }
+      it.lab.style.transform = `translate3d(${(x * 0.92).toFixed(1)}px,${(y * 0.4).toFixed(1)}px,0)`;
+      it.lab.style.opacity = (r * Math.max(0, 1 - Math.max(0, ap - 0.55) * 1.6)).toFixed(3);
     }
   }
 }
@@ -123,32 +149,41 @@ class ProjectPage {
   render(i) {
     const p = PROJECTS[i];
     const next = PROJECTS[(i + 1) % PROJECTS.length];
-    const imgs = p.images;
-    const figs = imgs.slice(1).map((im, k) => {
-      const tall = im.h > im.w * 1.15;
-      const cls = imgs.length > 3 && k % 5 === 0 && !tall ? 'wide' : tall ? 'third' : '';
-      return `<figure class="${cls}"><img src="${im.src}" width="${im.w}" height="${im.h}" alt="${p.title}, image ${k + 2}" loading="lazy" decoding="async"></figure>`;
-    }).join('');
+    const fig = (im, k, cls = '') => `<figure class="${cls}"><img src="${im.thumb || im.src}" data-full="${im.src}" width="${im.w}" height="${im.h}" alt="${p.title}, image ${k + 1}" loading="lazy" decoding="async"></figure>`;
+    // UI work: the live prototype first, then the screens
+    const live = p.liveKind === 'proto'
+      ? `<section class="pj-live-frame"><div class="pj-device"><iframe src="${p.live}" title="${p.title}, live prototype" loading="lazy"></iframe></div>
+         <a class="pill pill-light btn" href="${p.live}" target="_blank" rel="noopener"><span>OPEN FULL SCREEN</span><i class="dot">${ARROW}</i></a></section>`
+      : p.liveKind === 'site'
+        ? `<section class="pj-live-frame"><a class="pj-device pj-site" href="${p.live}" target="_blank" rel="noopener"><img src="${p.cover.src}" alt="${p.title} website"><span class="pill pill-light btn"><span>VISIT THE LIVE SITE</span><i class="dot">${ARROW}</i></span></a></section>`
+        : '';
+    let gallery;
+    if (p.groups) {
+      // social: one collage per client, tiles of mixed sizes
+      gallery = p.groups.map((g) => `<section class="pj-group"><h3 class="eyebrow">${g.title} <small>${g.images.length}</small></h3>
+        <div class="pj-collage">${g.images.map((im, k) => fig(im, k, (k % 7 === 0 ? 'big' : k % 5 === 3 ? 'tall' : ''))).join('')}</div></section>`).join('');
+    } else {
+      const imgs = p.liveKind ? p.images : p.images.slice(1);
+      gallery = `<div class="pj-grid">${(imgs.length ? imgs : [p.cover]).map((im, k) => fig(im, k)).join('')}</div>`;
+    }
     this.inner.innerHTML = `
       <header class="pj-hero">
         <img class="pj-hero-img" src="${p.cover.src}" alt="">
         <div class="pj-head">
-          <p class="pj-no">${p.no} / ${String(PROJECTS.length).padStart(2, '0')}</p>
-          <h2 class="t-anton pj-title" id="pj-title">${p.title}</h2>
-          <p class="pj-sub">${p.kind}</p>
+          <p class="eyebrow pj-no">${p.no} / ${String(PROJECTS.length).padStart(2, '0')} · ${p.kind}</p>
+          <h2 class="t-anton h-xl pj-title" id="pj-title">${p.title}</h2>
         </div>
       </header>
       <section class="pj-body">
+        <div><p class="eyebrow">ABOUT THE PROJECT</p><p class="pj-desc">${p.desc}</p></div>
         <ul class="pj-meta">${p.meta.map((m) => `<li>${m}</li>`).join('')}</ul>
-        <div><p class="pj-desc">${p.desc}</p>
-          ${p.live ? `<a class="pill-btn dark-pill pj-live" href="${p.live}" target="_blank" rel="noopener"><span>${p.liveLabel.toUpperCase()}</span><i class="pill-arrow"><svg viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6"/></svg></i></a>` : ''}
-        </div>
       </section>
-      <section class="pj-gallery">${figs || `<figure class="wide"><img src="${p.cover.src}" alt="${p.title}"></figure>`}</section>
-      <a class="pj-next" href="#work/${next.id}" data-next="${(i + 1) % PROJECTS.length}"><small>NEXT PROJECT</small><b>${next.title}</b></a>`;
+      ${live}
+      <section class="pj-gallery"><p class="eyebrow">${p.groups ? 'SELECTED POSTS' : 'SCREENS & DETAILS'}</p>${gallery}</section>
+      <a class="pj-next" href="#work/${next.id}"><small class="eyebrow">NEXT PROJECT</small><b class="t-anton">${next.title}</b></a>`;
     this.inner.querySelector('.pj-next').addEventListener('click', (e) => { e.preventDefault(); this.swap((i + 1) % PROJECTS.length); });
     this.inner.querySelectorAll('.pj-gallery figure').forEach((f) => f.addEventListener('click', () => {
-      this.zoom.querySelector('img').src = f.querySelector('img').src;
+      this.zoom.querySelector('img').src = f.querySelector('img').dataset.full;
       this.zoom.classList.add('is-open');
     }));
     this.reveals();
@@ -160,10 +195,9 @@ class ProjectPage {
     this.io = new IntersectionObserver((es) => es.forEach((e) => {
       if (!e.isIntersecting) return;
       this.io.unobserve(e.target);
-      gsap.fromTo(e.target, { clipPath: 'inset(18% 6% 18% 6% round 6px)' }, { clipPath: 'inset(0% 0% 0% 0% round 6px)', duration: 1.3, ease: 'expo.out' });
-      gsap.fromTo(e.target.querySelector('img'), { scale: 1.25 }, { scale: 1, duration: 1.6, ease: 'expo.out' });
+      gsap.fromTo(e.target, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 1.1, ease: 'expo.out' });
     }), { root: this.scroller, threshold: 0.08 });
-    this.inner.querySelectorAll('.pj-gallery figure').forEach((f) => { f.style.clipPath = 'inset(18% 6% 18% 6% round 6px)'; this.io.observe(f); });
+    this.inner.querySelectorAll('.pj-gallery figure, .pj-live-frame').forEach((f) => { f.style.opacity = 0; this.io.observe(f); });
   }
 
   intro() {
@@ -171,7 +205,7 @@ class ProjectPage {
     const split = SplitText.create(title, { type: 'chars,lines', mask: 'lines' });
     const tl = gsap.timeline();
     tl.from(split.chars, { yPercent: 115, rotate: 6, duration: 1.1, ease: 'expo.out', stagger: 0.025 })
-      .from('.pj-no, .pj-sub', { y: 20, opacity: 0, duration: 0.9, ease: 'expo.out', stagger: 0.08 }, 0.15)
+      .from('.pj-no', { y: 20, opacity: 0, duration: 0.9, ease: 'expo.out' }, 0.15)
       .from('.pj-hero-img', { scale: 1.15, duration: 1.8, ease: 'expo.out' }, 0)
       .from('.pj-body > *', { y: 40, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.1 }, 0.35);
     return tl;

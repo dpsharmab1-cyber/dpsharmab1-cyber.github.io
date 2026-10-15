@@ -26,7 +26,7 @@ export class Stars {
       z: [0.15, 0.35, 0.7][(Math.random() * 3) | 0], p: Math.random() * 6.283, sp: 0.4 + Math.random() * 1.4, age: 9 };
   }
   resize() {
-    const dpr = Math.min(2, devicePixelRatio || 1);
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
     this.w = innerWidth; this.h = innerHeight;
     this.c.width = this.w * dpr; this.c.height = this.h * dpr;
     this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
