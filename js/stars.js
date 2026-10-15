@@ -52,14 +52,25 @@ export class Stars {
       const dx = sx - s.x, dy = sy - s.y, d = Math.hypot(dx, dy) || 1;
       const v = (5 + s.z * 9) * dt;                            // a few px per second
       s.x += (dx / d) * v; s.y += (dy / d) * v;
-      if (d < 22 || s.x < -6 || s.x > W + 6) { this.reborn(s, sx, sy); continue; }
+      const R = sink && sink.r ? sink.r : 22;
+      if (d < R || s.x < -6 || s.x > W + 6) { this.reborn(s, sx, sy); continue; }
       if (this.alpha <= 0.01) continue;
-      const near = Math.min(1, d / 160), born = Math.min(1, s.age / 1.6);
+      const near = Math.min(1, (d - R) / 90), born = Math.min(1, s.age / 1.6);
       const tw = 0.6 + 0.4 * Math.sin(t * s.sp + s.p);
       g.globalAlpha = this.alpha * s.b * tw * near * born;
-      g.fillStyle = s.z > 0.5 && s.b > 0.85 ? '#ffe0b5' : '#fff';
+      const col = s.z > 0.5 && s.b > 0.85 ? '#ffe0b5' : '#fff';
+      const rad = s.r * (0.6 + s.z);
+      const k = R > 22 ? Math.max(0, 1 - (d - R) / (R * 1.8)) : 0;
+      if (k > 0.02) {
+        // near the horizon a star smears along its orbit
+        const tx = -dy / d, ty = dx / d, L = k * k * 46;
+        g.strokeStyle = col; g.lineWidth = rad * (1.4 - k * 0.6); g.lineCap = 'round';
+        g.beginPath(); g.moveTo(s.x - tx * L, s.y - ty * L); g.lineTo(s.x + tx * L * 0.3, s.y + ty * L * 0.3); g.stroke();
+        continue;
+      }
+      g.fillStyle = col;
       g.beginPath();
-      g.arc(s.x, s.y, s.r * (0.6 + s.z), 0, 6.283);
+      g.arc(s.x, s.y, rad, 0, 6.283);
       g.fill();
     }
     g.globalAlpha = 1;

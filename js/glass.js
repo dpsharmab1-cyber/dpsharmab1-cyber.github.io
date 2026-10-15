@@ -22,6 +22,16 @@ vec4 tx(vec2 b){ vec2 u = (b - TR.xy) / TR.zw; if (u.x < 0. || u.y < 0. || u.x >
 vec4 fr(vec2 b, float r){ if (r < .05) return tx(b);
   vec4 c = tx(b) * .28; c += (tx(b + vec2(r, 0.)) + tx(b - vec2(r, 0.)) + tx(b + vec2(0., r)) + tx(b - vec2(0., r))) * .12;
   c += (tx(b + vec2(r, r) * .7) + tx(b - vec2(r, r) * .7) + tx(b + vec2(r, -r) * .7) + tx(b - vec2(r, -r) * .7)) * .06; return c; }
+float hs(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float starf(vec2 b, float blur){
+  vec2 cell = floor(b / 38.), f = b - cell * 38.;
+  float r1 = hs(cell), r2 = hs(cell + 7.3), r3 = hs(cell + 3.1);
+  if (r1 < .55) return 0.;
+  vec2 sp = vec2(r2, r3) * 30. + 4.;
+  float d = length(f - sp);
+  float size = .6 + r2 * 1.1;
+  return smoothstep(size + blur, size * .3, d) * (.25 + .75 * r3) * (.6 + .4 * sin(TIME * (1. + r1 * 2.) + r2 * 30.)) / (1. + blur * .45);
+}
 float ch(vec4 c, int i, float bg){ float x = i == 0 ? c.r : i == 1 ? c.g : c.b; return mix(bg, x, c.a); }
 void main(){
   vec2 p = R.xy + vec2(v.x, 1. - v.y) * R.zw;
@@ -94,6 +104,8 @@ void main(){
         if (i == 0) rc.r = val; else if (i == 1) rc.g = val; else rc.b = val;
       }
       col = BG + vec3(.035) * exp(-de / 60.) + rc * (.95 - n * .07) * fall;
+      vec2 sb = vec2(D.x + (p.x - D.x) * (1. + .18 * k), p.y + k * 9.);
+      col += vec3(1., .95, .9) * starf(sb, 1.4 + n * 1.1) * .85;
       col += vec3(.22) * exp(-de * de / 1.4);
       col += (vec3(.5, .08, .04) * exp(-pow(de - 2.5, 2.) / 2.) + vec3(.05, .2, .45) * exp(-pow(de - 5., 2.) / 3.)) * .18;
       float sx2 = mod(TIME * 140., R.z + 900.) - 450. + R.x;
@@ -143,9 +155,11 @@ export class Glass {
   // the source pixels, drawn at the screen's own resolution
   async texture(k) {
     const [x, y, w, h] = this.o.texRect;
-    const cv = document.createElement('canvas');
-    cv.width = Math.ceil(w * k); cv.height = Math.ceil(h * k);
+    const cv = (this.cv ||= document.createElement('canvas'));
+    if (cv.width !== Math.ceil(w * k)) { cv.width = Math.ceil(w * k); cv.height = Math.ceil(h * k); }
     const ctx = cv.getContext('2d');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.setTransform(k, 0, 0, k, -x * k, -y * k);
     await this.o.source(ctx);
     const gl = this.gl;
@@ -163,7 +177,7 @@ export class Glass {
     const cap = 2.2e6;                               // keep every pane cheap
     if (W * H > cap) { const f = Math.sqrt(cap / (W * H)); W = Math.round(W * f); H = Math.round(H * f); }
     this.c.width = W; this.c.height = H;
-    const k = Math.min(3, (W / this.rect[2]) * 1.25);
+    const k = Math.min(this.o.maxTex || 3, (W / this.rect[2]) * 1.25);
     if (Math.abs((this.texK || 0) - k) > 0.15) { this.texK = k; this.texture(k); }
     this.sized = true;
     return true;

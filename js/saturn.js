@@ -1,85 +1,123 @@
-// Saturn in 3D, drawn by one fragment shader: a lit sphere with red bands
-// that turn slowly, rings of fine grey and white stripes, the rings' shadow on
-// the planet and the planet's shadow on the rings, and a red glow around it.
-// It replaces the flat Figma planet but keeps its colours, size and tilt.
+// Saturn in 3D, one fragment shader: a lit planet with soft red bands that
+// turn, fine rings with a little sparkle and a Cassini gap, true shadows (the
+// rings' band across the planet, the planet's soft shadow across the rings),
+// small asteroids on slow orbits and faint dust for depth. It grows on wide
+// screens. The pointer tilts it a little, a drag spins it, a click sends a
+// ripple out through the rings; on touch the scroll tilts it.
 const VERT = `attribute vec2 a; varying vec2 v; void main(){ v = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }`;
 const FRAG = `precision highp float;
 varying vec2 v;
 uniform vec4 R;          // canvas rect (section px)
 uniform vec3 C;          // planet centre x, y, radius (section px)
-uniform float TIME, ROLL, INC;
+uniform float TIME, ROLL, INC, SPIN, RIP;
 float h1(float n){ return fract(sin(n) * 43758.5453); }
+float h2(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n1(float x){ float i = floor(x), f = fract(x); f = f * f * (3. - 2. * f); return mix(h1(i), h1(i + 1.), f); }
+float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y); }
 mat3 rotX(float a){ float c = cos(a), s = sin(a); return mat3(1., 0., 0., 0., c, s, 0., -s, c); }
 mat3 rotZ(float a){ float c = cos(a), s = sin(a); return mat3(c, s, 0., -s, c, 0., 0., 0., 1.); }
+const float RI = 1.24, RO = 2.25;
+float ringD(float r){
+  if (r < RI || r > RO) return 0.;
+  float d = .5 + .5 * sin(r * 61.) * .35 + n1(r * 140.) * .35 + n1(r * 31.) * .3;
+  d *= smoothstep(RI, RI + .05, r) * (1. - smoothstep(RO - .06, RO, r));
+  d *= 1. - .9 * smoothstep(1.62, 1.64, r) * (1. - smoothstep(1.69, 1.71, r));     // Cassini gap
+  d *= 1. - .6 * smoothstep(2.03, 2.04, r) * (1. - smoothstep(2.06, 2.07, r));
+  d *= mix(.35, 1., smoothstep(RI, 1.45, r));                                       // thin inner C ring
+  return clamp(d, 0., 1.);
+}
 void main(){
   vec2 px = R.xy + vec2(v.x, 1. - v.y) * R.zw;
-  vec2 q = (px - C.xy) / C.z;              // planet radii, y down
-  q.y = -q.y;
-  vec3 ro = vec3(q, 4.), rd = vec3(0., 0., -1.);
-  mat3 W = rotZ(ROLL) * rotX(INC);         // planet frame -> view
-  vec3 ax = W * vec3(0., 0., 1.);          // ring normal / spin axis
-  vec3 L = normalize(vec3(-.55, .5, .65));
+  vec2 q = (px - C.xy) / C.z; q.y = -q.y;
+  vec3 ro = vec3(q, 6.), rd = vec3(0., 0., -1.);
+  mat3 W = rotZ(ROLL) * rotX(INC);
+  vec3 ax = W * vec3(0., 0., 1.);
+  vec3 L = normalize(vec3(-.6, .45, .66));
   vec4 col = vec4(0.);
-  // sphere
-  float b = dot(ro, rd), c = dot(ro, ro) - 1., h = b * b - c;
-  float tS = 1e9; vec3 planet = vec3(0.);
-  if (h > 0.) {
-    tS = -b - sqrt(h);
-    vec3 p = ro + rd * tS, n = normalize(p);
-    vec3 lp = p * W;                       // into planet frame
-    float lat = lp.z;
-    float lon = atan(lp.y, lp.x) + TIME * .05;
-    // clean latitude bands, lightly stirred along the longitude so the turn reads
-    float w = n1(lon * 2.5 + lat * 6.) * .35;
-    float band = sin((lat + w * .08) * 13.) * .5 + .5;
-    float fine = sin((lat + w * .05) * 47.) * .5 + .5;
-    vec3 base = mix(vec3(.93, .02, .02), vec3(1., .38, .34), smoothstep(.55, .95, band) * .85);
-    base = mix(base, vec3(.78, 0., .02), smoothstep(.35, .0, band) * .5);
-    base = mix(base, base * 1.12, fine * .25);
+  // ---- faint dust, for depth
+  float dust = n2(px * .004 + vec2(TIME * .01, 0.)) * n2(px * .011 - vec2(0., TIME * .006));
+  col = vec4(vec3(.35, .04, .03) * dust * .12, dust * .12);
+  // ---- planet
+  float b = dot(ro, rd), c = dot(ro, ro) - 1., hh = b * b - c;
+  float tS = 1e9;
+  if (hh > 0.) {
+    tS = -b - sqrt(hh);
+    vec3 p = ro + rd * tS, n = normalize(p), lp = p * W;
+    float lat = lp.z, lon = atan(lp.y, lp.x) + SPIN;
+    float w = n2(vec2(lon * 1.6, lat * 5.)) * .5 + n2(vec2(lon * 4., lat * 14.)) * .25;
+    float band = sin((lat + w * .05) * 12.5) * .5 + .5;
+    float fine = sin((lat + w * .03) * 44.) * .5 + .5;
+    vec3 base = mix(vec3(.9, .03, .03), vec3(1., .42, .36), smoothstep(.5, .95, band) * .8);
+    base = mix(base, vec3(.72, 0., .03), smoothstep(.32, .0, band) * .45);
+    base *= .94 + fine * .12;
     float dif = max(dot(n, L), 0.);
-    float rim = pow(1. - max(n.z, 0.), 2.5);
-    float tr = -dot(p, ax) / dot(L, ax);
+    // the rings' shadow on the planet: one clean band, as dense as the rings are
     float sh = 1.;
-    if (tr > 0.) { vec3 hp = p + L * tr; float rr = length(hp); if (rr > 1.22 && rr < 2.24) sh = .55 + .2 * n1(rr * 40.); }
-    planet = base * (.5 + .62 * dif * sh) * mix(1., sh, .5);
-    planet += vec3(1., .5, .45) * pow(max(dot(reflect(-L, n), vec3(0., 0., 1.)), 0.), 24.) * .18;
-    planet = mix(planet, vec3(.5, 0., 0.), rim * .5);
-    col = vec4(planet, 1.);
+    float tr = -dot(p, ax) / dot(L, ax);
+    if (tr > 0.) { vec3 hp = p + L * tr; sh = 1. - .78 * ringD(length(hp)); }
+    float lit = smoothstep(-.05, .35, dot(n, L));
+    vec3 pc = base * (.16 + .95 * dif * sh);
+    pc += vec3(1., .55, .5) * pow(max(dot(reflect(-L, n), vec3(0., 0., 1.)), 0.), 30.) * .2 * sh;
+    float fres = pow(1. - max(n.z, 0.), 3.);
+    pc += vec3(1., .25, .2) * fres * .35 * lit;                                     // lit limb glows
+    col = vec4(pc, 1.);
   }
-  // rings
+  // ---- rings
   float dn = dot(rd, ax);
   if (abs(dn) > 1e-4) {
     float t = -dot(ro, ax) / dn;
     vec3 p = ro + rd * t;
     float r = length(p);
-    if (r > 1.22 && r < 2.24 && t > 0.) {
-      float s = n1(r * 90.) * .55 + n1(r * 23.) * .45;
-      float a = smoothstep(1.22, 1.3, r) * (1. - smoothstep(2.15, 2.24, r));
-      a *= mix(.25, 1., s);
-      a *= 1. - smoothstep(1.58, 1.61, r) * (1. - smoothstep(1.66, 1.69, r)) * .85;   // the dark gap
-      a *= 1. - smoothstep(1.98, 2.0, r) * (1. - smoothstep(2.02, 2.04, r)) * .7;
-      vec3 rc = mix(vec3(.32), vec3(.97), pow(s, 1.4));
-      // the planet's shadow on the rings
-      float bb = dot(p, L), cc = dot(p, p) - 1.;
-      if (bb < 0. && bb * bb - cc > 0.) rc *= .18;
-      rc *= .55 + .45 * max(dot(ax * sign(dot(ax, L)), L), 0.) + .2;
+    float d = ringD(r);
+    if (d > 0. && t > 0.) {
+      vec3 rc = mix(vec3(.38), vec3(.98, .97, .95), pow(n1(r * 90.) * .6 + n1(r * 23.) * .4, 1.3));
+      float spark = step(.985, h2(floor(vec2(r * 900., atan(p.y, p.x) * 260. + TIME * .3)))) * (.5 + .5 * sin(TIME * 3. + r * 50.));
+      rc += spark * .6;
+      // the planet's soft shadow across the rings
+      float tc = -dot(p, L);
+      if (tc > 0.) rc *= mix(.1, 1., smoothstep(.95, 1.05, length(p + L * tc)));
+      // a click: a bright wave travelling outward
+      float wave = exp(-pow((r - (RI + RIP * 1.6)) * 14., 2.)) * exp(-RIP * 1.3) * step(0., RIP);
+      rc += vec3(1., .5, .4) * wave * 1.2;
+      float a = d * .92;
       if (t < tS) col = vec4(mix(col.rgb, rc, a), max(col.a, a));
     }
   }
-  // red glow round the planet
-  float d = length(q);
-  if (col.a < 1.) { float g = exp(-(d - 1.) * 5.) * smoothstep(.98, 1.02, d) * .55; col.rgb += vec3(1., 0., 0.) * g * (1. - col.a); col.a = max(col.a, g); }
+  // ---- asteroids on slow, tilted orbits
+  for (int i = 0; i < 14; i++) {
+    float fi = float(i);
+    float orb = 2.7 + h1(fi * 3.1) * 2.6, sp = (.02 + h1(fi * 5.7) * .03) * (h1(fi) > .5 ? 1. : -1.);
+    float ph = h1(fi * 9.3) * 6.283 + TIME * sp, inc = (h1(fi * 1.7) - .5) * .5;
+    vec3 ap = W * (rotX(inc) * vec3(cos(ph) * orb, sin(ph) * orb, (h1(fi * 4.4) - .5) * .4));
+    float sz = (.03 + h1(fi * 7.9) * .05) * (1. + ap.z * .08);
+    vec2 dv = q - ap.xy;
+    float ang = atan(dv.y, dv.x);
+    float rr = length(dv) / (sz * (1. + .25 * n1(ang * 2.2 + fi * 7.) - .12));
+    if (rr < 1. && !(ap.z < 0. && length(q) < 1.)) {
+      vec3 an = normalize(vec3(dv / sz, sqrt(max(0., 1. - rr * rr))));
+      float l = max(dot(an, L), 0.) * (.85 + .3 * n2(dv / sz * 3. + fi));
+      vec3 ac = vec3(.42, .36, .34) * (.08 + l);
+      float aa = smoothstep(1., .85, rr);
+      col = vec4(mix(col.rgb, ac, aa), max(col.a, aa));
+    }
+  }
+  // ---- red glow round the planet
+  float dd = length(q);
+  if (col.a < 1.) { float g = exp(-(dd - 1.) * 4.2) * smoothstep(.98, 1.03, dd) * .5; col.rgb += vec3(1., .02, 0.) * g * (1. - col.a); col.a = max(col.a, g); }
   gl_FragColor = vec4(col.rgb * col.a, col.a);
 }`;
 
 export class Saturn {
   constructor(parent) {
+    this.box = parent;
     this.c = document.createElement('canvas');
     this.c.className = 'saturn-gl';
     parent.append(this.c);
     const gl = (this.gl = this.c.getContext('webgl', { premultipliedAlpha: true, alpha: true, antialias: false }));
     this.ok = !!gl;
+    this.tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+    this.spin = 0; this.spinV = 0.05; this.rip = -1;
     if (!gl) return;
     const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.warn(gl.getShaderInfoLog(s)); return s; };
     const pr = gl.createProgram();
@@ -88,33 +126,74 @@ export class Saturn {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
     this.u = {};
-    for (const n of ['R', 'C', 'TIME', 'ROLL', 'INC']) this.u[n] = gl.getUniformLocation(pr, n);
-    this.rect = [0, 60, 1512, 800];
+    for (const n of ['R', 'C', 'TIME', 'ROLL', 'INC', 'SPIN', 'RIP']) this.u[n] = gl.getUniformLocation(pr, n);
+    this.place(0);
+    this.bind();
+  }
+
+  // the canvas spans the visible width; the planet grows on wide screens
+  place(x0) {
+    const W = 1512 - 2 * x0;
+    this.f = Math.min(1.45, Math.max(1, W / 1512));
+    this.rect = [x0, 0, W, 1180];
+    Object.assign(this.box.style, { left: x0 + 'px', top: '0px', width: W + 'px', height: '1180px' });
+    this.centre = [756, 475 - (this.f - 1) * 150, 300 * this.f];
     this.sized = false;
+  }
+
+  bind() {
+    const el = this.c;
+    let down = false, lx = 0, lt = 0, moved = 0;
+    const local = (e) => { const r = el.getBoundingClientRect(); const k = this.rect[2] / r.width; return [this.rect[0] + (e.clientX - r.left) * k, this.rect[1] + (e.clientY - r.top) * k]; };
+    el.addEventListener('pointermove', (e) => {
+      const [x, y] = local(e), [cx, cy, cr] = this.centre;
+      this.tilt.tx = Math.max(-1, Math.min(1, (x - cx) / (cr * 2.4)));
+      this.tilt.ty = Math.max(-1, Math.min(1, (y - cy) / (cr * 2)));
+      if (down) {
+        const now = performance.now(), dx = e.clientX - lx;
+        moved += Math.abs(dx);
+        this.spinV = Math.max(-3, Math.min(3, (dx / Math.max(1, now - lt)) * 0.9));
+        this.spin += dx * 0.008;
+        lx = e.clientX; lt = now;
+      }
+    });
+    el.addEventListener('pointerleave', () => { this.tilt.tx = this.tilt.ty = 0; down = false; });
+    el.addEventListener('pointerdown', (e) => { down = true; moved = 0; lx = e.clientX; lt = performance.now(); });
+    addEventListener('pointerup', () => {
+      if (!down) return;
+      down = false;
+      if (moved < 6) this.rip = 0;                     // a click, not a drag: send a ripple
+    });
   }
 
   resize() {
     const r = this.c.getBoundingClientRect();
     if (!r.width) return false;
-    const dpr = Math.min(2, devicePixelRatio || 1);
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
     let W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
-    const cap = 1.6e6;
+    const cap = 1.5e6;
     if (W * H > cap) { const f = Math.sqrt(cap / (W * H)); W = Math.round(W * f); H = Math.round(H * f); }
     this.c.width = W; this.c.height = H;
     this.sized = true;
     return true;
   }
 
-  draw(t) {
+  draw(t, dt, scrollTilt = 0) {
     if (!this.ok || (!this.sized && !this.resize())) return;
-    const gl = this.gl, u = this.u;
+    const gl = this.gl, u = this.u, T = this.tilt;
+    T.x += (T.tx - T.x) * 0.05; T.y += ((T.ty + scrollTilt) - T.y) * 0.05;
+    // a drag spins it faster; it eases back to its own slow turn
+    this.spinV += (0.05 - this.spinV) * Math.min(1, dt * 0.8);
+    this.spin += this.spinV * dt;
+    if (this.rip >= 0) { this.rip += dt; if (this.rip > 3) this.rip = -1; }
     gl.viewport(0, 0, this.c.width, this.c.height);
     gl.uniform4f(u.R, ...this.rect);
-    gl.uniform3f(u.C, 756, 475, 300);
+    gl.uniform3f(u.C, ...this.centre);
     gl.uniform1f(u.TIME, t);
-    // the Figma tilt: rings rising to the right, seen from a little above
-    gl.uniform1f(u.ROLL, 0.36 + Math.sin(t * 0.12) * 0.02);
-    gl.uniform1f(u.INC, 1.24 + Math.sin(t * 0.09) * 0.015);
+    gl.uniform1f(u.SPIN, this.spin);
+    gl.uniform1f(u.RIP, this.rip);
+    gl.uniform1f(u.ROLL, 0.36 + T.x * 0.12 + Math.sin(t * 0.12) * 0.015);
+    gl.uniform1f(u.INC, 1.9 + T.y * 0.1 + Math.sin(t * 0.09) * 0.012);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 }

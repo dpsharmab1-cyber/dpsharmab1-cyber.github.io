@@ -6,6 +6,8 @@ import { Stars } from './stars.js';
 import { Cards } from './projects.js';
 import { Glass, type } from './glass.js';
 import { Saturn } from './saturn.js';
+import { BlackHole } from './blackhole.js';
+import { ICONS } from './icons.js';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -15,11 +17,12 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const app = (window.__v7 = {});
 const root = document.documentElement;
-const BOARD_W = 1512, BOARD_H = 7856, FRAME_H = 982;
+const GAP = 320;                                  // extra room under the skills
+const BOARD_W = 1512, BOARD_H = 7856 + GAP, FRAME_H = 982;
 const BH = { x: 1198.5, y: 379 };                // black hole centre, artboard px
 const NS = 'http://www.w3.org/2000/svg';
 // board rows where the page is dark (the menu turns light-on-dark there)
-const DARK = [[0, 1890], [2353, 3690], [5100, 5650], [6647, BOARD_H]];
+const DARK = [[0, 1890], [2353 + GAP, 3690 + GAP], [5100 + GAP, 5650 + GAP], [6647 + GAP, BOARD_H]];
 
 // ---------------------------------------------------------------- scale
 function fit() {
@@ -35,7 +38,7 @@ function fit() {
     app.scale = w / 1000;
     app.toBoard = null;
     app.x0 = 0;
-    app.bhDoc = { x: (BH.x - 940) * zl, y: (BH.y - 330 + 50) * zl * 0.786 };
+    app.bhDoc = { x: w / 2, y: 0, r: 300 * zl };   // phones: the hole sits half above the top edge
     app.boardMap = (x, y) => ({ x: x * zl * 0.37, y: y * zl });
     return;
   }
@@ -45,7 +48,7 @@ function fit() {
   root.style.setProperty('--u', s + 'px');
   root.style.setProperty('--page-h', BOARD_H * s + 'px');
   const left = (w - BOARD_W * s) / 2;
-  app.bhDoc = { x: left + BH.x * s, y: BH.y * s };
+  app.bhDoc = { x: left + BH.x * s, y: BH.y * s, r: 300 * s };
   app.boardMap = (x, y) => ({ x: left + x * s, y: y * s });
   app.toBoard = (docY) => docY / s;
   app.x0 = Math.min(0, -((w / s) - BOARD_W) / 2) - 2;   // first visible board px on the left
@@ -198,32 +201,43 @@ function swell(el) {
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.load('500 20px Montserrat'), document.fonts.ready]); } catch (e) {}
   const svg = async (url) => { try { return await (await fetch(url)).text(); } catch (e) { return ''; } };
-  const [bhSvg, wheelSvg] = await Promise.all([svg('assets/blackhole.svg'), svg('assets/wheel.svg')]);
+  const [wCore, wOuter, wInner] = await Promise.all(['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg`)));
 
-  // ---------------- the black hole, live from the frame. Its art stays still
-  // (one layer, painted once); the stars falling into it live on a small canvas.
+  // ---------------- the black hole, in 3D (js/blackhole.js). Stars spiral in
+  // underneath it, stretching into streaks along their orbit as they near the
+  // shadow, then vanish behind it.
   const bh = $('.bh');
-  bh.innerHTML = bhSvg;
   const fallC = document.createElement('canvas');
   fallC.className = 'bh-fall';
   bh.append(fallC);
-  const fx = fallC.getContext('2d'), FR = 340;
-  const fall = Array.from({ length: 90 }, () => ({ a: Math.random() * 6.283, r: 20 + Math.random() * 320, sp: 5 + Math.random() * 9, o: 0.3 + Math.random() * 0.6, s: 0.7 + Math.random() * 1.5, tw: Math.random() * 6 }));
-  const fallSize = () => { const k = Math.min(2, devicePixelRatio || 1) * Math.max(0.5, app.scale || 1); fallC.width = fallC.height = Math.round(FR * 2 * k); fx.setTransform(k, 0, 0, k, 0, 0); };
+  const hole = new BlackHole(bh);
+  const fx = fallC.getContext('2d');
+  const BW = 1400, BHH = 1180, CX = 638.5, CY = 579, SHADOW = 300;
+  const fall = Array.from({ length: 56 }, () => ({ a: Math.random() * 6.283, r: SHADOW + Math.random() * 360, sp: 0.8 + Math.random() * 1.6, o: 0.35 + Math.random() * 0.6, s: 0.6 + Math.random() * 1.2 }));
+  const fallSize = () => { const k = Math.min(1, (devicePixelRatio || 1) * (app.scale || 1)); fallC.width = Math.round(BW * k); fallC.height = Math.round(BHH * k); fx.setTransform(k, 0, 0, k, 0, 0); hole.sized = false; };
   fallSize(); addEventListener('resize', fallSize);
   let landOn = true;
   new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
   gsap.ticker.add((t, dt) => {
     if (!landOn) return;
     const d = Math.min(0.05, dt / 1000);
-    fx.clearRect(0, 0, FR * 2, FR * 2);
-    fx.fillStyle = '#fff';
+    hole.draw(reduced ? 0 : t);
+    fx.clearRect(0, 0, BW, BHH);
+    fx.strokeStyle = '#fff'; fx.lineCap = 'round';
     for (const p of fall) {
-      p.r -= (p.sp + p.r * 0.05) * d;
-      p.a += d * 0.08;
-      if (p.r < 6) { p.r = 300 + Math.random() * 36; p.a = Math.random() * 6.283; }
-      fx.globalAlpha = p.o * Math.min(1, (p.r - 6) / 90) * (0.65 + 0.35 * Math.sin(t * 1.3 + p.tw));
-      fx.beginPath(); fx.arc(FR + Math.cos(p.a) * p.r, FR + Math.sin(p.a) * p.r, p.s, 0, 6.283); fx.fill();
+      // falls faster and orbits faster the closer it gets
+      const pull = SHADOW / p.r;
+      p.r -= p.sp * (12 + 140 * pull * pull * pull) * d;
+      const w = 0.12 + 1.6 * pull * pull * pull;
+      p.a += w * d;
+      if (p.r < SHADOW) { p.r = SHADOW + 260 + Math.random() * 120; p.a = Math.random() * 6.283; continue; }
+      // the stretch: an arc along the orbit, longer near the horizon
+      const len = Math.min(0.45, 0.003 + w * 0.16 * pull * pull);
+      fx.globalAlpha = p.o * Math.min(1, (p.r - SHADOW) / 50) * Math.min(1, (SHADOW + 380 - p.r) / 100);
+      fx.lineWidth = p.s * (1 - 0.4 * pull);
+      fx.beginPath();
+      fx.arc(CX, CY, p.r, p.a - len, p.a);
+      fx.stroke();
     }
   });
   try {
@@ -231,18 +245,36 @@ async function boot() {
     stars.seed(all.filter((s) => s[1] < FRAME_H), app.boardMap);
   } catch (e) {}
 
-  // ---------------- Saturn, in 3D
-  const sat = new Saturn($('.saturn'));
+  // ---------------- Saturn, in 3D (js/saturn.js)
+  const sat = (app.saturn = new Saturn($('.saturn')));
   let satOn = false;
   new IntersectionObserver(([e]) => { satOn = e.isIntersecting; }, { rootMargin: '10% 0px' }).observe($('.saturn'));
-  addEventListener('resize', () => { sat.sized = false; });
-  gsap.ticker.add((t) => { if (satOn) sat.draw(reduced ? 0 : t); });
+  const satPlace = () => sat.place(root.classList.contains('portrait') ? 0 : (app.x0 || 0));
+  satPlace(); addEventListener('resize', satPlace);
+  // on touch screens the scroll tilts it instead of the pointer
+  let satScroll = 0;
+  if (!fine) ScrollTrigger.create({ trigger: '#works', start: 'top bottom', end: 'bottom top', onUpdate: (s) => { satScroll = (s.progress - 0.5) * 1.4; } });
+  gsap.ticker.add((t, dt) => { if (satOn) sat.draw(reduced ? 0 : t, Math.min(0.05, dt / 1000), satScroll); });
 
-  // ---------------- footer wheel
-  $('.wheel').innerHTML = wheelSvg;
-  const wheelImg = new Image();
-  wheelImg.src = URL.createObjectURL(new Blob([wheelSvg], { type: 'image/svg+xml' }));
-  try { await wheelImg.decode(); } catch (e) {}
+  // ---------------- footer wheel: the two mantra rings turn opposite ways
+  $('.wheel').innerHTML = `<div class="w-layer">${wCore}</div><div class="w-layer w-outer">${wOuter}</div><div class="w-layer w-inner">${wInner}</div>`;
+  const img = async (src) => { const i = new Image(); i.src = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' })); try { await i.decode(); } catch (e) {} return i; };
+  const [iCore, iOuter, iInner] = await Promise.all([img(wCore), img(wOuter), img(wInner)]);
+  const WC = { x: 756.5, y: 2235.5 - 1737 };              // the rings' centre, footer px
+  const wheelRot = { a: 0, b: 0 };
+  if (!reduced) {
+    gsap.to(wheelRot, { a: 360, duration: 140, ease: 'none', repeat: -1 });
+    gsap.to(wheelRot, { b: -360, duration: 100, ease: 'none', repeat: -1 });
+  }
+  const outerEl = $('.w-outer'), innerEl = $('.w-inner');
+  gsap.ticker.add(() => { outerEl.style.transform = `rotate(${wheelRot.a.toFixed(3)}deg)`; innerEl.style.transform = `rotate(${wheelRot.b.toFixed(3)}deg)`; });
+  const drawWheel = (c) => {
+    c.drawImage(iCore, 356, 263, 800, 800);
+    for (const [im, deg] of [[iOuter, wheelRot.a], [iInner, wheelRot.b]]) {
+      c.save(); c.translate(WC.x, WC.y); c.rotate((deg * Math.PI) / 180); c.translate(-WC.x, -WC.y);
+      c.drawImage(im, 356, 263, 800, 800); c.restore();
+    }
+  };
 
   // ---------------- glass panels, live
   const X0 = () => app.x0 || 0, FULL = () => 1512 - 2 * X0();
@@ -256,16 +288,22 @@ async function boot() {
   const gConnect = glass($('.glass-connect'), { mode: 'bar', rect: [X0(), 416, FULL(), 72], band: [X0(), 430, FULL(), 44], params: [1.35, 0.3, 0.08, 0.6], texRect: [0, 360, 1512, 220],
     source: (c) => type(c, 'LET’S CONNECT', 406.25, 512.566, 130, RED) });
   const gSheets = glass($('.glass-sheets'), { mode: 'sheets', rect: [X0(), 430, FULL(), 779], band: [0, 0, 0, 0], params: [0, 0, 0, 0], edges: [502, 557, 606], dome: [756, 502.5, 66], bg: [0.012, 0.012, 0.014], texRect: [300, 200, 912, 912],
-    source: (c) => c.drawImage(wheelImg, 356, 263, 800, 800) }, { magnet: 'none' });
+    maxTex: 1.1, source: drawWheel }, { magnet: 'none' });
   gSheets.wipe = 1;
-  addEventListener('resize', () => {
+  // the reflection follows the turning rings (refreshed every few frames)
+  let wf = 0;
+  gsap.ticker.add(() => { if (gSheets.on && !reduced && gSheets.texK && ++wf % 3 === 0) gSheets.texture(gSheets.texK); });
+  const placeGlass = () => {
     // the full-width panes always reach both screen edges; the slab and the about bar the left one
     const x0 = X0(), W = FULL();
-    gSlab.place([x0, 0, 350 - x0, 982]); gSlab.o.band = [x0, 0, 328 - x0, 979];
+    // phones: the slab starts just above the letters, clear of the black hole
+    const sy = root.classList.contains('portrait') ? 110 : 0;
+    gSlab.place([x0, sy, 350 - x0, 982 - sy]); gSlab.o.band = [x0, sy, 328 - x0, 979 - sy];
     gAbout.place([x0, 344, 735 - x0, 94]); gAbout.o.band = [x0, 358, 721 - x0, 66];
     for (const [g, r, b] of [[gContent, [888, 151], [902, 123]], [gConnect, [416, 72], [430, 44]]]) { g.place([x0, r[0], W, r[1]]); g.o.band = [x0, b[0], W, b[1]]; }
     gSheets.place([x0, 430, W, 779]);
-  });
+  };
+  placeGlass(); addEventListener('resize', placeGlass);
 
   // ---------------- skills: a line on what each one means in practice
   const TIPS = {
@@ -291,12 +329,16 @@ async function boot() {
     'AI workflows': 'AI built into the pipeline: briefs, variants, resizing.',
     'Cross-functional leadership': 'Leading designers alongside dev, product and marketing.',
   };
-  $$('.chips li').forEach((li) => { const tip = TIPS[li.textContent.trim()]; if (!tip) return; li.dataset.tip = tip; li.tabIndex = 0; });
+  $$('.chips li').forEach((li) => {
+    const name = li.textContent.trim();
+    if (TIPS[name]) { li.dataset.tip = TIPS[name]; li.tabIndex = 0; }
+    if (ICONS[name]) li.innerHTML = `<i class="ic">${ICONS[name]}</i><span>${li.innerHTML}</span>`;
+  });
 
   // ---------------- splits
   $$('.pf-l').forEach((l) => l.classList.add('pf-ready'));
   const chars = (sel) => split($(sel), 'chars');
-  const aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
+  const skillsC = chars('.skills-title'), aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
   const connectC = chars('.connect-title'), contactC = chars('.contact-title');
   const words = $$('[data-reveal="words"]').map((el) => [el, split(el, 'words')]);
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
@@ -323,6 +365,7 @@ async function boot() {
 
   // ---------------- type in and out; each glass bar slides over its title once it lands
   const withGlass = (g) => ({ onShow: () => gsap.delayedCall(0.55, () => g.show()), onHide: () => g.hide() });
+  inOut(skillsC, '.skills-title', { stagger: 0.03, start: 'top 88%' });
   inOut(aboutC, '.about-title', { stagger: 0.03, ...withGlass(gAbout) });
   inOut(contentC, '.content-title', { stagger: 0.05, duration: 1.2, start: 'top 80%', ...withGlass(gContent) });
   inOut(thinkC, '.think', { stagger: 0.03, start: 'top 90%' });
@@ -340,7 +383,8 @@ async function boot() {
     ScrollTrigger.create({ trigger: el, start: 'top 92%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.6, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
   });
   pops($$('.stats > div'), '.stats', { start: 'top 92%', end: 'bottom 8%' });
-  pops($$('#about .skill-head, #about .chips li'), '#about .chips li', { start: 'top 92%', end: 'bottom -10%' });
+  pops([$('#about .skills-eyebrow')], '#about .skills-eyebrow', { start: 'top 92%', end: 'bottom 5%' });
+  $$('#about .skill-col').forEach((col) => pops($$('.skill-head, .chips li', col), col, { start: 'top 90%', end: 'bottom 5%' }));
 
   // works, connect, contact, footer: their pills and blocks
   pops($$('#works .pop'), '#works .see-more', { start: 'top 96%', end: 'bottom 4%' });
