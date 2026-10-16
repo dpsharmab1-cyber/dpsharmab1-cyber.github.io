@@ -3,7 +3,7 @@
 // each opens straight into its own project page.
 //   - Ergon Xlu is one project: the live website, then the brand work.
 //   - Every social-media client shares one card, shown as a mixed grid.
-import { WORKS } from './data/works.js?v=80';
+import { WORKS } from './data/works.js?v=81';
 
 const find = (cat, id) => WORKS[cat].find((x) => x.id === id);
 const imgs = (w) => (w.images || []).map((im) => ({ ...im }));

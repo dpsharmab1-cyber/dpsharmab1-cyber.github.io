@@ -3,7 +3,7 @@
 // live type and UI on top. Wide screens show the frames scaled to the width;
 // tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Cards } from './projects.js?v=80';
+import { Cards } from './projects.js?v=81';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -75,14 +75,17 @@ class Sky {
     }
     // a shooting star every so often
     this.next -= dt;
-    if (!this.shoot && this.next <= 0 && !reduced) { this.shoot = { x: Math.random() * W * 0.7 + W * 0.2, y: Math.random() * H * 0.35, life: 0, len: 120 + Math.random() * 120 }; }
+    if (!this.shoot && this.next <= 0 && !reduced) { this.shoot = { x: Math.random() * W * 0.6, y: H * 0.25 + Math.random() * H * 0.4, life: 0, len: 120 + Math.random() * 120 }; }
     if (this.shoot) {
       const sh = this.shoot; sh.life += dt;
-      const k = sh.life / 1.3, x = sh.x - k * 380, y = sh.y + k * 160;
-      const grad = g.createLinearGradient(x, y, x + sh.len, y - sh.len * 0.42);
-      grad.addColorStop(0, 'rgba(255,224,181,.9)'); grad.addColorStop(1, 'rgba(255,224,181,0)');
+      // the head flies up and to the right, its tail trailing down-left
+      const k = sh.life / 1.3, x = sh.x + k * 380, y = sh.y - k * 160;
+      const tx = x - sh.len, ty = y + sh.len * 0.42;
+      const grad = g.createLinearGradient(x, y, tx, ty);
+      grad.addColorStop(0, 'rgba(255,224,181,.95)'); grad.addColorStop(1, 'rgba(255,224,181,0)');
       g.globalAlpha = this.alpha * Math.sin(Math.min(1, k) * Math.PI);
-      g.strokeStyle = grad; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, y); g.lineTo(x + sh.len, y - sh.len * 0.42); g.stroke();
+      g.strokeStyle = grad; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, y); g.lineTo(tx, ty); g.stroke();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 1.6, 0, 6.283); g.fill();
       if (k >= 1) { this.shoot = null; this.next = 6 + Math.random() * 8; }
     }
     g.globalAlpha = 1;
@@ -115,10 +118,18 @@ const split = (el, type) => {
 
 // ---------------------------------------------------------------- nav
 const nav = $('#nav'), mark = $('.nav-mark'), links = $$('[data-nav]', nav);
-const secs = ['landing', 'about', 'works', 'projects', 'connect', 'contact', 'footer'].map((id) => document.getElementById(id));
-const navMap = { landing: 'landing', about: 'about', works: 'works', projects: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
+const secs = ['landing', 'about', 'skills', 'works', 'projects', 'connect', 'contact', 'footer'].map((id) => document.getElementById(id));
+const navMap = { landing: 'landing', about: 'about', skills: 'skills', works: 'projects', projects: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
 let secTops = [];
-const measure = () => { const y = lenis.animatedScroll || scrollY; secTops = secs.map((el) => { const r = el.getBoundingClientRect(); return { el, top: r.top + y, h: r.height }; }); };
+// where a section starts on the page: on wide screens the blocks share their
+// frame's box, so its place in the frame (data-at) decides
+const docY = (el) => {
+  const y = lenis.animatedScroll || scrollY;
+  if (!app.flow && el.dataset.at != null) return el.closest('.frame').getBoundingClientRect().top + y + (+el.dataset.at) * app.scale;
+  return el.getBoundingClientRect().top + y;
+};
+app.docY = docY;
+const measure = () => { secTops = secs.map((el) => ({ el, top: docY(el) })); };
 const moveMark = (a) => {
   if (!a || !a.closest('.nav-pill')) { mark.style.opacity = 0; return; }
   mark.style.opacity = 1; mark.style.left = a.offsetLeft + 'px'; mark.style.width = a.offsetWidth + 'px';
@@ -153,7 +164,7 @@ document.addEventListener('click', (e) => {
   if (!t) return;
   e.preventDefault();
   if (root.classList.contains('menu-open')) closeMenu();
-  lenis.scrollTo(t.id === 'landing' ? 0 : t, { duration: 1.8, offset: app.flow ? -20 : 0, easing: (x) => 1 - Math.pow(1 - x, 4) });
+  lenis.scrollTo(t.id === 'landing' ? 0 : docY(t) - (app.flow ? 20 : 0), { duration: 1.8, easing: (x) => 1 - Math.pow(1 - x, 4) });
 });
 
 // ---------------------------------------------------------------- cursor
@@ -186,9 +197,9 @@ function magnet(el) {
 // which layers drift with the scroll, and how much (depth)
 const DEPTH = { stars: 0.25, 'stars-2': 0.25, 'planet-glow': 0.12, 'hero-ring-back': 0.18, 'hero-planet-body': 0.18, 'hero-ring-front': 0.18, moon: 0.3, 'moon-left': 0.3, 'moon-right': 0.32, comet: 0.4, satellite: 0.35, 'planet-left': 0.15, 'planet-right': 0.2, 'panel-planet': 0.22 };
 // shown on tablets and phones too
-const KEEP = { s1: ['planet-glow', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'moon', 'comet'], s2: ['planet-glow', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'satellite'], s3: ['planet-left', 'planet-right'] };
+const KEEP = { s1: ['hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'moon', 'comet'], s2: ['hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'satellite'], s3: ['planet-left', 'planet-right'] };
 // hidden: replaced by live versions
-const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130']);
+const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130', 'surface-dust', 'planet-glow', 'title-glow', 'cards-floor-glow', 'panel-corner-glow', 'mantra-glow', 'layer-13', 'layer-20', 'layer-30']);
 
 async function buildArt() {
   let man;
@@ -239,8 +250,8 @@ function animateArt(L) {
   for (const id of ['s1-comet', 's2-comet', 's3-comet']) {
     const el = L[id]; if (!el) continue;
     gsap.timeline({ repeat: -1, repeatDelay: 5 + Math.random() * 4, delay: 1 + Math.random() * 3 })
-      .fromTo(el, { x: 160, y: -70, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'power2.out' })
-      .to(el, { x: -140, y: 62, opacity: 0, duration: 1.4, ease: 'power2.in' });
+      .fromTo(el, { x: -160, y: 70, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'power2.out' })
+      .to(el, { x: 140, y: -62, opacity: 0, duration: 1.4, ease: 'power2.in' });
   }
   float(all('s3-planet-left'), 14, 12, 2); float(all('s3-planet-right'), -12, 13, -2);
   float(all('s3-panel-planet'), 10, 6);
@@ -259,11 +270,42 @@ function animateArt(L) {
   }
 }
 
+// ---------------------------------------------------------------- splash
+// the emblem's star turns in a red ring that fills as the first frame's art
+// loads; then an iris opens onto the landing
+function splash(imgs) {
+  const el = $('#splash'), pc = $('.sp-pc', el);
+  const shown = { v: 0 }; let done = 0;
+  const total = imgs.length || 1;
+  const step = () => { done++; };
+  imgs.forEach((im) => { if (im.complete) step(); else { im.addEventListener('load', step, { once: true }); im.addEventListener('error', step, { once: true }); } });
+  return new Promise((res) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const goal = Math.min(100, (done / total) * 100);
+      shown.v += (goal - shown.v) * 0.12;
+      if (goal >= 100 && shown.v > 99.4) shown.v = 100;
+      pc.textContent = Math.round(shown.v);
+      el.style.setProperty('--p', shown.v.toFixed(1));
+      if (shown.v >= 100 && performance.now() - t0 > 1400 || performance.now() - t0 > 9000) {
+        gsap.ticker.remove(tick);
+        gsap.timeline({ onComplete: () => el.remove() })
+          .to('.sp-name, .sp-sub', { y: -16, opacity: 0, filter: 'blur(8px)', duration: 0.6, ease: 'power3.in', stagger: 0.05 }, 0)
+          .to('.sp-orb', { scale: 1.6, opacity: 0, filter: 'blur(10px)', duration: 0.9, ease: 'power3.in' }, 0.1)
+          .add(res, 0.55)
+          .to(el, { clipPath: 'circle(0% at 50% 50%)', duration: 1.3, ease: 'expo.inOut' }, 0.45);
+      }
+    };
+    gsap.ticker.add(tick);
+  });
+}
+
 // ---------------------------------------------------------------- build
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('600 20px Montserrat'), document.fonts.ready]); } catch (e) {}
   const L = await buildArt();
   animateArt(L);
+  await splash(Object.values(L).filter((im) => !im.loading || im.loading !== 'lazy'));
 
   // the footer emblem, live: two mantra rings turning against each other
   try {
@@ -285,21 +327,20 @@ async function boot() {
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
 
   // the landing: stars, then the planet blooms in, then the title rises
-  const hero = ['s1-planet-glow', 's1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front'].map((k) => L[k]).filter(Boolean);
+  const hero = ['s1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front'].map((k) => L[k]).filter(Boolean);
   gsap.set('.pf-l > span', { yPercent: 105, filter: 'blur(12px)' });
   gsap.set('#landing .pop', { y: 24, opacity: 0, filter: 'blur(6px)' });
   gsap.set(hero, { opacity: 0, scale: 0.94, transformOrigin: '60% 50%' });
-  gsap.set(nav, { opacity: 0, y: -20 });
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
   tl.to(sky, { alpha: 1, duration: 2.4, ease: 'power1.out' }, 0)
     .to(hero, { opacity: 1, scale: 1, duration: 2.6, ease: 'power3.out', stagger: 0.12, clearProps: 'scale' }, 0.2)
     .to('.pf-l > span', { yPercent: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.1 }, 0.5)
     .to('#landing .pop', { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, stagger: 0.08 }, 1.2)
-    .to(nav, { opacity: 1, y: 0, duration: 1.2, clearProps: 'opacity,transform' }, 1.3)
     .add(() => { root.classList.remove('is-loading'); lenis.start(); measure(); app.afterIntro?.(); }, 0.8);
   const landOut = gsap.timeline({ paused: true })
     .to('.pf-l > span', { yPercent: -80, opacity: 0, filter: 'blur(10px)', duration: 0.9, ease: 'power3.in', stagger: 0.05 }, 0)
     .to('#landing .pop', { y: -20, opacity: 0, filter: 'blur(6px)', duration: 0.6, ease: 'power3.in', stagger: 0.04 }, 0);
+  ScrollTrigger.create({ trigger: '#projects', start: 'top 60%', onEnter: () => { nav.classList.add('is-shown'); measure(); moveMark(links.find((a) => a.classList.contains('is-on'))); }, onLeaveBack: () => nav.classList.remove('is-shown') });
   ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: app.flow ? 'bottom 40%' : 'top -55%',
     onLeave: () => landOut.play(), onEnterBack: () => landOut.reverse() });
 

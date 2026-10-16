@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="is-loading" data-v="80">
+<html lang="en" class="is-loading" data-v="81">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -16,25 +16,32 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=80">
+<link rel="stylesheet" href="css/style.css?v=81">
 </head>
 <body>
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="sp-orb">
+    <svg class="sp-ring" viewBox="0 0 200 200"><circle class="sp-track" cx="100" cy="100" r="92"/><circle class="sp-bar" cx="100" cy="100" r="92" pathLength="100"/></svg>
+    <img class="sp-star" src="assets/v8/s3-mantra-star.webp?v=81" alt="">
+  </div>
+  <p class="sp-name">DEEPAK SHARMA</p>
+  <p class="sp-sub"><span class="sp-pc">0</span>% · PORTFOLIO 2026</p>
+</div>
 <canvas id="sky" aria-hidden="true"></canvas>
-<div class="grain" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
   <nav class="nav-pill" aria-label="Primary">
     <i class="nav-mark" aria-hidden="true"></i>
     <a href="#landing" data-nav="landing">Home</a>
-    <a href="#works" data-nav="works">Services</a>
-    <a href="#about" data-nav="about">About Me</a>
-    <a href="#projects" data-nav="projects">Projects</a>
+    <a href="#about" data-nav="about">About</a>
+    <a href="#skills" data-nav="skills">Skills</a>
+    <a href="#projects" data-nav="projects">Work</a>
   </nav>
-  <a class="nav-contact" href="#contact" data-nav="contact">Contact</a>
+  <a class="nav-contact" href="#contact" data-nav="contact">Let’s Talk</a>
   <button class="nav-burger" type="button" aria-label="Open menu" aria-expanded="false"><i></i><i></i></button>
 </header>
 <div class="menu" id="menu" aria-hidden="true">
-  <a href="#landing">Home</a><a href="#works">Services</a><a href="#about">About Me</a><a href="#projects">Projects</a><a href="#contact">Contact</a>
+  <a href="#landing">Home</a><a href="#about">About</a><a href="#skills">Skills</a><a href="#projects">Work</a><a href="#contact">Let’s Talk</a>
 </div>
 
 <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span><span class="cursor-ring"><b class="cursor-label"></b></span></div>
@@ -46,9 +53,9 @@
 
   <!-- ===== frame 1 · landing + about (1512 x 2455) -->
   <div class="frame" id="f1" data-frame="s1" style="--top:0;--h:2455">
-   <div class="art" aria-hidden="true"></div>
+   <div class="art" aria-hidden="true"><i class="rule rule-xp"></i><i class="rule rule-path"></i><i class="rule rule-mq"></i></div>
 
-   <section id="landing" class="block hero" data-theme="dark">
+   <section id="landing" data-at="0" class="block hero" data-theme="dark">
     <h1 class="pf" aria-label="Portfolio 2026">
       <span class="pf-l cream" style="--x:130;--y:160.2"><span>PO</span></span>
       <span class="pf-l red" style="--x:330;--y:159.2"><span>20</span></span>
@@ -64,7 +71,7 @@
     <p class="hero-role pop"><i class="bar"></i>GRAPHIC DESIGNER</p>
    </section>
 
-   <section id="about" class="block about" data-theme="dark">
+   <section id="about" data-at="1180" class="block about" data-theme="dark">
     <p class="eyebrow ab-eyebrow" data-reveal="words"><i class="bar"></i>ABOUT ME</p>
     <h2 class="t-anton about-title cream" data-split>DEEPAK SHARMA</h2>
     <p class="body about-body" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
@@ -84,7 +91,7 @@
         <li><span>2018 — 2019</span><b>Junior Graphic Designer</b><em>theblogsmart.com</em></li>
       </ol>
     </div>
-    <div class="skills">
+    <div class="skills" id="skills">
       <div class="skill-col" style="--x:72">
         <p class="eyebrow skill-head"><i class="dot"></i>DESIGN</p>
         <ul class="chips">
@@ -119,12 +126,12 @@
   <!-- ===== frame 2 · content + cards (1512 x 2455) -->
   <div class="frame" id="f2" data-frame="s2" style="--top:2455;--h:2455">
    <div class="art" aria-hidden="true"></div>
-   <section id="works" class="block works" data-theme="dark">
+   <section id="works" data-at="0" class="block works" data-theme="dark">
     <h2 class="t-anton content-title red" data-split>CONTENT</h2>
     <p class="t-anton think" data-split>THINK BEYOND</p>
     <a class="btn see-more pop" href="#projects"><span>SEE MORE</span><i class="go"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
    </section>
-   <section id="projects" class="block projects" data-theme="dark">
+   <section id="projects" data-at="1430" class="block projects" data-theme="dark">
     <i class="bar proj-bar" aria-hidden="true"></i>
     <h2 class="t-anton proj-title" data-split>CONTENT</h2>
     <div class="cards" role="list" aria-label="Nine selected projects"></div>
@@ -135,14 +142,14 @@
   <!-- ===== frame 3 · connect + contact + footer (1512 x 2946) -->
   <div class="frame" id="f3" data-frame="s3" style="--top:4910;--h:2946">
    <div class="art" aria-hidden="true"></div>
-   <section id="connect" class="block connect" data-theme="dark">
+   <section id="connect" data-at="230" class="block connect" data-theme="dark">
     <p class="eyebrow cn-eyebrow" data-reveal="words"><i class="bar"></i>CONTACT<i class="bar"></i></p>
     <h2 class="t-anton connect-title red" data-split>LET’S CONNECT</h2>
     <p class="body connect-lead" data-reveal="lines">Tell me what you’re building: a brand, an app, a launch campaign.<br>I’ll reply within 24 hours with ideas, a timeline and a quote.</p>
     <a class="btn btn-solid cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
    </section>
 
-   <section id="contact" class="block contact" data-theme="dark">
+   <section id="contact" data-at="900" class="block contact" data-theme="dark">
     <div class="ct-copy">
       <p class="eyebrow ct-eyebrow" data-reveal="words"><i class="bar"></i>CONTACT</p>
       <h2 class="t-anton contact-title red" data-split>LET’S WORK TOGETHER.</h2>
@@ -172,7 +179,7 @@
     </form>
    </section>
 
-   <footer id="footer" class="block footer" data-theme="dark">
+   <footer id="footer" data-at="1737" class="block footer" data-theme="dark">
     <div class="mantra" aria-hidden="true"></div>
     <div class="foot-copy">
       <p class="eyebrow" data-reveal="words"><i class="bar"></i>CONTACT</p>
@@ -193,6 +200,6 @@
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>
 <script src="vendor/SplitText.min.js"></script>
-<script type="module" src="js/main.js?v=80"></script>
+<script type="module" src="js/main.js?v=81"></script>
 </body>
 </html>

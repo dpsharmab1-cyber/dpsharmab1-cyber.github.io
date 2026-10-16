@@ -6,7 +6,7 @@
 // its project page. Wide screens use the frame's exact card places; tablets
 // and phones a closer fan sized to the screen.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=80';
+import { PROJECTS } from './data.js?v=81';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
@@ -16,8 +16,8 @@ const SLOTS = [[-99, 1881, 182, 273, -8.8], [53, 1893, 202, 303, -6.6], [205, 18
   [735, 1881, 242, 363, 2.2], [941, 1893, 222, 333, 4.4], [1147, 1893, 202, 303, 6.6], [1353, 1881, 182, 273, 8.8]]
   .map(([x, y, w, h, r]) => ({ px: x + w / 2, py: y + h, s: w / 262, r }));
 const lerp = (a, b, t) => a + (b - a) * t;
-// which poster each card wears, left to right as in the frame
-const POSTER = [3, 5, 1, 0, 2, 4, 1, 3, 5];
+// each project's own card art (assets/v8/cards, from Project-Cards.zip)
+const CARD = ['01-oaks-dashboard', '02-gaurav', '03-elixir-elements-defence', '04-coldtrace', '05-p7-architecture', '06-momma-probiotics', '07-social-media', '08-ergon-xlu', '09-fibril-india'];
 
 export class Cards {
   constructor(app) {
@@ -47,8 +47,8 @@ export class Cards {
     el.tabIndex = 0;
     el.setAttribute('aria-label', `${p.title}, ${p.kind}. Open project`);
     // the card faces are the frame's space posters (in the frame's order)
-    const inner = `<div class="card-in"><img src="assets/v8/poster-${POSTER[(i + 4) % POSTER.length]}.webp?v=80" alt="" loading="lazy" decoding="async"></div>`;
-    el.innerHTML = `${inner}<i class="card-edge"></i><b class="card-no">${p.no}</b>`;
+    const inner = `<div class="card-in"><img src="assets/v8/cards/${CARD[i]}.webp?v=81" alt="" loading="lazy" decoding="async"></div>`;
+    el.innerHTML = `${inner}<i class="card-edge"></i>`;
     this.box.append(el);
     const lab = document.createElement('div');
     lab.className = 'lab';
@@ -188,9 +188,9 @@ class ProjectPage {
     // UI work: the live prototype first, then the screens
     const live = p.liveKind === 'proto'
       ? `<section class="pj-live-frame"><div class="pj-device"><iframe src="${p.live}" title="${p.title}, live prototype" loading="lazy"></iframe></div>
-         <a class="pill pill-light btn" href="${p.live}" target="_blank" rel="noopener"><span>OPEN FULL SCREEN</span><i class="dot">${ARROW}</i></a></section>`
+         <a class="btn pj-live" href="${p.live}" target="_blank" rel="noopener"><span>OPEN FULL SCREEN</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a></section>`
       : p.liveKind === 'site'
-        ? `<section class="pj-live-frame"><a class="pj-device pj-site" href="${p.live}" target="_blank" rel="noopener"><img src="${p.cover.src}" alt="${p.title} website"><span class="pill pill-light btn"><span>VISIT THE LIVE SITE</span><i class="dot">${ARROW}</i></span></a></section>`
+        ? `<section class="pj-live-frame"><a class="pj-device pj-site" href="${p.live}" target="_blank" rel="noopener"><img src="${p.cover.src}" alt="${p.title} website"><span class="btn btn-solid pj-live"><span>VISIT THE LIVE SITE</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></span></a></section>`
         : '';
     let gallery;
     if (p.groups) {
@@ -208,18 +208,19 @@ class ProjectPage {
     }
     this.inner.innerHTML = `
       <header class="pj-hero">
-        <img class="pj-hero-img" src="${p.cover.src}" alt="">
+        <div class="pj-glow"></div>
         <div class="pj-head">
-          <p class="eyebrow pj-no">${p.no} / ${String(PROJECTS.length).padStart(2, '0')} · ${p.kind}</p>
-          <h2 class="t-anton h-xl pj-title" id="pj-title">${p.title}</h2>
+          <p class="eyebrow pj-no"><i class="bar"></i>${p.no} / ${String(PROJECTS.length).padStart(2, '0')} · ${p.kind}</p>
+          <h2 class="t-anton pj-title" id="pj-title">${p.title}</h2>
+          <ul class="pj-meta">${p.meta.map((m) => `<li>${m}</li>`).join('')}</ul>
         </div>
+        <img class="pj-card" src="assets/v8/cards/${CARD[i]}.webp?v=81" alt="">
       </header>
       <section class="pj-body">
-        <div><p class="eyebrow">ABOUT THE PROJECT</p><p class="pj-desc">${p.desc}</p></div>
-        <ul class="pj-meta">${p.meta.map((m) => `<li>${m}</li>`).join('')}</ul>
+        <p class="eyebrow"><i class="bar"></i>ABOUT THE PROJECT</p><p class="pj-desc">${p.desc}</p>
       </section>
       ${live}
-      <section class="pj-gallery"><p class="eyebrow">${p.groups ? 'SELECTED POSTS' : 'SCREENS & DETAILS'}</p>${gallery}</section>
+      <section class="pj-gallery"><p class="eyebrow"><i class="bar"></i>${p.groups ? 'SELECTED POSTS' : 'SCREENS & DETAILS'}</p>${gallery}</section>
       <a class="pj-next" href="#work/${next.id}"><small class="eyebrow">NEXT PROJECT</small><b class="t-anton">${next.title}</b></a>`;
     this.inner.querySelector('.pj-next').addEventListener('click', (e) => { e.preventDefault(); this.swap((i + 1) % PROJECTS.length); });
     this.inner.querySelectorAll('.pj-gallery figure').forEach((f) => f.addEventListener('click', () => {
@@ -311,8 +312,10 @@ class ProjectPage {
     const tl = gsap.timeline();
     tl.from(split.chars, { yPercent: 115, rotate: 6, duration: 1.1, ease: 'expo.out', stagger: 0.025 })
       .from('.pj-no', { y: 20, opacity: 0, duration: 0.9, ease: 'expo.out' }, 0.15)
-      .from('.pj-hero-img', { scale: 1.15, duration: 1.8, ease: 'expo.out' }, 0)
+      .from('.pj-card', { y: 80, rotate: 6, opacity: 0, filter: 'blur(12px)', duration: 1.8, ease: 'expo.out' }, 0.1)
+      .from('.pj-meta li', { y: 20, opacity: 0, filter: 'blur(6px)', duration: 1, ease: 'expo.out', stagger: 0.06 }, 0.5)
       .from('.pj-body > *', { y: 40, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.1 }, 0.35);
+    gsap.to(this.inner.querySelector('.pj-card'), { y: -14, rotate: 1.5, duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.8 });
     return tl;
   }
 
@@ -332,7 +335,7 @@ class ProjectPage {
       const r = face.getBoundingClientRect();
       const fly = document.createElement('img');
       fly.className = 'fly';
-      fly.src = PROJECTS[i].cover.src;
+      fly.src = `assets/v8/cards/${CARD[i]}.webp?v=81`;
       Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
       document.body.append(fly);
       tl.to(fly, { left: 0, top: 0, width: innerWidth, height: innerHeight, duration: 1.05, ease: 'expo.inOut' }, 0)
