@@ -1,36 +1,23 @@
-// The nine works on the Figma "stacked cards": the same ten perspective
-// panels, edges and order, each now showing a project's cover, mapped into
-// its panel exactly (a CSS homography). Drag with the mouse or swipe on touch
-// and the works slide from panel to panel, looping both ways. Hover lifts a
-// panel and lights its name; a click opens the project page.
+// The nine works as the frame's fan of cards: each card wears one of the
+// frame's space posters and carries a project's name below; the middle one
+// stands tallest. Drag with the mouse or swipe and the
+// projects slide from place to place around the fan, looping both ways; a
+// card off to the side comes to the middle when clicked, the middle one opens
+// its project page. Wide screens use the frame's exact card places; tablets
+// and phones a closer fan sized to the screen.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=77';
+import { PROJECTS } from './data.js?v=80';
 
 const { gsap, ScrollTrigger, SplitText } = window;
-const ARROW = '<svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg>';
-const NS = 'http://www.w3.org/2000/svg';
+const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
 const fine = matchMedia('(pointer: fine)').matches;
-const Y0 = 1400;                       // the section starts at y 1400 of the Figma frame
-const FW = 300, FH = 600;              // the cover's own box before it is mapped
-
-// a homography taking the FW x FH box onto the quad (tl, tr, br, bl)
-function quadMatrix(q) {
-  const [[x0, y0], [x1, y1], [x2, y2], [x3, y3]] = q;
-  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
-  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
-  let g = 0, h = 0;
-  if (Math.abs(dx3) > 1e-6 || Math.abs(dy3) > 1e-6) {
-    const den = dx1 * dy2 - dx2 * dy1;
-    g = (dx3 * dy2 - dx2 * dy3) / den;
-    h = (dx1 * dy3 - dx3 * dy1) / den;
-  }
-  const a = x1 - x0 + g * x1, b = x3 - x0 + h * x3, c = x0;
-  const d = y1 - y0 + g * y1, e = y3 - y0 + h * y3, f = y0;
-  return `matrix3d(${a / FW},${d / FW},0,${g / FW},${b / FH},${e / FH},0,${h / FH},0,0,1,0,${c},${f},0,1)`;
-}
-
+// the frame's cards (frame 2 px): left, top, width, height, tilt; each turns about its bottom middle
+const SLOTS = [[-99, 1881, 182, 273, -8.8], [53, 1893, 202, 303, -6.6], [205, 1893, 222, 333, -4.4], [357, 1881, 242, 363, -2.2], [529, 1857, 262, 393, 0],
+  [735, 1881, 242, 363, 2.2], [941, 1893, 222, 333, 4.4], [1147, 1893, 202, 303, 6.6], [1353, 1881, 182, 273, 8.8]]
+  .map(([x, y, w, h, r]) => ({ px: x + w / 2, py: y + h, s: w / 262, r }));
 const lerp = (a, b, t) => a + (b - a) * t;
-const lerpPts = (A, B, t) => A.map((p, i) => [lerp(p[0], B[i][0], t), lerp(p[1], B[i][1], t)]);
+// which poster each card wears, left to right as in the frame
+const POSTER = [3, 5, 1, 0, 2, 4, 1, 3, 5];
 
 export class Cards {
   constructor(app) {
@@ -39,129 +26,130 @@ export class Cards {
     this.box = this.sec.querySelector('.cards');
     this.page = new ProjectPage(app, this);
     this.n = PROJECTS.length;
-    this.off = 0; this.goal = 0; this.vel = 0;
-    this.rise = { v: 0 };
-    this.ready = this.build();
-  }
-
-  async build() {
-    let raw;
-    try { raw = await (await fetch(`assets/cards.json?v=${document.documentElement.dataset.v || 1}`)).json(); } catch (e) { return; }
-    // every slot as face + left strip + right strip + top strip, section px
-    const toS = (P) => P.map(([x, y]) => [x, y - Y0]);
-    const slots = raw.map((s) => {
-      const F = toS(s.face);
-      const edge = (side) => (s[side] ? toS(s[side].p) : (side === 'L' ? [F[0], F[0], F[3], F[3]] : [F[1], F[1], F[2], F[2]]));
-      const top = s.top ? toS(s.top.p) : [F[0], F[1], F[1], F[0]];
-      return { F, L: edge('L'), R: edge('R'), T: top.slice(0, 4), side: (s.L || s.R || {}).fill || '#404040', topFill: (s.top || {}).fill || '#777' };
-    });
-    // a slot beyond each end, so works can slide in and out of view
-    const shift = (s, dx) => ({ ...s, F: s.F.map(([x, y]) => [x + dx, y]), L: s.L.map(([x, y]) => [x + dx, y]), R: s.R.map(([x, y]) => [x + dx, y]), T: s.T.map(([x, y]) => [x + dx, y]) });
-    const k = slots.length;
-    this.slots = [shift(slots[0], -(slots[1].F[0][0] - slots[0].F[0][0]) * 1.4), ...slots, shift(slots[k - 1], (slots[k - 1].F[0][0] - slots[k - 2].F[0][0]) * 1.4)];
-    this.span = k;                                   // positions run 0 .. k (looping)
-    this.step = k / this.n;
-    this.items = PROJECTS.map((p, i) => this.item(p, i));
-    const fade = document.createElement('div');
-    fade.className = 'cards-floor';
-    this.box.append(fade);
+    this.c = 0; this.goal = 0; this.vel = 0; this.rise = { v: 0 };
+    this.items = PROJECTS.map((p, i) => this.build(p, i));
+    this.size();
+    addEventListener('resize', () => this.size());
     this.bind();
-    new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }, { rootMargin: '10% 0px' }).observe(this.sec);
-    ScrollTrigger.create({ trigger: this.sec, start: 'top 70%', end: 'bottom 15%',
-      onEnter: () => gsap.to(this.rise, { v: 1, duration: 1.6, ease: 'expo.out', overwrite: true }),
-      onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.3, ease: 'expo.out', overwrite: true }),
-      onLeave: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }),
-      onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.8, ease: 'expo.in', overwrite: true }) });
-    this.dirty = true;
-    gsap.ticker.add((t, dt) => this.update(Math.min(0.05, dt / 1000)));
+    new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }, { rootMargin: '15% 0px' }).observe(this.box);
+    ScrollTrigger.create({ trigger: this.box, start: 'top 85%', end: 'bottom 5%',
+      onEnter: () => gsap.to(this.rise, { v: 1, duration: 2, ease: 'expo.out', overwrite: true }),
+      onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.6, ease: 'expo.out', overwrite: true }),
+      onLeave: () => gsap.to(this.rise, { v: 0, duration: 0.9, ease: 'power3.in', overwrite: true }),
+      onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.9, ease: 'power3.in', overwrite: true }) });
+    gsap.ticker.add((t, dt) => this.update(Math.min(0.05, dt / 1000), t));
   }
 
-  item(p, i) {
-    const w = document.createElement('div');
-    w.className = 'pn';
-    const cover = p.groups
-      ? `<div class="pn-cover collage">${p.groups.slice(0, 5).map((g) => `<img src="${g.images[0].thumb || g.images[0].src}" alt="" loading="lazy" decoding="async">`).join('')}</div>`
-      : `<div class="pn-cover"><img src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async"></div>`;
-    w.innerHTML = `<svg class="pn-edges" viewBox="0 0 1512 1055" aria-hidden="true"><polygon class="e-l"/><polygon class="e-r"/><polygon class="e-t"/></svg>
-      <div class="pn-face" role="button" tabindex="0" aria-label="${p.title}, ${p.kind}. Open project">${cover}<i class="pn-shade"></i></div>`;
+  build(p, i) {
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.setAttribute('role', 'listitem');
+    el.tabIndex = 0;
+    el.setAttribute('aria-label', `${p.title}, ${p.kind}. Open project`);
+    // the card faces are the frame's space posters (in the frame's order)
+    const inner = `<div class="card-in"><img src="assets/v8/poster-${POSTER[(i + 4) % POSTER.length]}.webp?v=80" alt="" loading="lazy" decoding="async"></div>`;
+    el.innerHTML = `${inner}<i class="card-edge"></i><b class="card-no">${p.no}</b>`;
+    this.box.append(el);
     const lab = document.createElement('div');
     lab.className = 'lab';
-    lab.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" class="pn-more" tabindex="-1">SEE MORE <i>${ARROW.replace('M5 12h13M12.5 6.5 18 12l-5.5 5.5', 'M12 5v13M6.5 12.5 12 18l5.5-5.5')}</i></button>`;
-    this.box.append(w);
+    lab.innerHTML = `<b>${p.title}</b><span>${p.kind}</span><button type="button" tabindex="-1">SEE MORE <i>${ARROW}</i></button>`;
     this.box.append(lab);
-    const it = { p, i, w, lab, face: w.querySelector('.pn-face'), el: { l: w.querySelector('.e-l'), r: w.querySelector('.e-r'), t: w.querySelector('.e-t') } };
-    const open = () => { if (!this.dragged) this.page.open(i, it.face); };
-    it.face.addEventListener('click', open);
-    it.face.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    const it = { p, i, el, lab, last: {} };
+    const open = () => { if (!this.dragged) this.page.open(i, null); };
+    el.addEventListener('click', () => {
+      const d = this.rel(i);
+      if (Math.abs(d) > 0.5 && !this.dragged) { this.goal = this.c + d; return; }
+      open();
+    });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     lab.querySelector('button').addEventListener('click', open);
-    const hot = (on) => { w.classList.toggle('is-hot', on); lab.classList.toggle('is-hot', on); if (fine) this.app.cursor?.state(on ? 'big' : null, on ? 'OPEN' : ''); };
-    it.face.addEventListener('pointerenter', () => hot(true));
-    it.face.addEventListener('pointerleave', () => hot(false));
+    el.addEventListener('pointerenter', () => { if (fine) this.app.cursor?.state('big', Math.abs(this.rel(i)) < 0.5 ? 'OPEN' : 'VIEW'); });
+    el.addEventListener('pointerleave', () => this.app.cursor?.state());
     return it;
   }
 
+  rel(i) { const n = this.n; return ((((i - this.c + n / 2) % n) + n) % n) - n / 2; }
+
+  // the base card box: the frame's middle card, or one sized to the screen
+  size() {
+    this.flow = this.app.flow;
+    if (this.flow) {
+      const W = this.box.clientWidth;
+      this.W = W;
+      this.bw = Math.min(W * 0.56, 360); this.bh = this.bw * 1.5;
+    } else { this.bw = 262; this.bh = 393; }
+    for (const it of this.items) { it.el.style.width = this.bw + 'px'; it.el.style.height = this.bh + 'px'; it.last = {}; }
+  }
+
+  // where a card sits for an offset o from the middle (continuous)
+  place(o) {
+    if (!this.flow) {
+      const k = o + 4, i = Math.floor(k), f = k - i;
+      const get = (j) => {
+        if (j < 0) { const a = SLOTS[0], b = SLOTS[1]; return { px: a.px - (b.px - a.px) * -j, py: a.py - 10 * -j, s: a.s * 0.9 ** -j, r: a.r - 2.2 * -j }; }
+        if (j > 8) { const a = SLOTS[8], b = SLOTS[7]; return { px: a.px + (a.px - b.px) * (j - 8), py: a.py - 10 * (j - 8), s: a.s * 0.9 ** (j - 8), r: a.r + 2.2 * (j - 8) }; }
+        return SLOTS[j];
+      };
+      const A = get(i), B = get(i + 1);
+      return { px: lerp(A.px, B.px, f), py: lerp(A.py, B.py, f), s: lerp(A.s, B.s, f), r: lerp(A.r, B.r, f) };
+    }
+    const W = this.W, a = Math.abs(o), sg = Math.sign(o) || 1;
+    const dx = 0.38 * W * Math.min(a, 1) + 0.24 * W * Math.max(0, Math.min(a, 2) - 1) + 0.3 * W * Math.max(0, a - 2);
+    const s = 1 - 0.22 * Math.min(a, 2) - 0.08 * Math.max(0, a - 2);
+    return { px: W / 2 + sg * dx, py: 40 + this.bh, s, r: o * 6 };
+  }
+
   bind() {
-    let sx = 0, so = 0, down = false, lx = 0, lt = 0;
-    const px = () => (this.app.scale || 1) * 170;            // screen px per panel
-    this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); so = this.off; this.vel = 0; });
+    let sx = 0, sc = 0, down = false, lx = 0, lt = 0;
+    const px = () => (this.flow ? this.W * 0.38 : 162 * (this.app.scale || 1));
+    this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); sc = this.c; this.vel = 0; });
     addEventListener('pointermove', (e) => {
       if (!down) return;
       const dx = e.clientX - sx;
       if (Math.abs(dx) > 6) this.dragged = true;
       if (!this.dragged) return;
       const now = performance.now();
-      this.vel = ((e.clientX - lx) / px()) / Math.max(0.008, (now - lt) / 1000);
+      this.vel = (-(e.clientX - lx) / px()) / Math.max(0.008, (now - lt) / 1000);
       lx = e.clientX; lt = now;
-      this.goal = this.off = so + dx / px();
-      this.dirty = true;
+      this.goal = this.c = sc - dx / px();
     });
     addEventListener('pointerup', () => {
       if (!down) return;
       down = false;
-      if (this.dragged) this.goal = Math.round((this.off + gsap.utils.clamp(-4, 4, this.vel * 0.2)) / this.step) * this.step;
+      if (this.dragged) this.goal = Math.round(this.c + gsap.utils.clamp(-4, 4, this.vel * 0.2));
       setTimeout(() => { this.dragged = false; }, 0);
     });
     this.sec.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') this.goal -= this.step;
-      if (e.key === 'ArrowLeft') this.goal += this.step;
+      if (e.key === 'ArrowRight') this.goal = Math.round(this.goal) + 1;
+      if (e.key === 'ArrowLeft') this.goal = Math.round(this.goal) - 1;
     });
   }
 
-  // where a position (0 .. span) sits: between two neighbouring slots
-  at(u) {
-    const S = this.slots, k = Math.floor(u), f = u - k;
-    const A = S[k + 1] || S[S.length - 1], B = S[k + 2] || S[S.length - 1];
-    return { F: lerpPts(A.F, B.F, f), L: lerpPts(A.L, B.L, f), R: lerpPts(A.R, B.R, f), T: lerpPts(A.T, B.T, f), side: f < 0.5 ? A.side : B.side, topFill: f < 0.5 ? A.topFill : B.topFill };
-  }
-
-  update(dt) {
-    if (this.away || !this.items) return;
-    const prev = this.off;
-    this.off += (this.goal - this.off) * (1 - Math.exp(-dt * 7));
-    if (Math.abs(this.off - prev) > 1e-4) this.dirty = true;
-    const r = this.rise.v;
-    if (!this.dirty && r === this.lastRise) return;
-    this.dirty = false; this.lastRise = r;
-    const span = this.span + 1;                      // the loop includes one hidden step
+  update(dt, t) {
+    if (this.away) return;
+    this.c += (this.goal - this.c) * (1 - Math.exp(-dt * 5.5));
+    const rise = this.rise.v;
     for (const it of this.items) {
-      const u = ((((it.i * this.step + this.off) % span) + span) % span) - 0.5;   // -0.5 .. span - 0.5
-      const g = this.at(Math.max(-1, Math.min(this.span, u)));
-      const edgeFade = Math.min(1, (u + 0.5) * 3, (this.span - 0.5 - u) * 3);
-      // the panels rise out of the floor, the middle ones first
-      const mid = Math.abs(u - (this.span - 1) / 2) / this.span;
-      const rr = Math.min(1, Math.max(0, r * 1.5 - mid * 0.6));
-      const lift = (1 - rr) * (1 - rr) * 260;
-      const pt = (P) => P.map(([x, y]) => `${x.toFixed(1)},${(y + lift).toFixed(1)}`).join(' ');
-      it.el.l.setAttribute('points', pt(g.L)); it.el.l.setAttribute('fill', g.side);
-      it.el.r.setAttribute('points', pt(g.R)); it.el.r.setAttribute('fill', g.side);
-      it.el.t.setAttribute('points', pt(g.T)); it.el.t.setAttribute('fill', g.topFill);
-      it.face.style.transform = quadMatrix(g.F.map(([x, y]) => [x, y + lift]));
-      const o = Math.max(0, edgeFade) * rr;
-      it.w.style.opacity = o.toFixed(3);
-      it.w.style.zIndex = String(Math.round(Math.abs(u - (this.span - 1) / 2) * 10));
-      const cx = (g.F[0][0] + g.F[1][0]) / 2;
-      it.lab.style.transform = `translate3d(${cx.toFixed(1)}px,${(lift * 0.3).toFixed(1)}px,0)`;
-      it.lab.style.opacity = o.toFixed(3);
+      const o = this.rel(it.i), a = Math.abs(o);
+      const g = this.place(o);
+      const r = Math.min(1, Math.max(0, rise * 1.6 - a * 0.1));
+      const drop = (1 - r) * (1 - r) * 340;
+      const bob = Math.sin(t * 0.9 + it.i) * 3;
+      const fade = this.flow ? Math.max(0, Math.min(1, (2.6 - a) * 1.5)) : Math.max(0, Math.min(1, (4.45 - a) * 3));
+      const L = it.last;
+      it.el.style.transform = `translate3d(${(g.px - this.bw / 2).toFixed(1)}px,${(g.py - this.bh + drop + bob).toFixed(1)}px,0) rotate(${(g.r + (1 - r) * 8 * Math.sign(o || 1)).toFixed(2)}deg) scale(${g.s.toFixed(4)})`;
+      it.el.style.opacity = (r * fade).toFixed(3);
+      const z = String(100 - Math.round(a * 10));
+      if (L.z !== z) { it.el.style.zIndex = z; L.z = z; }
+      const centre = a < 0.5;
+      if (L.c !== centre) { it.el.classList.toggle('is-centre', centre); it.lab.classList.toggle('is-centre', centre); L.c = centre; }
+      if (this.flow) {
+        it.lab.style.transform = `translate3d(${(this.W / 2).toFixed(1)}px,${(this.bh + 70).toFixed(1)}px,0)`;
+        it.lab.style.opacity = (r * Math.max(0, 1 - a * 2.2)).toFixed(3);
+      } else {
+        it.lab.style.transform = `translate3d(${g.px.toFixed(1)}px,${(drop * 0.3).toFixed(1)}px,0)`;
+        it.lab.style.opacity = (r * fade).toFixed(3);
+      }
     }
   }
 }

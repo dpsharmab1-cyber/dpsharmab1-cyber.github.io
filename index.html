@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="is-loading" data-v="77">
+<html lang="en" class="is-loading" data-v="80">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -15,69 +15,68 @@
 <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=77">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=80">
 </head>
 <body>
-<canvas id="stars" aria-hidden="true"></canvas>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
 
 <header class="nav" id="nav">
-  <nav class="nav-pill glass-pill" aria-label="Primary">
+  <nav class="nav-pill" aria-label="Primary">
+    <i class="nav-mark" aria-hidden="true"></i>
     <a href="#landing" data-nav="landing">Home</a>
     <a href="#works" data-nav="works">Services</a>
     <a href="#about" data-nav="about">About Me</a>
     <a href="#projects" data-nav="projects">Projects</a>
   </nav>
-  <a class="nav-contact glass-pill" href="#contact" data-nav="contact">Contact</a>
+  <a class="nav-contact" href="#contact" data-nav="contact">Contact</a>
+  <button class="nav-burger" type="button" aria-label="Open menu" aria-expanded="false"><i></i><i></i></button>
 </header>
+<div class="menu" id="menu" aria-hidden="true">
+  <a href="#landing">Home</a><a href="#works">Services</a><a href="#about">About Me</a><a href="#projects">Projects</a><a href="#contact">Contact</a>
+</div>
 
 <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span><span class="cursor-ring"><b class="cursor-label"></b></span></div>
 
-<!-- One 1512 px artboard made of the three Figma frames (Landing and About me,
-     Content and cards, Connect and contact and Footer), scaled as a piece.
-     Every position below is Figma px, relative to its section. -->
+<!-- Three Figma frames (Space Grain), 1512 px wide, scaled as a piece on wide
+     screens and reflowed on tablets and phones. Positions are frame px. -->
 <main id="main">
  <div class="board" id="board">
-  <img class="scenery" src="assets/scenery.svg?v=77" alt="" aria-hidden="true">
 
-  <!-- 1 · landing (A 0) -->
-  <section id="landing" class="sec" data-theme="dark" style="--top:0;--h:982">
-   <div class="land">
-    <div class="bh" aria-hidden="true"></div>
+  <!-- ===== frame 1 · landing + about (1512 x 2455) -->
+  <div class="frame" id="f1" data-frame="s1" style="--top:0;--h:2455">
+   <div class="art" aria-hidden="true"></div>
+
+   <section id="landing" class="block hero" data-theme="dark">
     <h1 class="pf" aria-label="Portfolio 2026">
-      <span class="pf-l cream" style="--x:130;--y:160" aria-hidden="true"><span>PO</span></span>
-      <span class="pf-l cream" style="--x:130;--y:350" aria-hidden="true"><span>RT</span></span>
-      <span class="pf-l cream" style="--x:130;--y:540" aria-hidden="true"><span>FOLIO</span></span>
-      <span class="pf-l red" style="--x:330.344;--y:158.9" aria-hidden="true"><span>20</span></span>
-      <span class="pf-l red" style="--x:330.344;--y:348.9" aria-hidden="true"><span>26</span></span>
+      <span class="pf-l cream" style="--x:130;--y:160.2"><span>PO</span></span>
+      <span class="pf-l red" style="--x:330;--y:159.2"><span>20</span></span>
+      <span class="pf-l cream" style="--x:130;--y:350.2"><span>RT</span></span>
+      <span class="pf-l red" style="--x:330;--y:349.2"><span>26</span></span>
+      <span class="pf-l cream" style="--x:130;--y:540.2"><span>FOLIO</span></span>
     </h1>
-    <div class="glass glass-slab" aria-hidden="true"></div>
     <dl class="hero-stats">
       <div class="pop" style="--x:130"><dt>7+</dt><dd>Years in<br>design</dd></div>
       <div class="pop" style="--x:266"><dt>6</dt><dd>Roles since<br>2018</dd></div>
       <div class="pop" style="--x:411"><dt>4</dt><dd>Core<br>disciplines</dd></div>
     </dl>
-    <p class="hero-role pop">GRAPHIC DESIGNER</p>
-   </div>
-  </section>
+    <p class="hero-role pop"><i class="bar"></i>GRAPHIC DESIGNER</p>
+   </section>
 
-  <!-- 2 · about (A 982) -->
-  <section id="about" class="sec" data-theme="dark" style="--top:982;--h:1691">
-    <p class="eyebrow ab-eyebrow" data-reveal="words">ABOUT ME</p>
-    <div class="ab-titlewrap">
-      <h2 class="t-anton about-title cream" data-split>DEEPAK SHARMA</h2>
-      <div class="glass glass-about" aria-hidden="true"></div>
-    </div>
-    <p class="body about-body cream" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
+   <section id="about" class="block about" data-theme="dark">
+    <p class="eyebrow ab-eyebrow" data-reveal="words"><i class="bar"></i>ABOUT ME</p>
+    <h2 class="t-anton about-title cream" data-split>DEEPAK SHARMA</h2>
+    <p class="body about-body" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
     <dl class="stats">
-      <div style="--x:72"><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
-      <div style="--x:227"><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
-      <div style="--x:391"><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
+      <div class="pop" style="--x:72"><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
+      <div class="pop" style="--x:227"><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
+      <div class="pop" style="--x:391"><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
     </dl>
     <div class="xp">
-      <p class="eyebrow xp-head" data-reveal="words">EXPERIENCE</p>
+      <p class="eyebrow xp-head" data-reveal="words"><i class="bar"></i>EXPERIENCE</p>
       <ol class="xp-list">
-        <li><span>2025 — NOW</span><b>Senior Visual Designer</b><em>Ergon Xlu</em></li>
+        <li class="is-now"><span>2025 — NOW</span><b>Senior Visual Designer</b><em>Ergon Xlu</em></li>
         <li><span>2024 — 2025</span><b>Senior Graphic Designer</b><em>Edify Technologies</em></li>
         <li><span>2022 — 2024</span><b>Lead Designer</b><em>OAKS · edtech platform</em></li>
         <li><span>2020 — 2022</span><b>Lead Designer</b><em>Squarewood Agency</em></li>
@@ -86,94 +85,103 @@
       </ol>
     </div>
     <div class="skills">
-      <p class="eyebrow skills-eyebrow">SKILLS &amp; TOOLS</p>
-      <h3 class="t-anton h-md skills-title" data-split>WHAT I WORK WITH</h3>
-      <div class="skill-col" data-g="design" style="--x:72">
-        <p class="eyebrow skill-head">DESIGN</p>
-        <ul class="chips"><li>Visual Design</li><li>Branding</li><li>Logo design</li><li>UI / UX</li><li>Packaging</li><li>Social Media</li><li>Print designing</li><li>Typography &amp; color</li></ul>
+      <div class="skill-col" style="--x:72">
+        <p class="eyebrow skill-head"><i class="dot"></i>DESIGN</p>
+        <ul class="chips">
+          <li style="--x:0;--y:0;--w:149">Visual Design</li><li style="--x:162.78;--y:0;--w:108">Branding</li><li style="--x:285.26;--y:0;--w:133">Logo design</li>
+          <li style="--x:0;--y:58;--w:100">UI / UX</li><li style="--x:114.42;--y:58;--w:117">Packaging</li><li style="--x:244.96;--y:58;--w:141">Social Media</li>
+          <li style="--x:0;--y:116;--w:165">Print designing</li><li style="--x:178.9;--y:116;--w:189">Typography &amp; color</li>
+        </ul>
       </div>
-      <div class="skill-col" data-g="tools" style="--x:560">
-        <p class="eyebrow skill-head">TOOLS</p>
-        <ul class="chips"><li>Figma</li><li>Photoshop</li><li>Illustrator</li><li>InDesign</li><li>Blender 3D</li><li>Spine 2D</li><li>Canva</li><li>Corel Draw</li></ul>
+      <div class="skill-col" style="--x:578">
+        <p class="eyebrow skill-head"><i class="dot"></i>TOOLS</p>
+        <ul class="chips">
+          <li style="--x:0;--y:0;--w:84">Figma</li><li style="--x:98.3;--y:0;--w:117">Photoshop</li><li style="--x:228.84;--y:0;--w:133">Illustrator</li>
+          <li style="--x:0;--y:58;--w:108">InDesign</li><li style="--x:122.48;--y:58;--w:125">Blender 3D</li><li style="--x:261.08;--y:58;--w:108">Spine 2D</li>
+          <li style="--x:0;--y:116;--w:84">Canva</li><li style="--x:98.3;--y:116;--w:125">Corel Draw</li>
+        </ul>
       </div>
-      <div class="skill-col" data-g="web" style="--x:1048">
-        <p class="eyebrow skill-head">WEB, AI &amp; TEAMS</p>
-        <ul class="chips"><li>WordPress</li><li>WooCommerce</li><li>AI design tools</li><li>AI workflows</li><li>Cross-functional leadership</li></ul>
+      <div class="skill-col" style="--x:1044">
+        <p class="eyebrow skill-head"><i class="dot"></i>WEB, AI &amp; TEAMS</p>
+        <ul class="chips">
+          <li style="--x:0;--y:0;--w:117">WordPress</li><li style="--x:130.54;--y:0;--w:133">WooCommerce</li><li style="--x:277.2;--y:0;--w:165">AI design tools</li>
+          <li style="--x:0;--y:58;--w:141">AI workflows</li><li style="--x:154.72;--y:58;--w:262">Cross-functional leadership</li>
+        </ul>
       </div>
     </div>
-  </section>
+   </section>
 
-  <!-- marquee band (A 2353) -->
-  <div class="sec marquee" style="--top:2673;--h:102" aria-hidden="true">
-    <div class="mq-track"><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span><span>Welcome To My Portfolio</span><span>DEEPAK SHARMA</span></div>
+   <div class="block marquee" aria-hidden="true">
+     <div class="mq-track"><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i></div>
+   </div>
   </div>
 
-  <!-- 3 · works intro: Saturn (B 0) -->
-  <section id="works" class="sec" data-theme="dark" style="--top:2775;--h:1400">
-    <div class="saturn" aria-hidden="true"></div>
+  <!-- ===== frame 2 · content + cards (1512 x 2455) -->
+  <div class="frame" id="f2" data-frame="s2" style="--top:2455;--h:2455">
+   <div class="art" aria-hidden="true"></div>
+   <section id="works" class="block works" data-theme="dark">
     <h2 class="t-anton content-title red" data-split>CONTENT</h2>
-    <div class="glass glass-content" aria-hidden="true"></div>
-    <p class="t-anton think red" data-split>THINK BEYOND</p>
-    <a class="pill pill-light btn see-more pop" href="#projects"><span>SEE MORE</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
-  </section>
-
-  <!-- 4 · projects (B 1400) -->
-  <section id="projects" class="sec" data-theme="light" style="--top:4175;--h:1055">
-    <h2 class="t-anton h-md proj-title" data-split>CONTENT</h2>
+    <p class="t-anton think" data-split>THINK BEYOND</p>
+    <a class="btn see-more pop" href="#projects"><span>SEE MORE</span><i class="go"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
+   </section>
+   <section id="projects" class="block projects" data-theme="dark">
+    <i class="bar proj-bar" aria-hidden="true"></i>
+    <h2 class="t-anton proj-title" data-split>CONTENT</h2>
     <div class="cards" role="list" aria-label="Nine selected projects"></div>
-    <p class="eyebrow proj-hint pop">DRAG OR SWIPE · CLICK A PANEL TO OPEN</p>
-  </section>
+    <p class="eyebrow proj-hint pop">DRAG OR SWIPE · CLICK A CARD TO OPEN</p>
+   </section>
+  </div>
 
-  <!-- 5 · let's connect (C 0) -->
-  <section id="connect" class="sec" data-theme="light" data-nav-theme="dark" style="--top:5230;--h:760">
-    <p class="eyebrow cn-eyebrow" data-reveal="words">CONTACT</p>
+  <!-- ===== frame 3 · connect + contact + footer (1512 x 2946) -->
+  <div class="frame" id="f3" data-frame="s3" style="--top:4910;--h:2946">
+   <div class="art" aria-hidden="true"></div>
+   <section id="connect" class="block connect" data-theme="dark">
+    <p class="eyebrow cn-eyebrow" data-reveal="words"><i class="bar"></i>CONTACT<i class="bar"></i></p>
     <h2 class="t-anton connect-title red" data-split>LET’S CONNECT</h2>
-    <div class="glass glass-connect" aria-hidden="true"></div>
     <p class="body connect-lead" data-reveal="lines">Tell me what you’re building: a brand, an app, a launch campaign.<br>I’ll reply within 24 hours with ideas, a timeline and a quote.</p>
-    <a class="pill pill-dark btn cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
-  </section>
+    <a class="btn btn-solid cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+   </section>
 
-  <!-- 6 · contact (C 760) -->
-  <section id="contact" class="sec" data-theme="light" style="--top:5990;--h:977">
-    <div class="sheets" aria-hidden="true"><i></i><i></i><i></i></div>
-    <p class="eyebrow ct-eyebrow" data-reveal="words">CONTACT</p>
-    <h2 class="t-anton h-md contact-title red" data-split>LET’S WORK TOGETHER.</h2>
-    <p class="body contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects. I reply within a day.</p>
+   <section id="contact" class="block contact" data-theme="dark">
+    <div class="ct-copy">
+      <p class="eyebrow ct-eyebrow" data-reveal="words"><i class="bar"></i>CONTACT</p>
+      <h2 class="t-anton contact-title red" data-split>LET’S WORK TOGETHER.</h2>
+      <p class="body contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects. I reply within a day.</p>
+    </div>
+    <dl class="contact-card pop">
+      <div><dt>EMAIL</dt><dd><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a></dd></div>
+      <div><dt>BASED IN</dt><dd>Hyderabad, India · <span data-clock>--:--</span> IST</dd></div>
+      <div><dt>WORKS</dt><dd>On-site in Hyderabad<br><small>Remote worldwide</small></dd></div>
+    </dl>
     <form class="contact-form" name="contact" novalidate>
-      <p class="eyebrow form-title pop">I’M REACHING OUT ABOUT</p>
+      <p class="form-title pop">I’M REACHING OUT ABOUT</p>
       <div class="topics" role="radiogroup" aria-label="Topic">
-        <button type="button" role="radio" aria-checked="true" class="topic pop is-on" style="--x:788.26">A New Project</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:962.52">A Design Role</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:1136.78">Just Saying hi</button>
+        <button type="button" role="radio" aria-checked="true" class="topic pop is-on" style="--x:788">A New Project</button>
+        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:962">A Design Role</button>
+        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:1136">Just Saying hi</button>
       </div>
-      <label class="field pop" style="--x:788;--y:338.5"><span>Name</span><input name="name" autocomplete="name"></label>
-      <label class="field pop" style="--x:1046;--y:338.5"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
-      <label class="field pop" style="--x:788;--y:424.5"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
-      <label class="field pop" style="--x:1046;--y:424.5"><span>Company or link</span><input name="company" autocomplete="organization"></label>
-      <label class="field field-msg pop" style="--x:788;--y:520.5"><span>Message*</span><textarea name="message" required></textarea></label>
+      <label class="field pop" style="--x:794;--y:1096"><span>Name</span><input name="name" autocomplete="name"></label>
+      <label class="field pop" style="--x:1048;--y:1096"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
+      <label class="field pop" style="--x:794;--y:1182"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
+      <label class="field pop" style="--x:1048;--y:1182"><span>Company or link</span><input name="company" autocomplete="organization"></label>
+      <label class="field field-msg pop" style="--x:794;--y:1278"><span>Message*</span><textarea name="message" required></textarea></label>
       <div class="form-foot">
-        <button class="pill pill-light btn send pop" type="submit"><span>SEND MESSAGE</span><i class="dot"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></button>
+        <button class="btn send pop" type="submit"><span>SEND MESSAGE</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></button>
         <p class="form-status" aria-live="polite"></p>
       </div>
     </form>
-    <dl class="contact-card pop">
-      <div><dt>Email</dt><dd><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a></dd></div>
-      <div><dt>Based in</dt><dd>Hyderabad, India · <span data-clock>--:--</span> IST</dd></div>
-      <div><dt>Works</dt><dd>On-site in Hyderabad<br>Remote worldwide</dd></div>
-    </dl>
-  </section>
+   </section>
 
-  <!-- 7 · footer (C 1737) -->
-  <footer id="footer" class="sec" data-theme="dark" style="--top:6967;--h:1209">
-    <div class="wheel" aria-hidden="true"></div>
-    <div class="glass glass-sheets" aria-hidden="true"></div>
+   <footer id="footer" class="block footer" data-theme="dark">
+    <div class="mantra" aria-hidden="true"></div>
     <div class="foot-copy">
-      <p class="eyebrow" data-reveal="words">CONTACT</p>
+      <p class="eyebrow" data-reveal="words"><i class="bar"></i>CONTACT</p>
       <h2 class="foot-title" data-reveal="lines">© 2026 DEEPAK SHARMA ·<br>VISUAL DESIGNER,<br>HYDERABAD</h2>
       <p class="body foot-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects.<br>I reply within a day.</p>
       <p class="foot-links pop"><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a><a href="frame-studio/" target="_blank" rel="noopener">Frame Studio · free design tool ↗</a><a href="#landing">Back to top ↑</a></p>
     </div>
-  </footer>
+   </footer>
+  </div>
  </div>
 </main>
 
@@ -182,10 +190,9 @@
   <button class="pj-close" type="button" aria-label="Close project"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
 </div>
 
-
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>
 <script src="vendor/SplitText.min.js"></script>
-<script type="module" src="js/main.js?v=77"></script>
+<script type="module" src="js/main.js?v=80"></script>
 </body>
 </html>

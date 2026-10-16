@@ -1,13 +1,9 @@
-// Portfolio 2026 (v7): one scaled artboard, smooth scroll and the motion of
-// every section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis
-// (MIT, darkroom.engineering) eases the scroll.
+// Portfolio 2026 · Space Grain (v8). The three Figma frames as one page: art
+// layers with their grain baked in (assets/v8, cut by tools/v8/layers.js),
+// live type and UI on top. Wide screens show the frames scaled to the width;
+// tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Stars } from './stars.js?v=77';
-import { Cards } from './projects.js?v=77';
-import { Glass, type } from './glass.js?v=77';
-import { Saturn } from './saturn.js?v=77';
-import { BlackHole } from './blackhole.js?v=77';
-import { ICONS } from './icons.js?v=77';
+import { Cards } from './projects.js?v=80';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -15,142 +11,140 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fine = matchMedia('(pointer: fine)').matches;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-const app = (window.__v7 = {});
+const app = (window.__v8 = {});
 const root = document.documentElement;
-const GAP = 320;                                  // extra room under the skills
-const BOARD_W = 1512, BOARD_H = 7856 + GAP, FRAME_H = 982;
-const BH = { x: 1198.5, y: 379 };                // black hole centre, artboard px
-const NS = 'http://www.w3.org/2000/svg';
-const V = document.documentElement.dataset.v || '1';
-// board rows where the page is dark (the menu turns light-on-dark there)
-const DARK = [[0, 1890], [2353 + GAP, 3690 + GAP], [5100 + GAP, 5650 + GAP], [6647 + GAP, BOARD_H]];
+const V = root.dataset.v || '1';
+const W0 = 1512, H0 = 7856;
 
-// ---------------------------------------------------------------- scale
+// ---------------------------------------------------------------- layout
+// wide screens: the frames, scaled to the width; tablets and phones: reflow
 function fit() {
   const w = innerWidth, h = innerHeight;
-  const portrait = w / h < 0.8;
-  root.classList.toggle('portrait', portrait);
-  if (portrait) {
-    const zl = w / 560;
-    root.style.setProperty('--zl', zl);
-    root.style.setProperty('--z', w / 1000);
-    root.style.setProperty('--zt', w / 721);
-    root.style.setProperty('--u', (w / BOARD_W) + 'px');
-    app.scale = w / 1000;
-    app.toBoard = null;
-    app.x0 = 0;
-    app.bhDoc = { x: w / 2, y: 0 };   // phones: the hole sits half above the top edge
-    app.boardMap = (x, y) => ({ x: x * zl * 0.37, y: y * zl });
-    return;
-  }
-  const s = Math.min(w / BOARD_W, h / FRAME_H);
+  const flow = w < 1024 || w / h < 0.9;
+  root.classList.toggle('flow', flow);
+  root.classList.toggle('tab', flow && w >= 640);
+  root.classList.toggle('phone', flow && w < 640);
+  app.flow = flow;
+  if (flow) { app.scale = 1; root.style.setProperty('--u', '1px'); return; }
+  const s = Math.min(1.5, Math.max(0.62, w / W0));
   app.scale = s;
   root.style.setProperty('--s', s);
   root.style.setProperty('--u', s + 'px');
-  root.style.setProperty('--page-h', BOARD_H * s + 'px');
-  const left = (w - BOARD_W * s) / 2;
-  app.bhDoc = { x: left + BH.x * s, y: BH.y * s };
-  app.boardMap = (x, y) => ({ x: left + x * s, y: y * s });
-  app.toBoard = (docY) => docY / s;
-  app.x0 = Math.min(0, -((w / s) - BOARD_W) / 2) - 2;   // first visible board px on the left
+  root.style.setProperty('--page-h', H0 * s + 'px');
 }
 fit();
+let lastFlow = app.flow;
+addEventListener('resize', () => { fit(); if (app.flow !== lastFlow) location.reload(); ScrollTrigger.refresh(); });
 
 // ---------------------------------------------------------------- scroll
-const lenis = (app.lenis = new Lenis({ lerp: 0.085, smoothWheel: true, syncTouch: false, anchors: false }));
+const lenis = (app.lenis = new Lenis({ lerp: 0.075, smoothWheel: true, syncTouch: false, anchors: false }));
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((t) => lenis.raf(t * 1000));
 gsap.ticker.lagSmoothing(0);
 lenis.stop();
-addEventListener('resize', () => { fit(); ScrollTrigger.refresh(); });
 
-// ---------------------------------------------------------------- stars
-const stars = new Stars($('#stars'));
-gsap.ticker.add((t, dt) => stars.frame(t, Math.min(0.05, dt / 1000), lenis.animatedScroll || scrollY, app.bhDoc));
+// ---------------------------------------------------------------- the sky
+// sparse stars that breathe, drift a little with the scroll, and now and
+// then a slow shooting star; drawn once per frame on one small canvas
+class Sky {
+  constructor(c) {
+    this.c = c; this.g = c.getContext('2d'); this.alpha = 0; this.shoot = null; this.next = 4;
+    this.resize(); addEventListener('resize', () => this.resize());
+  }
+  resize() {
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
+    this.w = innerWidth; this.h = innerHeight;
+    this.c.width = this.w * dpr; this.c.height = this.h * dpr;
+    this.g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round((this.w * this.h) / 9000);
+    this.s = Array.from({ length: n }, () => ({ x: Math.random() * this.w, y: Math.random() * this.h, r: Math.random() * 0.9 + 0.3, z: Math.random(), p: Math.random() * 6.3, sp: 0.4 + Math.random() * 1.2, warm: Math.random() < 0.18 }));
+  }
+  frame(t, dt, scroll) {
+    const g = this.g, W = this.w, H = this.h;
+    const ds = this.last == null ? 0 : scroll - this.last; this.last = scroll;
+    g.clearRect(0, 0, W, H);
+    if (this.alpha < 0.01) return;
+    for (const s of this.s) {
+      s.y -= ds * (0.04 + s.z * 0.12); s.x += dt * (1 + s.z * 3);
+      if (s.y < -4) s.y += H + 8; else if (s.y > H + 4) s.y -= H + 8;
+      if (s.x > W + 4) s.x -= W + 8;
+      const tw = 0.45 + 0.55 * Math.sin(t * s.sp + s.p) ** 2;
+      g.globalAlpha = this.alpha * tw * (0.35 + s.z * 0.65);
+      g.fillStyle = s.warm ? '#ffe0b5' : '#fff';
+      g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill();
+    }
+    // a shooting star every so often
+    this.next -= dt;
+    if (!this.shoot && this.next <= 0 && !reduced) { this.shoot = { x: Math.random() * W * 0.7 + W * 0.2, y: Math.random() * H * 0.35, life: 0, len: 120 + Math.random() * 120 }; }
+    if (this.shoot) {
+      const sh = this.shoot; sh.life += dt;
+      const k = sh.life / 1.3, x = sh.x - k * 380, y = sh.y + k * 160;
+      const grad = g.createLinearGradient(x, y, x + sh.len, y - sh.len * 0.42);
+      grad.addColorStop(0, 'rgba(255,224,181,.9)'); grad.addColorStop(1, 'rgba(255,224,181,0)');
+      g.globalAlpha = this.alpha * Math.sin(Math.min(1, k) * Math.PI);
+      g.strokeStyle = grad; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, y); g.lineTo(x + sh.len, y - sh.len * 0.42); g.stroke();
+      if (k >= 1) { this.shoot = null; this.next = 6 + Math.random() * 8; }
+    }
+    g.globalAlpha = 1;
+  }
+}
+const sky = new Sky($('#sky'));
+gsap.ticker.add((t, dt) => sky.frame(t, Math.min(0.05, dt / 1000), lenis.animatedScroll || scrollY));
 
-// ---------------------------------------------------------------- helpers
-// reveals start once a block is well inside the screen (not as it peeks in)
-const later = (st) => (typeof st === 'string' ? st.replace(/top (\d+)%/, (m, n) => `top ${Math.max(45, +n - 14)}%`) : st);
-// letters rise in as a block arrives and lift out as it leaves (both ways)
-function inOut(targets, trigger, { from = 115, stagger = 0.022, duration = 1, start = 'top 82%', end = 'bottom 12%', rotate = 4, onShow, onHide } = {}) {
-  gsap.set(targets, { yPercent: from, rotate });
-  const show = () => { gsap.to(targets, { yPercent: 0, rotate: 0, duration, ease: 'expo.out', stagger, overwrite: true, delay: 0.15 }); onShow?.(); };
-  const hide = (dir) => { gsap.to(targets, { yPercent: dir * from, rotate: dir * rotate, duration: duration * 0.7, ease: 'expo.in', stagger: stagger * 0.6, overwrite: true, delay: onHide ? 0.35 : 0 }); onHide?.(); };
+// ---------------------------------------------------------------- reveals
+// mystical, unhurried: type rises out of a soft blur once a block is well in view
+const later = (st) => st.replace(/top (\d+)%/, (m, n) => `top ${Math.max(45, +n - 12)}%`);
+function inOut(targets, trigger, { from = 110, stagger = 0.03, duration = 1.25, start = 'top 82%', end = 'bottom 10%', blur = 10 } = {}) {
+  gsap.set(targets, { yPercent: from, opacity: 0, filter: `blur(${blur}px)` });
+  const show = () => gsap.to(targets, { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration, ease: 'expo.out', stagger, overwrite: true, delay: 0.12 });
+  const hide = (d) => gsap.to(targets, { yPercent: d * from * 0.6, opacity: 0, filter: `blur(${blur}px)`, duration: duration * 0.6, ease: 'power3.in', stagger: stagger * 0.5, overwrite: true });
   ScrollTrigger.create({ trigger, start: later(start), end, onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
 }
-// pills, buttons and small blocks fade up in and lift out the same way
 function pops(targets, trigger, opts = {}) {
   if (!targets.length) return;
-  gsap.set(targets, { y: 26, opacity: 0 });
-  const show = () => gsap.to(targets, { y: 0, opacity: 1, duration: 0.9, ease: 'expo.out', stagger: 0.035, overwrite: true, delay: 0.12 });
-  const hide = (dir) => gsap.to(targets, { y: -26 * dir, opacity: 0, duration: 0.5, ease: 'expo.in', stagger: 0.015, overwrite: true });
-  ScrollTrigger.create({ trigger, end: 'bottom 22%', ...opts, start: later(opts.start || 'top 72%'), onEnter: show, onEnterBack: show, onLeave: () => hide(1), onLeaveBack: () => hide(-1) });
+  gsap.set(targets, { y: 30, opacity: 0, filter: 'blur(6px)' });
+  const show = () => gsap.to(targets, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.1, ease: 'expo.out', stagger: 0.05, overwrite: true, delay: 0.1 });
+  const hide = (d) => gsap.to(targets, { y: -24 * d, opacity: 0, filter: 'blur(6px)', duration: 0.55, ease: 'power3.in', stagger: 0.02, overwrite: true });
+  ScrollTrigger.create({ trigger, end: 'bottom 15%', ...opts, start: later(opts.start || 'top 75%'), onEnter: show, onEnterBack: show, onLeave: () => hide(1), onLeaveBack: () => hide(-1) });
 }
 const split = (el, type) => {
   const s = SplitText.create(el, type === 'chars' ? { type: 'chars,lines', mask: 'lines', linesClass: 'split-line', charsClass: 'split-char' }
-    : type === 'lines' ? { type: 'lines', mask: 'lines', linesClass: 'split-line' } : { type: 'words', mask: 'words' });
+    : type === 'lines' ? { type: 'lines', mask: 'lines', linesClass: 'split-line' } : { type: 'words', mask: 'words', wordsClass: 'split-word' });
   return type === 'chars' ? s.chars : type === 'lines' ? s.lines : s.words;
 };
 
-// ---------------------------------------------------------------- glass
-// Every panel is live glass (js/glass.js). It slides over its type once the
-// letters land and off before they leave, leans a few px toward the pointer
-// (a subtle magnet) and catches a soft light under it.
-const glasses = [];
-function glass(holder, opts, { magnet = 'y' } = {}) {
-  const g = new Glass(holder.parentElement, opts);
-  holder.replaceWith(g.c);
-  g.c.className = holder.className;
-  Object.assign(g, { wipe: 0, on: false, magnet, mo: { x: 0, y: 0, w: 0 } });
-  new IntersectionObserver(([e]) => { g.on = e.isIntersecting; }, { rootMargin: '15% 0px' }).observe(g.c);
-  g.show = (d = 1.3) => gsap.to(g, { wipe: 1, duration: d, ease: 'expo.inOut', overwrite: true });
-  g.hide = (d = 0.6) => gsap.to(g, { wipe: 0, duration: d, ease: 'expo.in', overwrite: true });
-  glasses.push(g);
-  return g;
-}
-if (fine) {
-  addEventListener('pointermove', (e) => { for (const g of glasses) if (g.on) g.pointer(e.clientX, e.clientY, true); }, { passive: true });
-  document.addEventListener('pointerleave', () => glasses.forEach((g) => { g.monT = 0; }));
-}
-gsap.ticker.add((t) => {
-  for (const g of glasses) {
-    g.c.style.setProperty('--wipe', g.wipe.toFixed(4));
-    if (!g.on || g.wipe <= 0.001) continue;
-    // the magnet: a gentle lean toward the pointer while it is near
-    const [mx, my] = g.mouse, b = g.o.band;
-    let tx = 0, ty = 0;
-    if (g.monT && g.magnet !== 'none') {
-      const dx = mx - (b[0] + b[2] / 2), dy = my - (b[1] + b[3] / 2);
-      if (Math.abs(dx) < b[2] / 2 + 220 && Math.abs(dy) < b[3] / 2 + 220) { tx = gsap.utils.clamp(-6, 6, dx * 0.02); ty = gsap.utils.clamp(-6, 6, dy * 0.04); }
-    }
-    g.off.x += (tx - g.off.x) * 0.08;
-    g.off.y += (ty - g.off.y) * 0.08;
-    if (!reduced) g.draw(t); else if (!g.drawn) { g.draw(0); g.drawn = 1; }
-  }
-});
-
 // ---------------------------------------------------------------- nav
-const nav = $('#nav');
-const links = $$('[data-nav]', nav);
-const secs = $$('section.sec, footer.sec');
+const nav = $('#nav'), mark = $('.nav-mark'), links = $$('[data-nav]', nav);
+const secs = ['landing', 'about', 'works', 'projects', 'connect', 'contact', 'footer'].map((id) => document.getElementById(id));
 const navMap = { landing: 'landing', about: 'about', works: 'works', projects: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
 let secTops = [];
-// section rows, measured on resize only: reading layout every frame made the page stutter
 const measure = () => { const y = lenis.animatedScroll || scrollY; secTops = secs.map((el) => { const r = el.getBoundingClientRect(); return { el, top: r.top + y, h: r.height }; }); };
-addEventListener('resize', () => setTimeout(measure, 50));
+const moveMark = (a) => {
+  if (!a || !a.closest('.nav-pill')) { mark.style.opacity = 0; return; }
+  mark.style.opacity = 1; mark.style.left = a.offsetLeft + 'px'; mark.style.width = a.offsetWidth + 'px';
+};
 gsap.ticker.add(() => {
-  const probe = 60, y = (lenis.animatedScroll || scrollY) + probe;
-  if (!secTops.length) measure();
-  let cur = secTops[0];
-  for (const s of secTops) if (y >= s.top && y < s.top + s.h) cur = s;
-  cur = cur.el;
-  let light;
-  if (app.toBoard) { const by = app.toBoard(y); light = !DARK.some(([a, b]) => by >= a && by < b); }
-  else light = cur.dataset.theme === 'light';
-  if (light !== app.navLight) { nav.classList.toggle('on-light', light); app.navLight = light; }
+  if (!secTops.length) return;
+  const y = (lenis.animatedScroll || scrollY) + innerHeight * 0.4;
+  let cur = secTops[0].el;
+  for (const s of secTops) if (y >= s.top) cur = s.el;
   if (cur === app.navSec) return;
   app.navSec = cur;
-  links.forEach((a) => a.classList.toggle('is-on', a.dataset.nav === navMap[cur.id]));
+  const key = navMap[cur.id];
+  links.forEach((a) => a.classList.toggle('is-on', a.dataset.nav === key));
+  moveMark(links.find((a) => a.dataset.nav === key));
+});
+let lastY = 0;
+lenis.on('scroll', (l) => {
+  const y = l.animatedScroll, d = y - lastY;
+  if (Math.abs(d) > 6) { nav.classList.toggle('is-tucked', d > 0 && y > innerHeight * 0.6); lastY = y; }
+});
+const closeMenu = () => { root.classList.remove('menu-open'); $('.nav-burger').setAttribute('aria-expanded', 'false'); lenis.start(); };
+$('.nav-burger').addEventListener('click', () => {
+  const open = !root.classList.contains('menu-open');
+  root.classList.toggle('menu-open', open);
+  $('.nav-burger').setAttribute('aria-expanded', String(open));
+  if (open) { lenis.stop(); gsap.fromTo('.menu a', { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.06, delay: 0.15 }); } else lenis.start();
 });
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]');
@@ -158,22 +152,23 @@ document.addEventListener('click', (e) => {
   const t = document.getElementById(a.getAttribute('href').slice(1));
   if (!t) return;
   e.preventDefault();
-  lenis.scrollTo(t.id === 'landing' ? 0 : t, { duration: 1.6, easing: (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2) });
+  if (root.classList.contains('menu-open')) closeMenu();
+  lenis.scrollTo(t.id === 'landing' ? 0 : t, { duration: 1.8, offset: app.flow ? -20 : 0, easing: (x) => 1 - Math.pow(1 - x, 4) });
 });
 
-// ---------------------------------------------------------------- cursor + glass buttons
+// ---------------------------------------------------------------- cursor
 class Cursor {
   constructor() {
     this.el = $('.cursor'); this.dot = $('.cursor-dot'); this.ring = $('.cursor-ring'); this.lab = $('.cursor-label');
     this.x = this.y = this.rx = this.ry = -100;
     if (!fine || reduced) return;
     root.classList.add('has-cursor');
-    addEventListener('pointermove', (e) => { this.x = e.clientX; this.y = e.clientY; });
+    addEventListener('pointermove', (e) => { this.x = e.clientX; this.y = e.clientY; }, { passive: true });
     const hot = 'a, button, .chips li, input, textarea';
     document.addEventListener('pointerover', (e) => { if (!this.forced && e.target.closest(hot)) this.el.classList.add('is-link'); });
     document.addEventListener('pointerout', (e) => { if (e.target.closest(hot)) this.el.classList.remove('is-link'); });
     gsap.ticker.add(() => {
-      this.rx += (this.x - this.rx) * 0.18; this.ry += (this.y - this.ry) * 0.18;
+      this.rx += (this.x - this.rx) * 0.16; this.ry += (this.y - this.ry) * 0.16;
       this.dot.style.transform = `translate3d(${this.x}px,${this.y}px,0)`;
       this.ring.style.transform = `translate3d(${this.rx}px,${this.ry}px,0)`;
     });
@@ -181,214 +176,171 @@ class Cursor {
   state(kind, label = '') { this.forced = !!kind; this.el.classList.toggle('is-big', kind === 'big'); this.el.classList.remove('is-link'); this.lab.textContent = label; }
 }
 app.cursor = new Cursor();
-
-// glass buttons swell under the pointer and stay in place; the dot leans in
-function swell(el) {
+function magnet(el) {
   if (!fine || reduced) return;
-  const icon = el.querySelector('.dot');
-  el.addEventListener('pointerenter', () => gsap.to(el, { scale: 1.07, duration: 0.6, ease: 'power3.out', overwrite: 'auto' }));
-  el.addEventListener('pointermove', (e) => {
-    if (!icon) return;
-    const r = el.getBoundingClientRect();
-    gsap.to(icon, { x: (e.clientX - (r.left + r.width / 2)) * 0.05, y: (e.clientY - (r.top + r.height / 2)) * 0.12, duration: 0.5, ease: 'power3.out' });
-  });
-  el.addEventListener('pointerleave', () => {
-    gsap.to(el, { scale: 1, duration: 0.9, ease: 'elastic.out(1, .55)', overwrite: 'auto' });
-    if (icon) gsap.to(icon, { x: 0, y: 0, duration: 0.8, ease: 'elastic.out(1, .5)' });
-  });
+  el.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * 0.18, y: (e.clientY - r.top - r.height / 2) * 0.3, duration: 0.6, ease: 'power3.out' }); });
+  el.addEventListener('pointerleave', () => gsap.to(el, { x: 0, y: 0, duration: 1, ease: 'elastic.out(1, .45)' }));
+}
+
+// ---------------------------------------------------------------- art layers
+// which layers drift with the scroll, and how much (depth)
+const DEPTH = { stars: 0.25, 'stars-2': 0.25, 'planet-glow': 0.12, 'hero-ring-back': 0.18, 'hero-planet-body': 0.18, 'hero-ring-front': 0.18, moon: 0.3, 'moon-left': 0.3, 'moon-right': 0.32, comet: 0.4, satellite: 0.35, 'planet-left': 0.15, 'planet-right': 0.2, 'panel-planet': 0.22 };
+// shown on tablets and phones too
+const KEEP = { s1: ['planet-glow', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'moon', 'comet'], s2: ['planet-glow', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'satellite'], s3: ['planet-left', 'planet-right'] };
+// hidden: replaced by live versions
+const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130']);
+
+async function buildArt() {
+  let man;
+  try { man = await (await fetch(`assets/v8/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
+  const byId = {};
+  for (const fr of $$('.frame')) {
+    const key = fr.dataset.frame, art = $('.art', fr);
+    for (const l of man[key] || []) {
+      if (SKIP.has(l.id)) continue;
+      const im = new Image();
+      im.alt = ''; im.decoding = 'async'; if (key !== 's1') im.loading = 'lazy';
+      im.src = `assets/v8/${l.src}?v=${V}`;
+      im.className = `ly ly-${key}-${l.id}` + ((KEEP[key] || []).includes(l.id) ? ' keep' : '');
+      im.style.cssText = `--x:${l.x};--y:${l.y};--w:${l.w};--h:${l.h}`;
+      art.append(im);
+      byId[`${key}-${l.id}`] = im;
+    }
+  }
+  return byId;
+}
+
+function animateArt(L) {
+  if (reduced) return;
+  const all = (...ids) => ids.map((i) => L[i]).filter(Boolean);
+  const breathe = (els, d = 6) => els.length && gsap.to(els, { opacity: 0.72, scale: 1.04, duration: d, ease: 'sine.inOut', yoyo: true, repeat: -1, transformOrigin: '50% 50%' });
+  const float = (els, y = 10, d = 7, r = 0) => els.length && gsap.to(els, { y: `+=${y}`, rotation: r ? `+=${r}` : '+=0', duration: d, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  // ringed planets: the planet floats, its rings sway slowly about its centre
+  const ringed = (back, body, front, ox, oy, sway = 2.2) => {
+    const els = all(back, body, front);
+    if (!els.length) return;
+    gsap.to(els, { y: '+=12', duration: 8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    const rings = all(back, front);
+    gsap.set(rings, { transformOrigin: `${ox}% ${oy}%` });
+    gsap.fromTo(rings, { rotation: -sway }, { rotation: sway, duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  };
+  ringed('s1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front', 61.7, 50);
+  ringed('s2-hero-ring-back', 's2-hero-planet-body', 's2-hero-ring-front', 50, 50, 1.6);
+  ringed('s1-ringed-back', 's1-ringed-body', 's1-ringed-front', 50, 50, 5);
+  breathe(all('s1-planet-glow', 's2-planet-glow', 's2-title-glow', 's2-cards-floor-glow', 's3-title-glow', 's3-panel-corner-glow', 's3-mantra-glow'), 6.5);
+  // moons on small orbits
+  for (const [id, r, d] of [['s1-moon', 14, 12], ['s2-moon-left', 18, 14], ['s2-moon-right', 12, 10]]) {
+    const el = L[id]; if (!el) continue;
+    const o = { a: Math.random() * 6.28 };
+    gsap.to(o, { a: `+=${Math.PI * 2}`, duration: d, ease: 'none', repeat: -1, onUpdate: () => gsap.set(el, { x: Math.cos(o.a) * r, y: Math.sin(o.a) * r * 0.6 }) });
+  }
+  // satellites drift and tilt; comets streak through now and then
+  float(all('s1-satellite', 's2-satellite', 's3-satellite'), 16, 9, 5);
+  for (const id of ['s1-comet', 's2-comet', 's3-comet']) {
+    const el = L[id]; if (!el) continue;
+    gsap.timeline({ repeat: -1, repeatDelay: 5 + Math.random() * 4, delay: 1 + Math.random() * 3 })
+      .fromTo(el, { x: 160, y: -70, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'power2.out' })
+      .to(el, { x: -140, y: 62, opacity: 0, duration: 1.4, ease: 'power2.in' });
+  }
+  float(all('s3-planet-left'), 14, 12, 2); float(all('s3-planet-right'), -12, 13, -2);
+  float(all('s3-panel-planet'), 10, 6);
+  float(all('s1-path-planet-72', 's1-path-planet-430', 's1-path-planet-760', 's1-path-planet-1080', 's1-path-planet-1440'), 8, 4.5);
+  gsap.to(all('s1-title-orbit'), { rotation: 3, transformOrigin: '50% 50%', duration: 14, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  // timeline dots glow in turn
+  const dots = all('s1-exp-dot-1', 's1-exp-dot-2', 's1-exp-dot-3', 's1-exp-dot-4', 's1-exp-dot-5', 's1-exp-dot-6');
+  if (dots.length) gsap.to(dots, { scale: 1.25, filter: 'brightness(1.6)', transformOrigin: '50% 50%', duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: { each: 0.5, repeat: -1, yoyo: true } });
+  // the footer emblem: its star turns, its rings turn against each other
+  gsap.to(all('s3-mantra-star'), { rotation: 360, transformOrigin: '50% 50%', duration: 160, ease: 'none', repeat: -1 });
+  all('s3-layer-26', 's3-layer-28', 's3-layer-30').forEach((el, i) => gsap.to(el, { rotation: i % 2 ? -360 : 360, transformOrigin: '50% 50%', duration: 220 + i * 40, ease: 'none', repeat: -1 }));
+  // depth: layers drift at their own pace as the page scrolls (wide screens)
+  if (!app.flow) for (const [k, el] of Object.entries(L)) {
+    const d = DEPTH[k.slice(3)]; if (!d) continue;
+    ScrollTrigger.create({ trigger: el.closest('.frame'), start: 'top bottom', end: 'bottom top', scrub: true, onUpdate: (st) => { el.style.translate = `0 ${(-(st.progress - 0.5) * d * 320).toFixed(1)}px`; } });
+  }
 }
 
 // ---------------------------------------------------------------- build
 async function boot() {
-  try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('700 20px Montserrat'), document.fonts.load('500 20px Montserrat'), document.fonts.ready]); } catch (e) {}
-  const svg = async (url) => { try { return await (await fetch(url)).text(); } catch (e) { return ''; } };
-  const [wCore, wOuter, wInner] = await Promise.all(['core', 'outer', 'inner'].map((n) => svg(`assets/wheel-${n}.svg?v=${V}`)));
+  try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('600 20px Montserrat'), document.fonts.ready]); } catch (e) {}
+  const L = await buildArt();
+  animateArt(L);
 
-  // ---------------- the black hole, live in 3D (js/blackhole.js), drawn at
-  // the frame's angle and in its flat layered reds
-  const bh = $('.bh');
-  const hole = new BlackHole(bh);
-  addEventListener('resize', () => { hole.sized = false; });
-  let landOn = true;
-  new IntersectionObserver(([e]) => { landOn = e.isIntersecting; }).observe($('#landing'));
-  gsap.ticker.add((t) => { if (landOn) hole.draw(reduced ? 0 : t); });
+  // the footer emblem, live: two mantra rings turning against each other
   try {
-    const all = await (await fetch(`assets/stars.json?v=${V}`)).json();
-    stars.seed(all.filter((s) => s[1] < FRAME_H), app.boardMap);
+    $('.mantra').innerHTML = await (await fetch(`assets/v8/mantra.svg?v=${V}`)).text();
+    // small screens: the emblem's star sits inside the rings (the art layers are hidden there)
+    if (app.flow) { const st = new Image(); st.src = `assets/v8/s3-mantra-star.webp?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st); if (!reduced) gsap.to(st, { rotation: 360, duration: 160, ease: 'none', repeat: -1 }); }
+    if (!reduced) {
+      gsap.to('.mantra .ring-outer', { rotation: 360, svgOrigin: '756 2160', duration: 120, ease: 'none', repeat: -1 });
+      gsap.to('.mantra .ring-inner', { rotation: -360, svgOrigin: '756 2160', duration: 90, ease: 'none', repeat: -1 });
+    }
   } catch (e) {}
 
-  // ---------------- Saturn, in 3D (js/saturn.js): a slow, quiet turn
-  const sat = (app.saturn = new Saturn($('.saturn')));
-  let satOn = false;
-  new IntersectionObserver(([e]) => { satOn = e.isIntersecting; }, { rootMargin: '10% 0px' }).observe($('.saturn'));
-  addEventListener('resize', () => { sat.sized = false; });
-  gsap.ticker.add((t, dt) => { if (satOn) sat.draw(reduced ? 0 : t, Math.min(0.05, dt / 1000)); });
-
-  // ---------------- footer wheel: the two mantra rings turn opposite ways
-  $('.wheel').innerHTML = `<div class="w-layer">${wCore}</div><div class="w-layer w-outer">${wOuter}</div><div class="w-layer w-inner">${wInner}</div>`;
-  const img = async (src) => { const i = new Image(); i.src = URL.createObjectURL(new Blob([src], { type: 'image/svg+xml' })); try { await i.decode(); } catch (e) {} return i; };
-  const [iCore, iOuter, iInner] = await Promise.all([img(wCore), img(wOuter), img(wInner)]);
-  const WC = { x: 756.5, y: 2235.5 - 1737 };              // the rings' centre, footer px
-  const wheelRot = { a: 0, b: 0 };
-  if (!reduced) {
-    gsap.to(wheelRot, { a: 360, duration: 140, ease: 'none', repeat: -1 });
-    gsap.to(wheelRot, { b: -360, duration: 100, ease: 'none', repeat: -1 });
-  }
-  const outerEl = $('.w-outer'), innerEl = $('.w-inner');
-  gsap.ticker.add(() => { outerEl.style.transform = `rotate(${wheelRot.a.toFixed(3)}deg)`; innerEl.style.transform = `rotate(${wheelRot.b.toFixed(3)}deg)`; });
-  const drawWheel = (c) => {
-    c.drawImage(iCore, 356, 103, 800, 960);
-    for (const [im, deg] of [[iOuter, wheelRot.a], [iInner, wheelRot.b]]) {
-      c.save(); c.translate(WC.x, WC.y); c.rotate((deg * Math.PI) / 180); c.translate(-WC.x, -WC.y);
-      c.drawImage(im, 356, 103, 800, 960); c.restore();
-    }
-  };
-
-  // ---------------- glass panels, live: the capsules from the frames
-  const CREAM = '#ffe0b5', RED = '#ff0000';
-  const pad = (b, m = 18) => [b[0] - m, b[1] - m, b[2] + 2 * m, b[3] + 2 * m];
-  const pill = (sel, band, params, texRect, source) => glass($(sel), { mode: 'pill', rect: pad(band), band, params, texRect, source });
-  const gSlab = pill('.glass-slab', [220, 111, 98, 676], [70, 1.5, 0.06, 1.0], [0, 0, 560, 982],
-    (c) => { for (const [t, x, y, col] of [['PO', 130, 344.785, CREAM], ['RT', 130, 534.785, CREAM], ['FOLIO', 130, 724.785, CREAM]]) type(c, t, x, y, 200, col); });
-  const gAbout = pill('.glass-about', [34, 343, 654, 29], [-42, 0.33, 0.06, 0.6], [0, 250, 760, 260], (c) => type(c, 'DEEPAK SHARMA', 72, 399.16, 96, CREAM));
-  const gContent = pill('.glass-content', [268, 921, 976, 84], [70, 0.72, 0.05, 0.6], [0, 760, 1512, 400], (c) => type(c, 'CONTENT', 361.48, 1069.9, 250, RED));
-  const gConnect = pill('.glass-connect', [331, 427, 850, 49], [60, 0.45, 0.06, 0.6], [0, 360, 1512, 220], (c) => type(c, 'LET’S CONNECT', 406.25, 512.566, 130, RED));
-  const X0 = () => app.x0 || 0, FULL = () => 1512 - 2 * X0();
-  const gSheets = glass($('.glass-sheets'), { mode: 'sheets', rect: [X0(), 430, FULL(), 779], band: [0, 0, 0, 0], params: [0, 0, 0, 0], edges: [502, 557, 606], dome: [756, 502.5, 66], bg: [0.012, 0.012, 0.014], texRect: [300, 60, 912, 1100],
-    maxTex: 1.1, source: drawWheel }, { magnet: 'none' });
-  gSheets.wipe = 1;
-  // the reflection follows the turning rings (refreshed every few frames)
-  let wf = 0;
-  gsap.ticker.add(() => { if (gSheets.on && !reduced && gSheets.texK && ++wf % 3 === 0) gSheets.texture(gSheets.texK); });
-  // the footer glass always reaches both screen edges
-  const placeGlass = () => gSheets.place([X0(), 430, FULL(), 779]);
-  placeGlass(); addEventListener('resize', placeGlass);
-
-  // ---------------- skills: a line on what each one means in practice
-  const TIPS = {
-    'Visual Design': 'Layouts, campaigns and key visuals that hold a brand together.',
-    'Branding': 'Identity systems: logo, colour, type and how they live everywhere.',
-    'Logo design': 'Marks that read at 16 px and on a billboard alike.',
-    'UI / UX': 'Flows, wireframes and polished screens for apps and dashboards.',
-    'Packaging': 'Dielines, labels and shelf-ready packs, print files included.',
-    'Social Media': 'Post systems and campaigns planned as a grid, not one-offs.',
-    'Print designing': 'Brochures, catalogues and large-format, press-ready.',
-    'Typography & color': 'Type pairing and palettes that set the tone first.',
-    'Figma': 'UI design, prototypes, components and design systems.',
-    'Photoshop': 'Retouching, compositing and campaign key visuals.',
-    'Illustrator': 'Logos, icons, illustration and vector packaging art.',
-    'InDesign': 'Multi-page layouts: catalogues, brochures, books.',
-    'Blender 3D': '3D product renders, mock-ups and game assets.',
-    'Spine 2D': 'Rigged 2D character animation for games.',
-    'Canva': 'Quick, on-brand templates teams can edit themselves.',
-    'Corel Draw': 'Print and signage files, the way print shops want them.',
-    'WordPress': 'Building and styling sites clients can run on their own.',
-    'WooCommerce': 'Online stores: product pages, checkout, catalogues.',
-    'AI design tools': 'Midjourney, Firefly and friends for faster concepts.',
-    'AI workflows': 'AI built into the pipeline: briefs, variants, resizing.',
-    'Cross-functional leadership': 'Leading designers alongside dev, product and marketing.',
-  };
-  const LINE = {
-    mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>',
-    pin: '<path d="M12 21s-6.5-6-6.5-11A6.5 6.5 0 0118.5 10C18.5 15 12 21 12 21z"/><circle cx="12" cy="10" r="2.4"/>',
-    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 2.6 15.2 0 18M12 3c-2.6 2.8-2.6 15.2 0 18"/>',
-    tool: '<path d="M14 4l6 6-9.5 9.5H4.5v-6z"/><path d="M12 6l6 6"/>',
-    up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
-  };
-  const svgLine = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`.replace(/<(path|circle|rect)/g, '<$1 class="dr" pathLength="1"');
-  $$('.contact-card dt').forEach((dt) => { const k = { Email: 'mail', 'Based in': 'pin', Works: 'globe' }[dt.textContent.trim()]; if (k) dt.insertAdjacentHTML('afterbegin', `<i class="ic ic-sm">${svgLine(LINE[k])}</i>`); });
-  $$('.foot-links a').forEach((a, i) => a.insertAdjacentHTML('afterbegin', `<i class="ic ic-sm">${svgLine(LINE[['mail', 'tool', 'up'][i]])}</i>`));
-  // groups whose icons draw in as they come into view (and undraw as they leave)
-  const drawIO = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('drawn', e.isIntersecting)), { threshold: 0.3 });
-  $$('.skill-col, .contact-card, .foot-links').forEach((el) => { $$('.ic', el).forEach((ic, i) => ic.style.setProperty('--i', i)); drawIO.observe(el); });
-  $$('.chips li').forEach((li) => {
-    const name = li.textContent.trim();
-    if (TIPS[name]) { li.dataset.tip = TIPS[name]; li.tabIndex = 0; }
-    if (ICONS[name]) li.innerHTML = `<i class="ic">${ICONS[name]}</i><span>${li.innerHTML}</span>`;
-  });
-
-  // ---------------- splits
-  $$('.pf-l').forEach((l) => l.classList.add('pf-ready'));
+  // splits
+  $$('.pf-l').forEach((l) => l.classList.add('ready'));
   const chars = (sel) => split($(sel), 'chars');
-  const skillsC = chars('.skills-title'), aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
+  const aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
   const connectC = chars('.connect-title'), contactC = chars('.contact-title');
   const words = $$('[data-reveal="words"]').map((el) => [el, split(el, 'words')]);
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
 
-  // ---------------- landing in and out
+  // the landing: stars, then the planet blooms in, then the title rises
+  const hero = ['s1-planet-glow', 's1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front'].map((k) => L[k]).filter(Boolean);
+  gsap.set('.pf-l > span', { yPercent: 105, filter: 'blur(12px)' });
+  gsap.set('#landing .pop', { y: 24, opacity: 0, filter: 'blur(6px)' });
+  gsap.set(hero, { opacity: 0, scale: 0.94, transformOrigin: '60% 50%' });
+  gsap.set(nav, { opacity: 0, y: -20 });
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-  gsap.set('.pf-l > span', { yPercent: 105 });
-  gsap.set('#landing .pop', { y: 26, opacity: 0 });
-  tl.to(stars, { alpha: 1, duration: 1.8, ease: 'power1.out' }, 0)
-    .fromTo('.bh', { opacity: 0 }, { opacity: 1, duration: 2.2, ease: 'power2.out' }, 0)
-    .to('.pf-l > span', { yPercent: 0, duration: 1.3, stagger: 0.08 }, 0.25)
-    .add(() => gSlab.show(1.4), 1.05)
-    .to('#landing .pop', { y: 0, opacity: 1, duration: 1, stagger: 0.08 }, 1.2)
-    .add(() => { root.classList.remove('is-loading'); lenis.start(); app.afterIntro?.(); }, 0.6);
+  tl.to(sky, { alpha: 1, duration: 2.4, ease: 'power1.out' }, 0)
+    .to(hero, { opacity: 1, scale: 1, duration: 2.6, ease: 'power3.out', stagger: 0.12, clearProps: 'scale' }, 0.2)
+    .to('.pf-l > span', { yPercent: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.1 }, 0.5)
+    .to('#landing .pop', { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, stagger: 0.08 }, 1.2)
+    .to(nav, { opacity: 1, y: 0, duration: 1.2, clearProps: 'opacity,transform' }, 1.3)
+    .add(() => { root.classList.remove('is-loading'); lenis.start(); measure(); app.afterIntro?.(); }, 0.8);
   const landOut = gsap.timeline({ paused: true })
-    .add(() => gSlab.hide(0.7), 0)
-    .to('.pf-l > span', { yPercent: -105, duration: 0.8, ease: 'expo.in', stagger: 0.05 }, 0.3)
-    .to('#landing .pop', { y: -26, opacity: 0, duration: 0.6, ease: 'expo.in', stagger: 0.05 }, 0);
-  const landBack = () => { gsap.to('.pf-l > span', { yPercent: 0, duration: 1.2, ease: 'expo.out', stagger: 0.06, overwrite: true }); gsap.to('#landing .pop', { y: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.06, overwrite: true }); gSlab.show(1.3); };
-  // the menu stays away on the landing and arrives once you move on
-  ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: 'bottom 45%',
-    onLeave: () => landOut.restart(),
-    onEnterBack: () => { landOut.pause(); landBack(); } });
-  ScrollTrigger.create({ trigger: '#projects', start: 'top 40%', onEnter: () => nav.classList.add('is-shown'), onLeaveBack: () => nav.classList.remove('is-shown') });
-  let lastY = 0;
-  lenis.on('scroll', (l) => {
-    const y = l.animatedScroll, d = y - lastY;
-    if (Math.abs(d) > 6) { nav.classList.toggle('is-tucked', d > 0); lastY = y; }
-  });
+    .to('.pf-l > span', { yPercent: -80, opacity: 0, filter: 'blur(10px)', duration: 0.9, ease: 'power3.in', stagger: 0.05 }, 0)
+    .to('#landing .pop', { y: -20, opacity: 0, filter: 'blur(6px)', duration: 0.6, ease: 'power3.in', stagger: 0.04 }, 0);
+  ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: app.flow ? 'bottom 40%' : 'top -55%',
+    onLeave: () => landOut.play(), onEnterBack: () => landOut.reverse() });
 
-  // ---------------- type in and out; each glass bar slides over its title once it lands
-  const withGlass = (g) => ({ onShow: () => gsap.delayedCall(0.55, () => g.show()), onHide: () => g.hide() });
-  inOut(skillsC, '.skills-title', { stagger: 0.03, start: 'top 88%' });
-  inOut(aboutC, '.about-title', { stagger: 0.03, ...withGlass(gAbout) });
-  inOut(contentC, '.content-title', { stagger: 0.05, duration: 1.2, start: 'top 80%', ...withGlass(gContent) });
+  // type, section by section
+  inOut(aboutC, '.about-title', { stagger: 0.035 });
+  inOut(contentC, '.content-title', { stagger: 0.06, duration: 1.5, start: 'top 85%' });
   inOut(thinkC, '.think', { stagger: 0.03, start: 'top 90%' });
-  inOut(projC, '.proj-title', { stagger: 0.05, start: 'top 88%', end: 'bottom -60%' });
-  inOut(connectC, '.connect-title', { stagger: 0.035, start: 'top 85%', ...withGlass(gConnect) });
-  inOut(contactC, '.contact-title', { stagger: 0.025, start: 'top 88%' });
-  const last = (el) => el.closest('#footer') ? { start: 'top 30%', end: 'bottom top' } : {};
-  words.forEach(([el, w]) => inOut(w, el.closest('#footer') ? '#footer' : el, { stagger: 0.04, from: 110, rotate: 0, ...last(el) }));
-  lines.forEach(([el, l]) => inOut(l, el.closest('#footer') ? '#footer' : el, { stagger: 0.08, from: 105, rotate: 0, duration: 1.1, ...last(el) }));
+  inOut(projC, '.proj-title', { stagger: 0.05, start: 'top 90%' });
+  inOut(connectC, '.connect-title', { stagger: 0.045, start: 'top 88%' });
+  inOut(contactC, '.contact-title', { stagger: 0.025, start: 'top 90%' });
+  const foot = (el) => el.closest('#footer') ? { start: 'top 95%', end: 'bottom top' } : {};
+  words.forEach(([el, w]) => inOut(w, el, { stagger: 0.05, from: 100, blur: 6, ...foot(el) }));
+  lines.forEach(([el, l]) => inOut(l, el, { stagger: 0.09, from: 100, blur: 6, ...foot(el) }));
 
-  // about: experience rows, stats, skills
-  $$('.xp-list li').forEach((li, i) => gsap.from(li, { x: 60, opacity: 0, duration: 1.1, ease: 'expo.out', delay: i * 0.05, scrollTrigger: { trigger: li, start: 'top 94%', end: 'bottom 6%', toggleActions: 'play reverse play reverse' } }));
+  $$('.xp-list li').forEach((li, i) => gsap.from(li, { x: 50, opacity: 0, filter: 'blur(6px)', duration: 1.2, ease: 'expo.out', delay: i * 0.06, scrollTrigger: { trigger: li, start: 'top 88%', end: 'bottom 8%', toggleActions: 'play reverse play reverse' } }));
   $$('[data-count]').forEach((el) => {
     const end = +el.dataset.count, suf = el.dataset.suffix || '', o = { v: 0 };
-    ScrollTrigger.create({ trigger: el, start: 'top 92%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.6, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
+    ScrollTrigger.create({ trigger: el, start: 'top 85%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.8, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
   });
-  pops($$('.stats > div'), '.stats', { start: 'top 92%', end: 'bottom 8%' });
-  pops([$('#about .skills-eyebrow')], '#about .skills-eyebrow', { start: 'top 92%', end: 'bottom 5%' });
-  $$('#about .skill-col').forEach((col) => pops($$('.skill-head, .chips li', col), col, { start: 'top 90%', end: 'bottom 5%' }));
+  pops($$('.stats > div'), '.stats', { start: 'top 90%' });
+  $$('.skill-col').forEach((col) => pops($$('.skill-head, .chips li', col), col, { start: 'top 88%' }));
+  pops($$('#works .pop'), '#works .see-more', { start: 'top 95%', end: 'bottom 5%' });
+  pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 95%', end: 'bottom 5%' });
+  pops($$('#contact .pop'), app.flow ? '#contact' : '.contact-card', { start: 'top 85%', end: app.flow ? 'bottom 10%' : 'bottom -40%' });
+  pops($$('#footer .pop'), '.foot-copy', { start: 'top 98%', end: 'bottom top' });
+  gsap.from('.mantra', { scale: 0.8, opacity: 0, filter: 'blur(14px)', rotation: -20, duration: 2.2, ease: 'expo.out', scrollTrigger: { trigger: '.mantra', start: 'top 85%', toggleActions: 'play none none reverse' } });
 
-  // works, connect, contact, footer: their pills and blocks
-  pops($$('#works .pop'), '#works .see-more', { start: 'top 96%', end: 'bottom 4%' });
-  pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 96%', end: 'bottom 4%' });
-  pops($$('#contact .pop'), '#contact', { start: 'top 55%', end: 'bottom 10%' });
-  pops($$('#footer .pop'), '#footer', { start: 'top 30%', end: 'bottom top' });
-  gsap.fromTo('#works .saturn', { yPercent: 3 }, { yPercent: -3, ease: 'none', scrollTrigger: { trigger: '#works', start: 'top bottom', end: 'bottom top', scrub: 0.9 } });
-  gsap.from('.sheets i', { y: 70, duration: 1.4, ease: 'expo.out', stagger: 0.12, scrollTrigger: { trigger: '#contact', start: 'top 75%', toggleActions: 'play none none reverse' } });
-
-  // marquee: an endless, steady run that leans on the scroll speed
+  // marquee: an endless, unhurried run that leans on the scroll speed
   const track = $('.mq-track');
-  const unit = track.innerHTML, unitW = track.scrollWidth, pair = unitW / 4;
+  const unit = track.innerHTML, unitW = track.scrollWidth;
   while (track.scrollWidth < track.parentElement.offsetWidth + unitW * 2) track.insertAdjacentHTML('beforeend', unit);
-  // start where the frame has it: a "Welcome" at x -194
-  let mx = ((2000 - 194) % pair) - pair * 2, boost = 0;
-  lenis.on('scroll', (l) => { boost = Math.min(6, Math.abs(l.velocity) * 0.25); });
-  gsap.ticker.add((t, dt) => { boost *= 0.94; mx -= (0.9 + boost) * (dt / 16.7); if (mx < -unitW) mx += unitW; track.style.transform = `translate3d(${mx.toFixed(2)}px,0,0)`; });
+  let mx = -unitW * 0.4, boost = 0;
+  lenis.on('scroll', (l) => { boost = Math.min(5, Math.abs(l.velocity) * 0.2); });
+  gsap.ticker.add((t, dt) => { if (reduced) return; boost *= 0.94; mx -= (0.7 + boost) * (dt / 16.7); if (mx < -unitW) mx += unitW; track.style.transform = `translate3d(${mx.toFixed(2)}px,0,0)`; });
 
-  // projects: the cards
+  // projects: the fan of cards
   app.cards = new Cards(app);
 
-  // footer: the wheel and its glass come up out of the dark together
-  gsap.fromTo('.wheel, .glass-sheets', { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: '#footer', start: 'top bottom', end: 'top 30%', scrub: 0.6 } });
-
-  $$('.pill, .nav-pill, .nav-contact, .pj-close, .topic').forEach(swell);
+  $$('.btn, .nav-contact, .topic').forEach(magnet);
   measure();
+  addEventListener('resize', () => setTimeout(measure, 80));
   ScrollTrigger.refresh();
 }
 
