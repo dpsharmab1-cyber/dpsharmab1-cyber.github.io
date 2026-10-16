@@ -1,7 +1,8 @@
 // Small icons for the skill chips. Tools wear simplified versions of their
 // own marks and colours; design and web skills get line icons drawn in their
 // group's colour (currentColor).
-const line = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+// line icons carry pathLength="1" so CSS can draw them in, stroke by stroke
+const line = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`.replace(/<(path|circle|rect)/g, '<$1 class="dr" pathLength="1"');
 const tile = (bg, fg, t, fs = 10) => `<svg viewBox="0 0 24 24"><rect width="24" height="24" rx="5.5" fill="${bg}"/><text x="12" y="${12 + fs * 0.36}" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="${fs}" fill="${fg}">${t}</text></svg>`;
 const disc = (bg, fg, t, fs = 12) => `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="${bg}"/><text x="12" y="${12 + fs * 0.36}" text-anchor="middle" font-family="Montserrat, sans-serif" font-weight="700" font-size="${fs}" fill="${fg}">${t}</text></svg>`;
 

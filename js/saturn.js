@@ -1,5 +1,5 @@
 // Saturn in 3D, one fragment shader: a lit planet with soft red bands that
-// turn slowly, fine rings with a little sparkle and a Cassini gap, and true
+// turn slowly, wide fine rings with a Cassini gap, and true
 // shadows (the rings' band across the planet, the planet's soft shadow across
 // the rings). The motion is kept very quiet: a slow turn and a faint sway.
 const VERT = `attribute vec2 a; varying vec2 v; void main(){ v = a * .5 + .5; gl_Position = vec4(a, 0., 1.); }`;
@@ -15,7 +15,7 @@ float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
   return mix(mix(h2(i), h2(i + vec2(1, 0)), f.x), mix(h2(i + vec2(0, 1)), h2(i + vec2(1, 1)), f.x), f.y); }
 mat3 rotX(float a){ float c = cos(a), s = sin(a); return mat3(1., 0., 0., 0., c, s, 0., -s, c); }
 mat3 rotZ(float a){ float c = cos(a), s = sin(a); return mat3(c, s, 0., -s, c, 0., 0., 0., 1.); }
-const float RI = 1.24, RO = 2.25;
+const float RI = 1.24, RO = 2.25;     // the pattern's own span (see ringW)
 float ringD(float r){
   if (r < RI || r > RO) return 0.;
   float d = .5 + .5 * sin(r * 61.) * .35 + n1(r * 140.) * .35 + n1(r * 31.) * .3;
@@ -25,6 +25,7 @@ float ringD(float r){
   d *= mix(.35, 1., smoothstep(RI, 1.45, r));                                       // thin inner C ring
   return clamp(d, 0., 1.);
 }
+float ringW(float r){ return (r < 1.3 || r > 2.7) ? 0. : ringD(1.24 + (r - 1.3) * .7214); }
 void main(){
   vec2 px = R.xy + vec2(v.x, 1. - v.y) * R.zw;
   vec2 q = (px - C.xy) / C.z; q.y = -q.y;
@@ -50,13 +51,13 @@ void main(){
     // the rings' shadow on the planet: one clean band, as dense as the rings are
     float sh = 1.;
     float tr = -dot(p, ax) / dot(L, ax);
-    if (tr > 0.) { vec3 hp = p + L * tr; sh = 1. - .78 * ringD(length(hp)); }
+    if (tr > 0.) { vec3 hp = p + L * tr; sh = 1. - .7 * ringW(length(hp)); }
     float lit = smoothstep(-.05, .35, dot(n, L));
-    vec3 pc = base * (.16 + .95 * dif * sh);
+    vec3 pc = base * (.42 + .72 * dif * sh);
     pc += vec3(1., .55, .5) * pow(max(dot(reflect(-L, n), vec3(0., 0., 1.)), 0.), 30.) * .2 * sh;
     float fres = pow(1. - max(n.z, 0.), 3.);
     pc += vec3(1., .25, .2) * fres * .35 * lit;                                     // lit limb glows
-    col = vec4(pc, 1.);
+    col = vec4(pc, smoothstep(0., .03, hh));
   }
   // ---- rings
   float dn = dot(rd, ax);
@@ -64,25 +65,21 @@ void main(){
     float t = -dot(ro, ax) / dn;
     vec3 p = ro + rd * t;
     float r = length(p);
-    float d = ringD(r);
+    float d = ringW(r);
     if (d > 0. && t > 0.) {
-      vec3 rc = mix(vec3(.38), vec3(.98, .97, .95), pow(n1(r * 90.) * .6 + n1(r * 23.) * .4, 1.3));
-      float spark = step(.985, h2(floor(vec2(r * 900., atan(p.y, p.x) * 260. + TIME * .3)))) * (.5 + .5 * sin(TIME * 3. + r * 50.));
-      rc += spark * .6;
+      vec3 rc = mix(vec3(.38), vec3(.98, .97, .95), pow(n1(r * 66.) * .6 + n1(r * 17.) * .4, 1.3));
       // the planet's soft shadow across the rings
       float tc = -dot(p, L);
       if (tc > 0.) rc *= mix(.1, 1., smoothstep(.95, 1.05, length(p + L * tc)));
-      // a click: a bright wave travelling outward
-      float wave = exp(-pow((r - (RI + RIP * 1.6)) * 14., 2.)) * exp(-RIP * 1.3) * step(0., RIP);
-      rc += vec3(1., .5, .4) * wave * 1.2;
       float a = d * .92;
       if (t < tS) col = vec4(mix(col.rgb, rc, a), max(col.a, a));
     }
   }
   // ---- red glow round the planet
   float dd = length(q);
-  if (col.a < 1.) { float g = exp(-(dd - 1.) * 4.2) * smoothstep(.98, 1.03, dd) * .5; col.rgb += vec3(1., .02, 0.) * g * (1. - col.a); col.a = max(col.a, g); }
-  gl_FragColor = vec4(col.rgb * col.a, col.a);
+  // the glow meets the planet's edge with no gap and no dark line
+  float g = exp(-max(dd - 1., 0.) * 3.6) * .5 * (1. - col.a);
+  gl_FragColor = vec4(col.rgb * col.a + vec3(1., .03, 0.) * g, col.a + g);
 }`;
 
 export class Saturn {
@@ -110,10 +107,12 @@ export class Saturn {
   // the canvas spans the visible width; the planet grows on wide screens
   place(x0) {
     const W = 1512 - 2 * x0;
-    this.f = 1;                                   // Figma size, on every screen
-    this.rect = [x0, 0, W, 1180];
+    this.f = 1.18;                                // a little larger than the frame
+    // wide enough for the wider rings, wherever the screen ends
+    this.rect = [-300, 0, 2112, 1180];
+    Object.assign(this.box.style, { left: '-300px', width: '2112px' });
     
-    this.centre = [756, 475 - (this.f - 1) * 150, 300 * this.f];
+    this.centre = [756, 468, 300 * this.f];
     this.sized = false;
   }
 

@@ -4,7 +4,7 @@
 // and the works slide from panel to panel, looping both ways. Hover lifts a
 // panel and lights its name; a click opens the project page.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=75';
+import { PROJECTS } from './data.js?v=77';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg>';
@@ -206,9 +206,14 @@ class ProjectPage {
         : '';
     let gallery;
     if (p.groups) {
-      // social: one collage per client, tiles of mixed sizes
-      gallery = p.groups.map((g) => `<section class="pj-group"><h3 class="eyebrow">${g.title} <small>${g.images.length}</small></h3>
-        <div class="pj-collage">${g.images.map((im, k) => fig(im, k, (k % 7 === 0 ? 'big' : k % 5 === 3 ? 'tall' : ''))).join('')}</div></section>`).join('');
+      // social: first a mix of every client (the intro settles into it), then
+      // the rest of each client's posts as their own collage
+      const pick = [], left = p.groups.map((g) => [...g.images]);
+      for (let k = 0; pick.length < 30 && left.some((l) => l.length); k++) { const l = left[k % left.length]; if (l.length) pick.push(l.shift()); }
+      const tile = (im, k) => fig(im, k, (k % 7 === 0 ? 'big' : k % 5 === 3 ? 'tall' : ''));
+      gallery = `<section class="pj-group pj-hl"><h3 class="eyebrow">HIGHLIGHTS <small>${p.groups.length} brands</small></h3><div class="pj-collage pj-hl-grid">${pick.map(tile).join('')}</div></section>`
+        + p.groups.map((g, gi) => left[gi].length ? `<section class="pj-group"><h3 class="eyebrow">${g.title} <small>${g.images.length}</small></h3>
+        <div class="pj-collage">${left[gi].map(tile).join('')}</div></section>` : '').join('');
     } else {
       const imgs = p.liveKind ? p.images : p.images.slice(1);
       gallery = `<div class="pj-grid">${(imgs.length ? imgs : [p.cover]).map((im, k) => fig(im, k)).join('')}</div>`;
@@ -233,7 +238,7 @@ class ProjectPage {
       this.zoom.querySelector('img').src = f.querySelector('img').dataset.full;
       this.zoom.classList.add('is-open');
     }));
-    this.reveals(!!p.groups);
+    this.reveals(false);
     if (p.groups) this.socialIntro();
   }
 
@@ -245,69 +250,69 @@ class ProjectPage {
       this.io.unobserve(e.target);
       gsap.fromTo(e.target, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 1.1, ease: 'expo.out' });
     }), { root: this.scroller, threshold: 0.08 });
-    this.inner.querySelectorAll(skipFigures ? '.pj-live-frame' : '.pj-gallery figure, .pj-live-frame').forEach((f) => { f.style.opacity = 0; this.io.observe(f); });
+    this.inner.querySelectorAll(skipFigures ? '.pj-live-frame' : '.pj-collage:not(.pj-hl-grid) figure, .pj-grid figure, .pj-live-frame').forEach((f) => { f.style.opacity = 0; this.io.observe(f); });
   }
 
   // Social media: the posts first spin in a ring, scatter, gather into one
   // stack, fan out into thin strips, then each flies to its place in the grid
   socialIntro() {
-    const sec = this.inner.querySelector('.pj-gallery');
-    const figs = [...sec.querySelectorAll('figure')];
-    const N = Math.min(36, figs.length);
-    if (!N) return;
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const box = this.inner.querySelector('.pj-hl-grid');
+    if (!box) return;
+    const figs = [...box.querySelectorAll('figure')];
+    if (!figs.length || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     figs.forEach((f) => { f.style.opacity = 0; });
     const io = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
       io.disconnect();
-      this.playSocial(sec, figs, N);
-    }, { root: this.scroller, rootMargin: '0px 0px -55% 0px' });
-    io.observe(sec);
+      this.playSocial(box, figs);
+    }, { root: this.scroller, rootMargin: '0px 0px -35% 0px' });
+    io.observe(box);
   }
 
-  playSocial(sec, figs, N) {
+  // inside the highlights grid only (clipped there, under the headings): the
+  // posts spin in a ring, scatter, gather into one stack, fan out into thin
+  // strips, then each flies to its own place in the grid
+  playSocial(box, figs) {
+    const N = figs.length;
     const stage = document.createElement('div');
     stage.className = 'sx-stage';
-    sec.append(stage);
-    const sr = sec.getBoundingClientRect(), vr = this.scroller.getBoundingClientRect();
-    const W = sec.clientWidth, vh = vr.height;
-    const cx = W / 2, cy = vr.top + vh / 2 - sr.top;           // the middle of the screen, in the section
+    box.append(stage);
+    const W = box.clientWidth, H = box.clientHeight;
+    const vr = this.scroller.getBoundingClientRect(), br = box.getBoundingClientRect();
+    // the middle of what is on screen of the grid
+    const vis0 = Math.max(0, vr.top - br.top), vis1 = Math.min(H, vr.bottom - br.top);
+    const cx = W / 2, cy = Math.max(180, Math.min(H - 180, (vis0 + vis1) / 2));
+    const room = Math.min(H, vis1 - vis0, 620);
     const tw = Math.max(64, Math.min(96, W / 14)), th = tw * 1.3;
-    const tiles = figs.slice(0, N).map((f) => {
+    const tiles = figs.map((f) => {
       const t = document.createElement('div');
       t.className = 'sx-tile';
       t.innerHTML = `<img src="${f.querySelector('img').src}" alt="">`;
       stage.append(t);
       return t;
     });
-    const R = Math.min(W, vh) * 0.26, spin = { a: 0 };
+    const R = Math.min(W, room) * 0.3, spin = { a: 0 };
     const ring = () => tiles.forEach((t, i) => {
       const a = (i / N) * Math.PI * 2 + spin.a;
       gsap.set(t, { x: cx + Math.cos(a) * R - tw / 2, y: cy + Math.sin(a) * R - th / 2, rotation: (a * 180) / Math.PI + 90 });
     });
     gsap.set(tiles, { width: tw, height: th, scale: 0, transformOrigin: '50% 50%' });
     ring();
-    const total = Math.min(W * 0.78, N * 26), sw = total / N, sh = Math.min(380, vh * 0.45);
+    const total = Math.min(W * 0.78, N * 28), sw = total / N, sh = Math.min(380, room * 0.6);
     const tl = gsap.timeline({ onComplete: () => stage.remove() });
-    // 1 · a spinning ring
     tl.to(tiles, { scale: 1, duration: 0.6, ease: 'back.out(1.6)', stagger: 0.015 }, 0)
       .to(spin, { a: Math.PI * 1.6, duration: 1.9, ease: 'power2.inOut', onUpdate: ring }, 0)
-    // 2 · they scatter
-      .to(tiles, { x: () => W * (0.06 + Math.random() * 0.88) - tw / 2, y: () => cy + (Math.random() - 0.5) * vh * 0.8 - th / 2, rotation: () => (Math.random() - 0.5) * 50, scale: 0.75, duration: 1, ease: 'expo.out', stagger: { each: 0.008, from: 'random' } }, 1.9)
-    // 3 · gather into one stack
+      .to(tiles, { x: () => W * (0.06 + Math.random() * 0.88) - tw / 2, y: () => cy + (Math.random() - 0.5) * room * 0.8 - th / 2, rotation: () => (Math.random() - 0.5) * 50, scale: 0.75, duration: 1, ease: 'expo.out', stagger: { each: 0.008, from: 'random' } }, 1.9)
       .to(tiles, { x: cx - tw * 0.8, y: cy - th * 0.8, width: tw * 1.6, height: th * 1.6, scale: 1, rotation: () => (Math.random() - 0.5) * 10, duration: 0.8, ease: 'expo.inOut', stagger: 0.006 }, 3.0)
       .to(tiles, { rotation: 0, duration: 0.3, ease: 'power2.out' }, 3.8)
-    // 4 · fan out into thin strips
       .to(tiles, { x: (i) => cx - total / 2 + i * sw, y: cy - sh / 2, width: sw + 0.5, height: sh, duration: 0.9, ease: 'expo.inOut', stagger: 0.012 }, 4.15)
-    // 5 · each settles into its place in the grid
       .add(() => {
-        const base = sec.getBoundingClientRect();
+        const base = box.getBoundingClientRect();
         tiles.forEach((t, i) => {
           const r = figs[i].getBoundingClientRect();
           gsap.to(t, { x: r.left - base.left, y: r.top - base.top, width: r.width, height: r.height, borderRadius: 12, duration: 1.1, ease: 'expo.inOut', delay: i * 0.014,
             onComplete: () => { figs[i].style.opacity = 1; t.style.visibility = 'hidden'; } });
         });
-        gsap.to(figs.slice(N), { opacity: 1, duration: 0.8, ease: 'power2.out', stagger: 0.01, delay: 0.9 });
       }, 5.3)
       .to({}, { duration: 1.8 });
   }

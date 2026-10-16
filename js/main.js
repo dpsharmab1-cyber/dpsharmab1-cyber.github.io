@@ -2,12 +2,12 @@
 // every section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis
 // (MIT, darkroom.engineering) eases the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Stars } from './stars.js?v=75';
-import { Cards } from './projects.js?v=75';
-import { Glass, type } from './glass.js?v=75';
-import { Saturn } from './saturn.js?v=75';
-import { BlackHole } from './blackhole.js?v=75';
-import { ICONS } from './icons.js?v=75';
+import { Stars } from './stars.js?v=77';
+import { Cards } from './projects.js?v=77';
+import { Glass, type } from './glass.js?v=77';
+import { Saturn } from './saturn.js?v=77';
+import { BlackHole } from './blackhole.js?v=77';
+import { ICONS } from './icons.js?v=77';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -69,20 +69,22 @@ const stars = new Stars($('#stars'));
 gsap.ticker.add((t, dt) => stars.frame(t, Math.min(0.05, dt / 1000), lenis.animatedScroll || scrollY, app.bhDoc));
 
 // ---------------------------------------------------------------- helpers
+// reveals start once a block is well inside the screen (not as it peeks in)
+const later = (st) => (typeof st === 'string' ? st.replace(/top (\d+)%/, (m, n) => `top ${Math.max(45, +n - 14)}%`) : st);
 // letters rise in as a block arrives and lift out as it leaves (both ways)
 function inOut(targets, trigger, { from = 115, stagger = 0.022, duration = 1, start = 'top 82%', end = 'bottom 12%', rotate = 4, onShow, onHide } = {}) {
   gsap.set(targets, { yPercent: from, rotate });
-  const show = () => { gsap.to(targets, { yPercent: 0, rotate: 0, duration, ease: 'expo.out', stagger, overwrite: true }); onShow?.(); };
+  const show = () => { gsap.to(targets, { yPercent: 0, rotate: 0, duration, ease: 'expo.out', stagger, overwrite: true, delay: 0.15 }); onShow?.(); };
   const hide = (dir) => { gsap.to(targets, { yPercent: dir * from, rotate: dir * rotate, duration: duration * 0.7, ease: 'expo.in', stagger: stagger * 0.6, overwrite: true, delay: onHide ? 0.35 : 0 }); onHide?.(); };
-  ScrollTrigger.create({ trigger, start, end, onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
+  ScrollTrigger.create({ trigger, start: later(start), end, onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
 }
 // pills, buttons and small blocks fade up in and lift out the same way
 function pops(targets, trigger, opts = {}) {
   if (!targets.length) return;
   gsap.set(targets, { y: 26, opacity: 0 });
-  const show = () => gsap.to(targets, { y: 0, opacity: 1, duration: 0.9, ease: 'expo.out', stagger: 0.035, overwrite: true });
+  const show = () => gsap.to(targets, { y: 0, opacity: 1, duration: 0.9, ease: 'expo.out', stagger: 0.035, overwrite: true, delay: 0.12 });
   const hide = (dir) => gsap.to(targets, { y: -26 * dir, opacity: 0, duration: 0.5, ease: 'expo.in', stagger: 0.015, overwrite: true });
-  ScrollTrigger.create({ trigger, start: 'top 72%', end: 'bottom 22%', ...opts, onEnter: show, onEnterBack: show, onLeave: () => hide(1), onLeaveBack: () => hide(-1) });
+  ScrollTrigger.create({ trigger, end: 'bottom 22%', ...opts, start: later(opts.start || 'top 72%'), onEnter: show, onEnterBack: show, onLeave: () => hide(1), onLeaveBack: () => hide(-1) });
 }
 const split = (el, type) => {
   const s = SplitText.create(el, type === 'chars' ? { type: 'chars,lines', mask: 'lines', linesClass: 'split-line', charsClass: 'split-char' }
@@ -286,6 +288,19 @@ async function boot() {
     'AI workflows': 'AI built into the pipeline: briefs, variants, resizing.',
     'Cross-functional leadership': 'Leading designers alongside dev, product and marketing.',
   };
+  const LINE = {
+    mail: '<path d="M3 6h18v12H3z"/><path d="M3 7l9 6 9-6"/>',
+    pin: '<path d="M12 21s-6.5-6-6.5-11A6.5 6.5 0 0118.5 10C18.5 15 12 21 12 21z"/><circle cx="12" cy="10" r="2.4"/>',
+    globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 2.6 15.2 0 18M12 3c-2.6 2.8-2.6 15.2 0 18"/>',
+    tool: '<path d="M14 4l6 6-9.5 9.5H4.5v-6z"/><path d="M12 6l6 6"/>',
+    up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  };
+  const svgLine = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`.replace(/<(path|circle|rect)/g, '<$1 class="dr" pathLength="1"');
+  $$('.contact-card dt').forEach((dt) => { const k = { Email: 'mail', 'Based in': 'pin', Works: 'globe' }[dt.textContent.trim()]; if (k) dt.insertAdjacentHTML('afterbegin', `<i class="ic ic-sm">${svgLine(LINE[k])}</i>`); });
+  $$('.foot-links a').forEach((a, i) => a.insertAdjacentHTML('afterbegin', `<i class="ic ic-sm">${svgLine(LINE[['mail', 'tool', 'up'][i]])}</i>`));
+  // groups whose icons draw in as they come into view (and undraw as they leave)
+  const drawIO = new IntersectionObserver((es) => es.forEach((e) => e.target.classList.toggle('drawn', e.isIntersecting)), { threshold: 0.3 });
+  $$('.skill-col, .contact-card, .foot-links').forEach((el) => { $$('.ic', el).forEach((ic, i) => ic.style.setProperty('--i', i)); drawIO.observe(el); });
   $$('.chips li').forEach((li) => {
     const name = li.textContent.trim();
     if (TIPS[name]) { li.dataset.tip = TIPS[name]; li.tabIndex = 0; }
@@ -317,8 +332,14 @@ async function boot() {
   const landBack = () => { gsap.to('.pf-l > span', { yPercent: 0, duration: 1.2, ease: 'expo.out', stagger: 0.06, overwrite: true }); gsap.to('#landing .pop', { y: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.06, overwrite: true }); gSlab.show(1.3); };
   // the menu stays away on the landing and arrives once you move on
   ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: 'bottom 45%',
-    onLeave: () => { landOut.restart(); nav.classList.add('is-shown'); },
-    onEnterBack: () => { landOut.pause(); landBack(); nav.classList.remove('is-shown'); } });
+    onLeave: () => landOut.restart(),
+    onEnterBack: () => { landOut.pause(); landBack(); } });
+  ScrollTrigger.create({ trigger: '#projects', start: 'top 40%', onEnter: () => nav.classList.add('is-shown'), onLeaveBack: () => nav.classList.remove('is-shown') });
+  let lastY = 0;
+  lenis.on('scroll', (l) => {
+    const y = l.animatedScroll, d = y - lastY;
+    if (Math.abs(d) > 6) { nav.classList.toggle('is-tucked', d > 0); lastY = y; }
+  });
 
   // ---------------- type in and out; each glass bar slides over its title once it lands
   const withGlass = (g) => ({ onShow: () => gsap.delayedCall(0.55, () => g.show()), onHide: () => g.hide() });
@@ -348,7 +369,7 @@ async function boot() {
   pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 96%', end: 'bottom 4%' });
   pops($$('#contact .pop'), '#contact', { start: 'top 55%', end: 'bottom 10%' });
   pops($$('#footer .pop'), '#footer', { start: 'top 30%', end: 'bottom top' });
-  gsap.fromTo('#works .saturn', { yPercent: 8 }, { yPercent: -6, ease: 'none', scrollTrigger: { trigger: '#works', start: 'top bottom', end: 'bottom top', scrub: 0.9 } });
+  gsap.fromTo('#works .saturn', { yPercent: 3 }, { yPercent: -3, ease: 'none', scrollTrigger: { trigger: '#works', start: 'top bottom', end: 'bottom top', scrub: 0.9 } });
   gsap.from('.sheets i', { y: 70, duration: 1.4, ease: 'expo.out', stagger: 0.12, scrollTrigger: { trigger: '#contact', start: 'top 75%', toggleActions: 'play none none reverse' } });
 
   // marquee: an endless, steady run that leans on the scroll speed
