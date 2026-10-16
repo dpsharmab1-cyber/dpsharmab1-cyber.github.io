@@ -2,12 +2,12 @@
 // every section. GSAP (ScrollTrigger, SplitText) drives the timelines; Lenis
 // (MIT, darkroom.engineering) eases the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Stars } from './stars.js?v=73';
-import { Cards } from './projects.js?v=73';
-import { Glass, type } from './glass.js?v=73';
-import { Saturn } from './saturn.js?v=73';
-import { BlackHole } from './blackhole.js?v=74';
-import { ICONS } from './icons.js?v=73';
+import { Stars } from './stars.js?v=75';
+import { Cards } from './projects.js?v=75';
+import { Glass, type } from './glass.js?v=75';
+import { Saturn } from './saturn.js?v=75';
+import { BlackHole } from './blackhole.js?v=75';
+import { ICONS } from './icons.js?v=75';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
