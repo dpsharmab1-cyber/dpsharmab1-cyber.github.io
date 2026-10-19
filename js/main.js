@@ -1,9 +1,9 @@
-// Portfolio 2026 · Space Grain (v8). The three Figma frames as one page: art
-// layers with their grain baked in (assets/v8, cut by tools/v8/layers.js),
+// Portfolio 2026 · Celestial Gold (v9). The three Figma frames as one page: art
+// layers (assets/v9, cut by tools/v9/layers.js),
 // live type and UI on top. Wide screens show the frames scaled to the width;
 // tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Cards } from './projects.js?v=81';
+import { Cards } from './projects.js?v=90';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -195,15 +195,15 @@ function magnet(el) {
 
 // ---------------------------------------------------------------- art layers
 // which layers drift with the scroll, and how much (depth)
-const DEPTH = { stars: 0.25, 'stars-2': 0.25, 'planet-glow': 0.12, 'hero-ring-back': 0.18, 'hero-planet-body': 0.18, 'hero-ring-front': 0.18, moon: 0.3, 'moon-left': 0.3, 'moon-right': 0.32, comet: 0.4, satellite: 0.35, 'planet-left': 0.15, 'planet-right': 0.2, 'panel-planet': 0.22 };
+const DEPTH = { stars: 0.25, 'stars-2': 0.25, 'hero-halo': 0.14, 'hero-planet': 0.14, 'hero-orbit': 0.14, 'hero-probe': 0.32, crescent: 0.3, comet: 0.4, 'layer-1': 0.1, 'hero-ring-back': 0.18, 'hero-planet-body': 0.18, 'hero-ring-front': 0.18, 'moon-right': 0.3, 'planet-left': 0.15, 'planet-right': 0.2, 'relay-probe': 0.3, 'panel-planet': 0.22 };
 // shown on tablets and phones too
-const KEEP = { s1: ['hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'moon', 'comet'], s2: ['hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'satellite'], s3: ['planet-left', 'planet-right'] };
-// hidden: replaced by live versions
-const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130', 'surface-dust', 'planet-glow', 'title-glow', 'cards-floor-glow', 'panel-corner-glow', 'mantra-glow', 'layer-13', 'layer-20', 'layer-30']);
+const KEEP = { s1: ['hero-halo', 'hero-planet', 'hero-orbit', 'crescent', 'comet'], s2: ['layer-1', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'hero-probe'], s3: ['planet-left', 'planet-right'] };
+// hidden: replaced by live versions (marquee stars, footer backdrop, the emblem's rings)
+const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130', 'footer-bg']);
 
 async function buildArt() {
   let man;
-  try { man = await (await fetch(`assets/v8/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
+  try { man = await (await fetch(`assets/v9/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
   const byId = {};
   for (const fr of $$('.frame')) {
     const key = fr.dataset.frame, art = $('.art', fr);
@@ -211,7 +211,7 @@ async function buildArt() {
       if (SKIP.has(l.id)) continue;
       const im = new Image();
       im.alt = ''; im.decoding = 'async'; if (key !== 's1') im.loading = 'lazy';
-      im.src = `assets/v8/${l.src}?v=${V}`;
+      im.src = `assets/v9/${l.src}?v=${V}`;
       im.className = `ly ly-${key}-${l.id}` + ((KEEP[key] || []).includes(l.id) ? ' keep' : '');
       im.style.cssText = `--x:${l.x};--y:${l.y};--w:${l.w};--h:${l.h}`;
       art.append(im);
@@ -235,18 +235,17 @@ function animateArt(L) {
     gsap.set(rings, { transformOrigin: `${ox}% ${oy}%` });
     gsap.fromTo(rings, { rotation: -sway }, { rotation: sway, duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   };
-  ringed('s1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front', 61.7, 50);
+  // the landing's spiked halo breathes round its blue world; the orbit tilts
+  gsap.fromTo(all('s1-hero-halo'), { scale: 0.985 }, { scale: 1.025, transformOrigin: '56.5% 48.5%', duration: 7, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  gsap.to(all('s1-hero-halo'), { opacity: 0.82, duration: 5, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  float(all('s1-hero-planet'), 10, 9);
+  gsap.fromTo(all('s1-hero-orbit'), { rotation: -3 }, { rotation: 3, transformOrigin: '50% 50%', duration: 12, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   ringed('s2-hero-ring-back', 's2-hero-planet-body', 's2-hero-ring-front', 50, 50, 1.6);
   ringed('s1-ringed-back', 's1-ringed-body', 's1-ringed-front', 50, 50, 5);
-  breathe(all('s1-planet-glow', 's2-planet-glow', 's2-title-glow', 's2-cards-floor-glow', 's3-title-glow', 's3-panel-corner-glow', 's3-mantra-glow'), 6.5);
-  // moons on small orbits
-  for (const [id, r, d] of [['s1-moon', 14, 12], ['s2-moon-left', 18, 14], ['s2-moon-right', 12, 10]]) {
-    const el = L[id]; if (!el) continue;
-    const o = { a: Math.random() * 6.28 };
-    gsap.to(o, { a: `+=${Math.PI * 2}`, duration: d, ease: 'none', repeat: -1, onUpdate: () => gsap.set(el, { x: Math.cos(o.a) * r, y: Math.sin(o.a) * r * 0.6 }) });
-  }
-  // satellites drift and tilt; comets streak through now and then
-  float(all('s1-satellite', 's2-satellite', 's3-satellite'), 16, 9, 5);
+  breathe(all('s2-layer-1', 's2-layer-10', 's3-layer-14'), 6.5);
+  // probes drift and tilt; moons and crescents bob; comets streak through now and then
+  float(all('s1-hero-probe'), 14, 8, 6); float(all('s2-hero-probe'), 16, 10, -3); float(all('s3-relay-probe'), 12, 9, 5);
+  float(all('s1-crescent'), 8, 7, 4); float(all('s2-moon-right'), 10, 8);
   for (const id of ['s1-comet', 's2-comet', 's3-comet']) {
     const el = L[id]; if (!el) continue;
     gsap.timeline({ repeat: -1, repeatDelay: 5 + Math.random() * 4, delay: 1 + Math.random() * 3 })
@@ -255,14 +254,16 @@ function animateArt(L) {
   }
   float(all('s3-planet-left'), 14, 12, 2); float(all('s3-planet-right'), -12, 13, -2);
   float(all('s3-panel-planet'), 10, 6);
-  float(all('s1-path-planet-72', 's1-path-planet-430', 's1-path-planet-760', 's1-path-planet-1080', 's1-path-planet-1440'), 8, 4.5);
-  gsap.to(all('s1-title-orbit'), { rotation: 3, transformOrigin: '50% 50%', duration: 14, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  float(all('s1-path-72', 's1-path-430', 's1-path-760', 's1-path-1080', 's1-path-1440'), 8, 4.5);
+  // the connect title's signal arcs pulse outward
+  all('s3-layer-5', 's3-layer-7', 's3-layer-9', 's3-layer-6', 's3-layer-8', 's3-layer-10').forEach((el, i) => gsap.fromTo(el, { opacity: 0.15 }, { opacity: 1, duration: 1.2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: (i % 3) * 0.4 }));
   // timeline dots glow in turn
   const dots = all('s1-exp-dot-1', 's1-exp-dot-2', 's1-exp-dot-3', 's1-exp-dot-4', 's1-exp-dot-5', 's1-exp-dot-6');
-  if (dots.length) gsap.to(dots, { scale: 1.25, filter: 'brightness(1.6)', transformOrigin: '50% 50%', duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: { each: 0.5, repeat: -1, yoyo: true } });
-  // the footer emblem: its star turns, its rings turn against each other
-  gsap.to(all('s3-mantra-star'), { rotation: 360, transformOrigin: '50% 50%', duration: 160, ease: 'none', repeat: -1 });
-  all('s3-layer-26', 's3-layer-28', 's3-layer-30').forEach((el, i) => gsap.to(el, { rotation: i % 2 ? -360 : 360, transformOrigin: '50% 50%', duration: 220 + i * 40, ease: 'none', repeat: -1 }));
+  if (dots.length) gsap.to(dots, { scale: 1.25, filter: 'brightness(1.5)', transformOrigin: '50% 50%', duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: { each: 0.5, repeat: -1, yoyo: true } });
+  // the footer emblem: the spiked halo and star turn one way, the rings the other
+  gsap.to(all('s3-mantra-halo'), { rotation: 360, transformOrigin: '50% 50%', duration: 260, ease: 'none', repeat: -1 });
+  gsap.to(all('s3-mantra-star'), { rotation: -360, transformOrigin: '50% 50%', duration: 160, ease: 'none', repeat: -1 });
+  all('s3-layer-21', 's3-layer-22', 's3-layer-23', 's3-layer-24').forEach((el, i) => gsap.to(el, { rotation: i % 2 ? -360 : 360, transformOrigin: '50% 50%', duration: 200 + i * 40, ease: 'none', repeat: -1 }));
   // depth: layers drift at their own pace as the page scrolls (wide screens)
   if (!app.flow) for (const [k, el] of Object.entries(L)) {
     const d = DEPTH[k.slice(3)]; if (!d) continue;
@@ -309,9 +310,9 @@ async function boot() {
 
   // the footer emblem, live: two mantra rings turning against each other
   try {
-    $('.mantra').innerHTML = await (await fetch(`assets/v8/mantra.svg?v=${V}`)).text();
+    $('.mantra').innerHTML = await (await fetch(`assets/v9/mantra.svg?v=${V}`)).text();
     // small screens: the emblem's star sits inside the rings (the art layers are hidden there)
-    if (app.flow) { const st = new Image(); st.src = `assets/v8/s3-mantra-star.webp?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st); if (!reduced) gsap.to(st, { rotation: 360, duration: 160, ease: 'none', repeat: -1 }); }
+    if (app.flow) { const st = new Image(); st.src = `assets/v9/s3-mantra-star.webp?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st); if (!reduced) gsap.to(st, { rotation: 360, duration: 160, ease: 'none', repeat: -1 }); }
     if (!reduced) {
       gsap.to('.mantra .ring-outer', { rotation: 360, svgOrigin: '756 2160', duration: 120, ease: 'none', repeat: -1 });
       gsap.to('.mantra .ring-inner', { rotation: -360, svgOrigin: '756 2160', duration: 90, ease: 'none', repeat: -1 });
@@ -327,7 +328,7 @@ async function boot() {
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
 
   // the landing: stars, then the planet blooms in, then the title rises
-  const hero = ['s1-hero-ring-back', 's1-hero-planet-body', 's1-hero-ring-front'].map((k) => L[k]).filter(Boolean);
+  const hero = ['s1-hero-halo', 's1-hero-planet', 's1-hero-orbit'].map((k) => L[k]).filter(Boolean);
   gsap.set('.pf-l > span', { yPercent: 105, filter: 'blur(12px)' });
   gsap.set('#landing .pop', { y: 24, opacity: 0, filter: 'blur(6px)' });
   gsap.set(hero, { opacity: 0, scale: 0.94, transformOrigin: '60% 50%' });

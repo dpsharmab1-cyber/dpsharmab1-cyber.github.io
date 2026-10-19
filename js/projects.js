@@ -6,7 +6,7 @@
 // its project page. Wide screens use the frame's exact card places; tablets
 // and phones a closer fan sized to the screen.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=81';
+import { PROJECTS } from './data.js?v=90';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
@@ -16,7 +16,7 @@ const SLOTS = [[-99, 1881, 182, 273, -8.8], [53, 1893, 202, 303, -6.6], [205, 18
   [735, 1881, 242, 363, 2.2], [941, 1893, 222, 333, 4.4], [1147, 1893, 202, 303, 6.6], [1353, 1881, 182, 273, 8.8]]
   .map(([x, y, w, h, r]) => ({ px: x + w / 2, py: y + h, s: w / 262, r }));
 const lerp = (a, b, t) => a + (b - a) * t;
-// each project's own card art (assets/v8/cards, from Project-Cards.zip)
+// each project's own card art (assets/v8/cards, from Celestial-Gold-Portfolio.zip)
 const CARD = ['01-oaks-dashboard', '02-gaurav', '03-elixir-elements-defence', '04-coldtrace', '05-p7-architecture', '06-momma-probiotics', '07-social-media', '08-ergon-xlu', '09-fibril-india'];
 
 export class Cards {
@@ -26,7 +26,7 @@ export class Cards {
     this.box = this.sec.querySelector('.cards');
     this.page = new ProjectPage(app, this);
     this.n = PROJECTS.length;
-    this.c = 0; this.goal = 0; this.vel = 0; this.rise = { v: 0 };
+    this.c = 4; this.goal = 4; this.vel = 0; this.rise = { v: 0 };   // P7 in the middle, as in the frame
     this.items = PROJECTS.map((p, i) => this.build(p, i));
     this.size();
     addEventListener('resize', () => this.size());
@@ -47,7 +47,7 @@ export class Cards {
     el.tabIndex = 0;
     el.setAttribute('aria-label', `${p.title}, ${p.kind}. Open project`);
     // the card faces are the frame's space posters (in the frame's order)
-    const inner = `<div class="card-in"><img src="assets/v8/cards/${CARD[i]}.webp?v=81" alt="" loading="lazy" decoding="async"></div>`;
+    const inner = `<div class="card-in"><img src="assets/v9/cards/${CARD[i]}-art-only.webp?v=90" alt="" loading="lazy" decoding="async"></div>`;
     el.innerHTML = `${inner}<i class="card-edge"></i>`;
     this.box.append(el);
     const lab = document.createElement('div');
@@ -214,7 +214,7 @@ class ProjectPage {
           <h2 class="t-anton pj-title" id="pj-title">${p.title}</h2>
           <ul class="pj-meta">${p.meta.map((m) => `<li>${m}</li>`).join('')}</ul>
         </div>
-        <img class="pj-card" src="assets/v8/cards/${CARD[i]}.webp?v=81" alt="">
+        <img class="pj-card" src="assets/v9/cards/${CARD[i]}-with-text.webp?v=90" alt="">
       </header>
       <section class="pj-body">
         <p class="eyebrow"><i class="bar"></i>ABOUT THE PROJECT</p><p class="pj-desc">${p.desc}</p>
@@ -335,7 +335,7 @@ class ProjectPage {
       const r = face.getBoundingClientRect();
       const fly = document.createElement('img');
       fly.className = 'fly';
-      fly.src = `assets/v8/cards/${CARD[i]}.webp?v=81`;
+      fly.src = `assets/v9/cards/${CARD[i]}-with-text.webp?v=90`;
       Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
       document.body.append(fly);
       tl.to(fly, { left: 0, top: 0, width: innerWidth, height: innerHeight, duration: 1.05, ease: 'expo.inOut' }, 0)
