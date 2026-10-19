@@ -16,7 +16,7 @@ const SLOTS = [[-99, 1881, 182, 273, -8.8], [53, 1893, 202, 303, -6.6], [205, 18
   [735, 1881, 242, 363, 2.2], [941, 1893, 222, 333, 4.4], [1147, 1893, 202, 303, 6.6], [1353, 1881, 182, 273, 8.8]]
   .map(([x, y, w, h, r]) => ({ px: x + w / 2, py: y + h, s: w / 262, r }));
 const lerp = (a, b, t) => a + (b - a) * t;
-// each project's own card art (assets/v8/cards, from Celestial-Gold-Portfolio.zip)
+// each project's own card art (assets/v9/cards, from Celestial-Gold-Portfolio.zip)
 const CARD = ['01-oaks-dashboard', '02-gaurav', '03-elixir-elements-defence', '04-coldtrace', '05-p7-architecture', '06-momma-probiotics', '07-social-media', '08-ergon-xlu', '09-fibril-india'];
 
 export class Cards {
