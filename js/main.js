@@ -3,7 +3,7 @@
 // live type and UI on top. Wide screens show the frames scaled to the width;
 // tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Cards } from './projects.js?v=90';
+import { Cards } from './projects.js?v=91';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
