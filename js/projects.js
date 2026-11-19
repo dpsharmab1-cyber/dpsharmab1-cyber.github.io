@@ -6,7 +6,7 @@
 // its SEE MORE) to open the project page. Wide screens use the mockup's
 // spacing; tablets and phones a closer corridor sized to the screen.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=100';
+import { PROJECTS } from './data.js?v=110';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
@@ -27,7 +27,7 @@ export class Cards {
     this.n = PROJECTS.length;
     // wide: the mockup's resting view, the middle between two slabs; small
     // screens: one slab faces you so its name shows
-    this.c = this.goal = app.flow ? 4 : 4.5;
+    this.c = this.goal = this.box.clientWidth < 900 ? 4 : 4.5;
     this.vel = 0; this.rise = { v: 0 }; this.hover = -1;
     this.items = PROJECTS.map((p, i) => this.build(p, i));
     this.size();
@@ -74,29 +74,30 @@ export class Cards {
 
   rel(i) { const n = this.n; return ((((i - this.c + n / 2) % n) + n) % n) - n / 2; }
 
+  // the corridor sized to its box: wide screens show the whole corridor with a
+  // label under every slab; narrow ones a closer corridor, one label at a time
   size() {
-    this.flow = this.app.flow;
-    if (this.flow) {
-      const W = this.box.clientWidth;
-      this.W = W;
-      this.bw = Math.min(W * 0.4, 230); this.bh = this.bw * 2.3;
-      this.top = 30; this.step = Math.min(W * 0.26, 190);
-      this.box.style.height = `${this.top + this.bh + 140}px`;
-      this.box.style.setProperty('--cw', this.bw + 'px'); this.box.style.setProperty('--ch', this.bh + 'px');
-      this.box.style.perspectiveOrigin = `50% ${this.top + this.bh * 0.5}px`;
-    } else { this.W = 1512; this.bw = 240; this.bh = 580; this.top = 1635; this.step = 152; this.box.style.height = ''; }
+    const W = this.box.clientWidth;
+    this.W = W;
+    this.flow = W < 900;
+    if (this.flow) { this.bw = Math.min(W * 0.4, 230); this.bh = this.bw * 2.3; this.step = Math.min(W * 0.26, 190); this.top = 24; }
+    else { this.bw = Math.min(240, W * 0.16); this.bh = this.bw * 2.42; this.step = W * 0.1; this.top = 30; }
+    this.box.style.setProperty('--box-h', `${Math.round(this.top + this.bh + (this.flow ? 130 : 120))}px`);
+    this.box.style.setProperty('--cw', this.bw + 'px'); this.box.style.setProperty('--ch', this.bh + 'px');
+    this.box.style.perspectiveOrigin = `${W / 2}px ${this.top + this.bh * 0.55}px`;
+    for (const it of this.items || []) it.last = {};
   }
 
   // where a slab sits for an offset o from the middle (continuous)
   place(o) {
     const a = Math.abs(o), sg = Math.sign(o) || 0;
-    const x = this.W / 2 + o * this.step + sg * (this.flow ? 0.04 : 1.4) * a * a * (this.flow ? this.step : 1);
+    const x = this.W / 2 + o * this.step + sg * a * a * this.step * (this.flow ? 0.04 : 0.009);
     return { x, ry: -sg * turn(a) };
   }
 
   bind() {
     let sx = 0, sc = 0, down = false, lx = 0, lt = 0;
-    const px = () => this.step * (this.flow ? 1 : this.app.scale || 1);
+    const px = () => this.step;
     this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); sc = this.c; this.vel = 0; });
     addEventListener('pointermove', (e) => {
       if (!down) return;
@@ -147,9 +148,52 @@ export class Cards {
         it.lab.style.opacity = (r * Math.max(0, 1 - a * 2.6)).toFixed(3);
         it.lab.style.pointerEvents = a < 0.3 ? 'auto' : 'none';
       } else {
-        it.lab.style.transform = `translate3d(${g.x.toFixed(1)}px,${(drop * 0.3).toFixed(1)}px,0)`;
+        it.lab.style.transform = `translate3d(${g.x.toFixed(1)}px,${(this.top + this.bh + 30 + drop * 0.3).toFixed(1)}px,0)`;
         it.lab.style.opacity = (r * fade).toFixed(3);
       }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// All ten projects as a grid of cards, with filters by discipline. Each card
+// opens the same project page as the corridor.
+const TAGS = { 'oaks-dashboard': ['ui'], gaurav: ['brand', 'packaging'], elixir: ['game'], coldtrace: ['ui'], p7: ['brand', 'print'],
+  momma: ['packaging', 'brand'], social: ['social'], ergonxlu: ['ui', 'brand'], fibril: ['packaging', 'print'], 'teacher-app': ['ui'] };
+const FILTERS = [['all', 'All'], ['ui', 'UI / UX'], ['brand', 'Branding'], ['packaging', 'Packaging'], ['print', 'Print'], ['game', 'Game art'], ['social', 'Social']];
+const ARROW_R = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg>';
+
+export class Grid {
+  constructor(app, page) {
+    const box = document.getElementById('pgrid'), fbox = document.querySelector('.filters');
+    if (!box) return;
+    box.classList.add('is-all');
+    box.innerHTML = PROJECTS.map((p, i) => `<article class="pcard${i === 0 || i === 6 ? ' feat' : ''}" data-tags="${(TAGS[p.id] || []).join(' ')}">
+        <div class="pcard-media"><img class="shot" src="${p.cover.thumb || p.cover.src}" alt="${p.title}, cover image" loading="lazy" decoding="async"><b class="pcard-no">${p.no}</b></div>
+        <div class="pcard-body"><p class="pcard-kind">${p.kind}</p><h4 class="pcard-title">${p.title}</h4><p class="pcard-desc">${p.desc}</p>
+        <ul class="pcard-tags">${p.meta.slice(0, 3).map((m) => `<li>${m}</li>`).join('')}</ul>
+        <button class="pcard-open" type="button" data-i="${i}">View project <i>${ARROW_R}</i></button></div></article>`).join('');
+    box.querySelectorAll('.pcard-open').forEach((b) => b.addEventListener('click', () => page.open(+b.dataset.i, null)));
+    box.querySelectorAll('.pcard').forEach((c) => {
+      c.addEventListener('click', (e) => { if (!e.target.closest('.pcard-open')) c.querySelector('.pcard-open').click(); });
+      c.addEventListener('pointerenter', () => { if (fine) app.cursor?.state('big', 'OPEN'); });
+      c.addEventListener('pointerleave', () => app.cursor?.state());
+    });
+    const count = (k) => PROJECTS.filter((p) => k === 'all' || (TAGS[p.id] || []).includes(k)).length;
+    fbox.innerHTML = FILTERS.map(([k, n], i) => `<button class="filter${i ? '' : ' is-on'}" type="button" data-k="${k}" aria-pressed="${!i}">${n} <small>${count(k)}</small></button>`).join('');
+    fbox.addEventListener('click', (e) => {
+      const b = e.target.closest('.filter'); if (!b) return;
+      fbox.querySelectorAll('.filter').forEach((f) => { const on = f === b; f.classList.toggle('is-on', on); f.setAttribute('aria-pressed', on); });
+      const k = b.dataset.k, shown = [];
+      box.classList.toggle('is-all', k === 'all');
+      box.querySelectorAll('.pcard').forEach((c) => { const on = k === 'all' || c.dataset.tags.split(' ').includes(k); c.classList.toggle('is-hidden', !on); if (on) shown.push(c); });
+      if (!reduced) gsap.fromTo(shown, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: 'expo.out', stagger: 0.05 });
+      ScrollTrigger.refresh();
+    });
+    if (!reduced) {
+      const cards = [...box.children];
+      gsap.set(cards, { y: 40, opacity: 0 });
+      ScrollTrigger.batch(cards, { start: 'top 90%', once: true, onEnter: (b) => gsap.to(b, { y: 0, opacity: 1, duration: 1.1, ease: 'expo.out', stagger: 0.08 }) });
     }
   }
 }

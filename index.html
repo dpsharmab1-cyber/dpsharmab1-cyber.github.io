@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="is-loading" data-v="100">
+<html lang="en" class="is-loading" data-v="110">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -12,19 +12,22 @@
 <meta property="og:title" content="Deepak Sharma | Portfolio 2026">
 <meta property="og:description" content="Graphic &amp; visual designer, Hyderabad. Brand, UI/UX, packaging, game art. Ten selected works.">
 <meta property="og:image" content="https://dpsharmab1-cyber.github.io/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="assets/logo/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/theme/tokens.css?v=100">
-<link rel="stylesheet" href="assets/theme/components.css?v=100">
-<link rel="stylesheet" href="css/style.css?v=100">
+<link rel="preload" as="image" href="assets/v10/s1-planet.webp?v=110" type="image/webp">
+<link rel="stylesheet" href="assets/theme/tokens.css?v=110">
+<link rel="stylesheet" href="assets/theme/components.css?v=110">
+<link rel="stylesheet" href="css/style.css?v=110">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <div class="splash" id="splash" aria-hidden="true">
   <div class="sp-orb">
     <svg class="sp-ring" viewBox="0 0 200 200"><circle class="sp-track" cx="100" cy="100" r="92"/><circle class="sp-bar" cx="100" cy="100" r="92" pathLength="100"/></svg>
-    <img class="sp-star" src="assets/theme/elements/mantra-star.svg?v=100" alt="">
+    <img class="sp-star" src="assets/theme/elements/mantra-star.svg?v=110" alt="">
   </div>
   <p class="sp-name">DEEPAK SHARMA</p>
   <p class="sp-sub"><span class="sp-pc">0</span>% · PORTFOLIO 2026</p>
@@ -32,166 +35,208 @@
 <canvas id="sky" aria-hidden="true"></canvas>
 
 <header class="nav" id="nav">
+  <a class="brand" href="#landing" aria-label="Deepak Sharma, back to top"><img src="assets/theme/elements/red-planet.svg?v=110" alt="" width="34" height="34"><span>Deepak Sharma</span></a>
   <nav class="nav-pill" aria-label="Primary">
     <i class="nav-mark" aria-hidden="true"></i>
     <a href="#landing" data-nav="landing">Home</a>
     <a href="#about" data-nav="about">About Me</a>
-    <a href="#skills" data-nav="skills">Services</a>
-    <a href="#projects" data-nav="projects">Projects</a>
+    <a href="#services" data-nav="services">Services</a>
+    <a href="#work" data-nav="work">Projects</a>
   </nav>
   <a class="nav-contact" href="#contact" data-nav="contact">Contact</a>
-  <button class="nav-burger" type="button" aria-label="Open menu" aria-expanded="false"><i></i><i></i></button>
+  <button class="nav-burger" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><i></i><i></i></button>
 </header>
 <div class="menu" id="menu" aria-hidden="true">
-  <a href="#landing">Home</a><a href="#about">About Me</a><a href="#skills">Services</a><a href="#projects">Projects</a><a href="#contact">Contact</a>
+  <a href="#landing">Home</a><a href="#about">About Me</a><a href="#services">Services</a><a href="#work">Projects</a><a href="#contact">Contact</a>
 </div>
 
 <div class="cursor" aria-hidden="true"><span class="cursor-dot"></span><span class="cursor-ring"><b class="cursor-label"></b></span></div>
 
-<!-- Three mockup frames (Red Planet, v10), 1512 px wide, scaled as a piece on wide
-     screens and reflowed on tablets and phones. Positions are frame px. -->
 <main id="main">
- <div class="board" id="board">
 
-  <!-- ===== frame 1 · landing + about (1512 x 2455) -->
-  <div class="frame" id="f1" data-frame="s1" style="--top:0;--h:2455">
-   <div class="art" aria-hidden="true"></div>
-
-   <section id="landing" data-at="0" class="block hero" data-theme="dark">
-    <h1 class="pf" aria-label="Portfolio 2026">
-      <span class="pf-l cream" style="--x:130;--y:160.2"><span>PO</span></span>
-      <span class="pf-l red" style="--x:330;--y:159.2"><span>20</span></span>
-      <span class="pf-l cream" style="--x:130;--y:350.2"><span>RT</span></span>
-      <span class="pf-l red" style="--x:330;--y:349.2"><span>26</span></span>
-      <span class="pf-l cream" style="--x:130;--y:540.2"><span>FOLIO</span></span>
-    </h1>
-    <dl class="hero-stats">
-      <div class="pop" style="--x:130"><dt>7+</dt><dd>Years in<br>design</dd></div>
-      <div class="pop" style="--x:266"><dt>6</dt><dd>Roles since<br>2018</dd></div>
-      <div class="pop" style="--x:411"><dt>4</dt><dd>Core<br>disciplines</dd></div>
-    </dl>
-    <p class="hero-role pop">GRAPHIC DESIGNER</p>
-   </section>
-
-   <section id="about" data-at="1180" class="block about" data-theme="dark">
-    <p class="eyebrow ab-eyebrow" data-reveal="words">ABOUT ME</p>
-    <h2 class="t-anton about-title cream" data-split>DEEPAK SHARMA</h2>
-    <p class="body about-body" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
-    <dl class="stats">
-      <div class="pop" style="--x:72"><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
-      <div class="pop" style="--x:227"><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
-      <div class="pop" style="--x:391"><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
-    </dl>
-    <div class="xp">
-      <p class="eyebrow xp-head" data-reveal="words">EXPERIENCE</p>
-      <ol class="xp-list">
-        <li class="is-now"><span>2025 — NOW</span><b>Senior Visual Designer</b><em>Ergon Xlu</em></li>
-        <li><span>2024 — 2025</span><b>Senior Graphic Designer</b><em>Edify Technologies</em></li>
-        <li><span>2022 — 2024</span><b>Lead Designer</b><em>OAKS · edtech platform</em></li>
-        <li><span>2020 — 2022</span><b>Lead Designer</b><em>Squarewood Agency</em></li>
-        <li><span>2019 — 2020</span><b>Graphic Designer</b><em>Sunitha Infovision</em></li>
-        <li><span>2018 — 2019</span><b>Junior Graphic Designer</b><em>theblogsmart.com</em></li>
-      </ol>
+  <!-- ============ landing (space) -->
+  <section id="landing" class="sec hero" data-surface="space">
+    <img class="hero-planet" src="assets/v10/s1-planet.webp?v=110" alt="" width="1948" height="1856" fetchpriority="high">
+    <div class="wrap hero-grid">
+      <p class="eyebrow hero-kicker pop"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#pin"/></svg>Hyderabad, India · Open to remote</p>
+      <h1 class="pf" aria-label="Portfolio 2026">
+        <span class="pf-l cream"><span>PO</span></span><span class="pf-l red"><span>20</span></span>
+        <span class="pf-l cream"><span>RT</span></span><span class="pf-l red"><span>26</span></span>
+        <span class="pf-l cream wide"><span>FOLIO</span></span>
+      </h1>
+      <div class="hero-side">
+        <p class="hero-role pop">Graphic &amp; Visual Designer</p>
+        <p class="hero-intro pop">Brand identity, UI/UX, packaging, game art and print, built as clean systems that sell. Seven years, six studios, one red thread.</p>
+        <div class="hero-cta pop">
+          <a class="btn btn-solid" href="#work"><span>See the work</span><i class="go"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
+          <a class="btn" href="#contact"><span>Get in touch</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+        </div>
+      </div>
+      <dl class="hero-stats">
+        <div class="pop"><dt data-count="7" data-suffix="+">7+</dt><dd>Years in design</dd></div>
+        <div class="pop"><dt data-count="6">6</dt><dd>Roles since 2018</dd></div>
+        <div class="pop"><dt data-count="10">10</dt><dd>Selected projects</dd></div>
+        <div class="pop"><dt data-count="4">4</dt><dd>Core disciplines</dd></div>
+      </dl>
     </div>
-    <div class="skills tear-top" id="skills" data-surface="paper">
-      <h2 class="sr-only">Services and skills</h2>
-      <div class="skill-col" style="--x:57;--hx:16;--cy:45">
-        <p class="eyebrow skill-head"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#pen"/></svg>DESIGN</p>
-        <ul class="chips">
-          <li style="--x:0;--y:0;--w:125">Visual Design</li><li style="--x:143;--y:0;--w:99">Branding</li><li style="--x:257;--y:0;--w:121">Logo design</li>
-          <li style="--x:0;--y:57;--w:80">UI / UX</li><li style="--x:97;--y:57;--w:109">Packaging</li><li style="--x:221;--y:57;--w:123">Social Media</li>
-          <li style="--x:0;--y:114;--w:144">Print designing</li><li style="--x:161;--y:114;--w:172">Typography &amp; color</li>
+    <a class="scroll-cue pop" href="#about" aria-label="Scroll to About me"><span>Scroll</span><i></i></a>
+  </section>
+
+  <!-- ============ about (space) -->
+  <section id="about" class="sec about" data-surface="space">
+    <div class="wrap about-grid">
+      <div class="about-copy">
+        <p class="eyebrow sec-eyebrow" data-reveal="words">About me</p>
+        <h2 class="t-anton about-title cream" data-split>Deepak Sharma</h2>
+        <p class="about-body" data-reveal="lines">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print. I lead cross-functional teams, use AI design tools well, and deliver clean, high-conversion visual systems.</p>
+        <ul class="facts pop">
+          <li><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#briefcase"/></svg><span><b>Now</b>Senior Visual Designer, Ergon Xlu</span></li>
+          <li><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#globe"/></svg><span><b>Works</b>On-site in Hyderabad, remote worldwide</span></li>
+          <li><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#team"/></svg><span><b>Leads</b>Designers, developers and print partners</span></li>
         </ul>
       </div>
-      <div class="skill-col" style="--x:563;--hx:18;--cy:48">
-        <p class="eyebrow skill-head"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#layers"/></svg>TOOLS</p>
-        <ul class="chips">
-          <li style="--x:0;--y:0;--w:77">Figma</li><li style="--x:99;--y:0;--w:111">Photoshop</li><li style="--x:230;--y:0;--w:102">Illustrator</li>
-          <li style="--x:0;--y:57;--w:96">InDesign</li><li style="--x:110;--y:57;--w:112">Blender 3D</li><li style="--x:235;--y:57;--w:96">Spine 2D</li>
-          <li style="--x:0;--y:114;--w:76">Canva</li><li style="--x:110;--y:114;--w:111">Corel Draw</li>
-        </ul>
-      </div>
-      <div class="skill-col" style="--x:1029;--hx:29;--cy:35">
-        <p class="eyebrow skill-head"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#ai"/></svg>WEB, AI &amp; TEAMS</p>
-        <ul class="chips">
-          <li style="--x:0;--y:0;--w:111">WordPress</li><li style="--x:126;--y:0;--w:145">WooCommerce</li><li style="--x:287;--y:0;--w:139">AI design tools</li>
-          <li style="--x:0;--y:68;--w:126">AI workflows</li><li style="--x:136;--y:68;--w:232">Cross-functional leadership</li>
-        </ul>
+      <div class="xp">
+        <p class="eyebrow sec-eyebrow">Experience</p>
+        <ol class="xp-list">
+          <li class="is-now"><span>2025 — Now</span><b>Senior Visual Designer</b><em>Ergon Xlu</em></li>
+          <li><span>2024 — 2025</span><b>Senior Graphic Designer</b><em>Edify Technologies</em></li>
+          <li><span>2022 — 2024</span><b>Lead Designer</b><em>OAKS · edtech platform</em></li>
+          <li><span>2020 — 2022</span><b>Lead Designer</b><em>Squarewood Agency</em></li>
+          <li><span>2019 — 2020</span><b>Graphic Designer</b><em>Sunitha Infovision</em></li>
+          <li><span>2018 — 2019</span><b>Junior Graphic Designer</b><em>theblogsmart.com</em></li>
+        </ol>
       </div>
     </div>
-   </section>
+  </section>
 
-   <div class="block marquee" aria-hidden="true">
-     <div class="mq-track"><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i></div>
-   </div>
+  <!-- ============ services (paper) -->
+  <section id="services" class="sec services paper" data-surface="paper">
+    <i class="tear tear-in" aria-hidden="true"></i>
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow sec-eyebrow red-ink" data-reveal="words">Services</p>
+        <h2 class="t-anton sec-title" data-split>What I do</h2>
+        <p class="sec-lead" data-reveal="lines">From the first logo sketch to the shelf, the screen and the feed: one designer who carries a brand across every surface.</p>
+      </div>
+      <div class="svc-grid">
+        <article class="svc pop">
+          <i class="svc-ic"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#pen"/></svg></i>
+          <h3>Design</h3>
+          <p>Identities, packaging, print and social systems that stay consistent from a business card to a billboard.</p>
+          <ul class="chips"><li>Visual Design</li><li>Branding</li><li>Logo design</li><li>UI / UX</li><li>Packaging</li><li>Social Media</li><li>Print designing</li><li>Typography &amp; color</li></ul>
+        </article>
+        <article class="svc pop">
+          <i class="svc-ic"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#layers"/></svg></i>
+          <h3>Tools</h3>
+          <p>Fluent across the Adobe suite and Figma, with 3D and 2D animation for game and product work.</p>
+          <ul class="chips"><li>Figma</li><li>Photoshop</li><li>Illustrator</li><li>InDesign</li><li>Blender 3D</li><li>Spine 2D</li><li>Canva</li><li>Corel Draw</li></ul>
+        </article>
+        <article class="svc pop">
+          <i class="svc-ic"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#ai"/></svg></i>
+          <h3>Web, AI &amp; Teams</h3>
+          <p>Websites that ship, AI in the workflow where it saves real time, and teams that deliver on schedule.</p>
+          <ul class="chips"><li>WordPress</li><li>WooCommerce</li><li>AI design tools</li><li>AI workflows</li><li>Cross-functional leadership</li></ul>
+        </article>
+      </div>
+    </div>
+    <i class="tear tear-out" aria-hidden="true"></i>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="mq-track"><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Brand · UI/UX · Packaging · Game art</span><i></i></div>
   </div>
 
-  <!-- ===== frame 2 · content + cards (1512 x 2455) -->
-  <div class="frame" id="f2" data-frame="s2" style="--top:2455;--h:2455">
-   <div class="art" aria-hidden="true"></div>
-   <section id="works" data-at="0" class="block works" data-theme="dark">
-    <h2 class="t-anton content-title red" data-split>CONTENT</h2>
-    <p class="t-anton think red" data-split>THINK BEYOND</p>
-    <a class="btn btn-bare see-more pop" href="#projects"><span>SEE MORE</span><i class="go"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
-   </section>
-   <section id="projects" data-at="1430" class="block projects tear-top tear-bot" data-theme="light" data-surface="paper">
-    <h2 class="t-anton proj-title" data-split>CONTENT</h2>
-    <div class="cards" role="list" aria-label="Ten selected projects"></div>
-    <p class="eyebrow proj-hint pop"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#drag"/></svg>DRAG OR SWIPE · CLICK A CARD TO TURN IT, AGAIN TO OPEN</p>
-   </section>
-  </div>
-
-  <!-- ===== frame 3 · connect + contact + footer (1512 x 2946) -->
-  <div class="frame" id="f3" data-frame="s3" style="--top:4910;--h:2946">
-   <div class="art" aria-hidden="true"></div>
-   <section id="connect" data-at="230" class="block connect" data-theme="dark">
-    <p class="eyebrow cn-eyebrow" data-reveal="words">CONTACT</p>
-    <h2 class="t-anton connect-title red" data-split>LET’S CONNECT</h2>
-    <p class="body connect-lead" data-reveal="lines">Tell me what you’re building: a brand, an app, a launch campaign.<br>I’ll reply within 24 hours with ideas, a timeline and a quote.</p>
-    <a class="btn cn-btn pop" href="#contact"><span>START A CONVERSATION</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
-   </section>
-
-   <section id="contact" data-at="900" class="block contact tear-top" data-theme="light" data-surface="paper">
-    <div class="ct-copy">
-      <p class="eyebrow ct-eyebrow" data-reveal="words">CONTACT</p>
-      <h2 class="t-anton contact-title red" data-split>LET’S WORK TOGETHER.</h2>
-      <p class="body contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects. I reply within a day.</p>
+  <!-- ============ the work, opening (space) -->
+  <section id="work" class="sec work-intro" data-surface="space">
+    <img class="saturn" src="assets/v10/s2-saturn.webp?v=110" alt="" width="2824" height="1666" loading="lazy" decoding="async">
+    <div class="wrap work-head">
+      <p class="t-anton work-kicker cream" data-split>Selected</p>
+      <h2 class="t-anton work-title red" data-split>Work</h2>
+      <p class="t-anton think" data-split>Think beyond</p>
     </div>
-    <dl class="contact-card pop">
-      <div><dt>EMAIL</dt><dd><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a></dd></div>
-      <div><dt>BASED IN</dt><dd>Hyderabad, India · <span data-clock>--:--</span> IST</dd></div>
-      <div><dt>WORKS</dt><dd>On-site in Hyderabad<br><small>Remote worldwide</small></dd></div>
-    </dl>
-    <form class="contact-form" name="contact" novalidate>
-      <p class="form-title pop">I’M REACHING OUT ABOUT</p>
-      <div class="topics" role="radiogroup" aria-label="Topic">
-        <button type="button" role="radio" aria-checked="true" class="topic pop is-on" style="--x:788">A New Project</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:963">A Design Role</button>
-        <button type="button" role="radio" aria-checked="false" class="topic pop" style="--x:1136">Just Saying hi</button>
-      </div>
-      <label class="field pop" style="--x:788;--y:1097"><span>Name</span><input name="name" autocomplete="name"></label>
-      <label class="field pop" style="--x:1046;--y:1097"><span>Email</span><input name="email" type="email" autocomplete="email" required></label>
-      <label class="field pop" style="--x:788;--y:1176"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
-      <label class="field pop" style="--x:1046;--y:1176"><span>Company or link</span><input name="company" autocomplete="organization"></label>
-      <label class="field field-msg pop" style="--x:788;--y:1275"><span>Message*</span><textarea name="message" required></textarea></label>
-      <div class="form-foot">
-        <button class="btn send pop" type="submit"><span>Send Message</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></button>
-        <p class="form-status" aria-live="polite"></p>
-      </div>
-    </form>
-   </section>
+  </section>
 
-   <footer id="footer" data-at="1737" class="block footer" data-theme="dark">
+  <!-- ============ projects (paper) -->
+  <section id="projects" class="sec projects paper" data-surface="paper">
+    <i class="tear tear-in" aria-hidden="true"></i>
+    <div class="wrap sec-head center">
+      <p class="eyebrow sec-eyebrow red-ink" data-reveal="words">Ten projects</p>
+      <h2 class="t-anton sec-title" data-split>Walk the corridor</h2>
+      <p class="sec-lead" data-reveal="lines">Drag or swipe along the slabs. Click one and it turns to show the real work; click again to open the project.</p>
+    </div>
+    <div class="cards" role="list" aria-label="Ten selected projects, as cards"></div>
+
+    <div class="wrap grid-head">
+      <h3 class="t-anton grid-title">All projects</h3>
+      <div class="filters" role="group" aria-label="Filter projects"></div>
+    </div>
+    <div class="wrap pgrid" id="pgrid"></div>
+    <i class="tear tear-out" aria-hidden="true"></i>
+  </section>
+
+  <!-- ============ connect (space) -->
+  <section id="connect" class="sec connect" data-surface="space">
+    <div class="wrap">
+      <p class="eyebrow sec-eyebrow" data-reveal="words">Contact</p>
+      <h2 class="t-anton connect-title red" data-split>Let’s connect</h2>
+      <p class="connect-lead" data-reveal="lines">Tell me what you’re building: a brand, an app, a launch campaign. I’ll reply within 24 hours with ideas, a timeline and a quote.</p>
+      <a class="btn cn-btn pop" href="#contact"><span>Start a conversation</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+    </div>
+  </section>
+
+  <!-- ============ contact (paper) -->
+  <section id="contact" class="sec contact paper" data-surface="paper">
+    <i class="tear tear-in" aria-hidden="true"></i>
+    <div class="wrap contact-grid">
+      <div class="ct-copy">
+        <p class="eyebrow sec-eyebrow" data-reveal="words">Contact</p>
+        <h2 class="t-anton contact-title" data-split>Let’s work together.</h2>
+        <p class="contact-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership roles, and to freelance projects. I reply within a day.</p>
+        <dl class="contact-card pop">
+          <div><dt><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#mail"/></svg>Email</dt><dd><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a></dd></div>
+          <div><dt><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#pin"/></svg>Based in</dt><dd>Hyderabad, India · <span data-clock>--:--</span> IST</dd></div>
+          <div><dt><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#globe"/></svg>Works</dt><dd>On-site in Hyderabad<br><small>Remote worldwide</small></dd></div>
+        </dl>
+      </div>
+      <form class="contact-form pop" name="contact" novalidate>
+        <p class="form-title" id="topic-label">I’m reaching out about</p>
+        <div class="topics" role="radiogroup" aria-labelledby="topic-label">
+          <button type="button" role="radio" aria-checked="true" class="topic is-on">A New Project</button>
+          <button type="button" role="radio" aria-checked="false" class="topic">A Design Role</button>
+          <button type="button" role="radio" aria-checked="false" class="topic">Just Saying hi</button>
+        </div>
+        <div class="fields">
+          <label class="field"><span>Name</span><input name="name" autocomplete="name"></label>
+          <label class="field"><span>Email*</span><input name="email" type="email" autocomplete="email" required></label>
+          <label class="field"><span>Phone</span><input name="phone" type="tel" autocomplete="tel"></label>
+          <label class="field"><span>Company or link</span><input name="company" autocomplete="organization"></label>
+          <label class="field field-msg"><span>Message*</span><textarea name="message" required></textarea></label>
+        </div>
+        <div class="form-foot">
+          <button class="btn send" type="submit"><span>Send Message</span><i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></button>
+          <p class="form-status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ footer (space) -->
+  <footer id="footer" class="sec footer" data-surface="space">
     <div class="mantra" aria-hidden="true"></div>
-    <div class="foot-copy">
-      <p class="eyebrow" data-reveal="words">CONTACT</p>
-      <h2 class="foot-title" data-reveal="lines">© 2026 DEEPAK SHARMA ·<br>VISUAL DESIGNER,<br>HYDERABAD</h2>
-      <p class="body foot-body" data-reveal="lines">Open to senior visual design, UI/UX and brand leadership<br>roles, and to freelance projects.<br>I reply within a day.</p>
-      <p class="foot-links pop"><a href="mailto:dpsharmab1@gmail.com">dpsharmab1@gmail.com</a><a href="frame-studio/" target="_blank" rel="noopener">Frame Studio · free design tool ↗</a><a href="assets/theme/">Theme asset pack</a><a href="#landing">Back to top ↑</a></p>
+    <div class="wrap foot-grid">
+      <div>
+        <p class="eyebrow sec-eyebrow">Contact</p>
+        <h2 class="foot-title">© 2026 Deepak Sharma ·<br>Visual Designer, Hyderabad</h2>
+      </div>
+      <p class="foot-body">Open to senior visual design, UI/UX and brand leadership roles, and to freelance projects. I reply within a day.</p>
+      <ul class="foot-links">
+        <li><a href="mailto:dpsharmab1@gmail.com"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#mail"/></svg>dpsharmab1@gmail.com</a></li>
+        <li><a href="frame-studio/" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#external"/></svg>Frame Studio · free design tool</a></li>
+        <li><a href="assets/theme/"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#palette"/></svg>This site’s asset pack</a></li>
+        <li><a href="#landing"><svg class="ic" aria-hidden="true"><use href="assets/theme/icons.svg#arrow-up"/></svg>Back to top</a></li>
+      </ul>
     </div>
-   </footer>
-  </div>
- </div>
+  </footer>
 </main>
 
 <div id="project" class="project" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pj-title">
@@ -202,6 +247,6 @@
 <script src="vendor/gsap.min.js"></script>
 <script src="vendor/ScrollTrigger.min.js"></script>
 <script src="vendor/SplitText.min.js"></script>
-<script type="module" src="js/main.js?v=100"></script>
+<script type="module" src="js/main.js?v=110"></script>
 </body>
 </html>

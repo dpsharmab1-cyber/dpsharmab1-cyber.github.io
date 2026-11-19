@@ -1,10 +1,8 @@
-// Portfolio 2026 · Red Planet (v10). The three mockup frames as one page: art
-// layers (assets/v10, cut by tools/v10/build_theme.py; the torn edges are
-// vectors from assets/theme/elements),
-// live type and UI on top. Wide screens show the frames scaled to the width;
-// tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
+// Portfolio 2026 · Red Planet (v11). A fluid page built from the asset pack
+// (assets/theme). GSAP drives the motion, Lenis the scroll. Every reveal
+// plays once, so nothing disappears while you read it.
 import Lenis from '../vendor/lenis.mjs';
-import { Cards } from './projects.js?v=100';
+import { Cards, Grid } from './projects.js?v=110';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -15,38 +13,20 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const app = (window.__v8 = {});
 const root = document.documentElement;
 const V = root.dataset.v || '1';
-const W0 = 1512, H0 = 7856;
-
-// ---------------------------------------------------------------- layout
-// wide screens: the frames, scaled to the width; tablets and phones: reflow
-function fit() {
-  const w = innerWidth, h = innerHeight;
-  const flow = w < 1024 || w / h < 0.9;
-  root.classList.toggle('flow', flow);
-  root.classList.toggle('tab', flow && w >= 640);
-  root.classList.toggle('phone', flow && w < 640);
-  app.flow = flow;
-  if (flow) { app.scale = 1; root.style.setProperty('--u', '1px'); return; }
-  const s = Math.min(1.5, Math.max(0.62, w / W0));
-  app.scale = s;
-  root.style.setProperty('--s', s);
-  root.style.setProperty('--u', s + 'px');
-  root.style.setProperty('--page-h', H0 * s + 'px');
-}
-fit();
-let lastFlow = app.flow;
-addEventListener('resize', () => { fit(); if (app.flow !== lastFlow) location.reload(); ScrollTrigger.refresh(); });
+app.small = () => innerWidth < 960;
 
 // ---------------------------------------------------------------- scroll
-const lenis = (app.lenis = new Lenis({ lerp: 0.075, smoothWheel: true, syncTouch: false, anchors: false }));
+const lenis = (app.lenis = new Lenis({ lerp: 0.085, smoothWheel: true, syncTouch: false, anchors: false }));
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((t) => lenis.raf(t * 1000));
 gsap.ticker.lagSmoothing(0);
 lenis.stop();
+const docY = (el) => el.getBoundingClientRect().top + (lenis.animatedScroll || scrollY);
+app.docY = docY;
 
 // ---------------------------------------------------------------- the sky
-// sparse stars that breathe, drift a little with the scroll, and now and
-// then a slow shooting star; drawn once per frame on one small canvas
+// sparse stars that breathe and drift with the scroll; now and then a slow
+// shooting star. One small canvas behind everything; paper covers it.
 class Sky {
   constructor(c) {
     this.c = c; this.g = c.getContext('2d'); this.alpha = 0; this.shoot = null; this.next = 4;
@@ -74,12 +54,10 @@ class Sky {
       g.fillStyle = s.warm ? '#ffe0b5' : '#fff';
       g.beginPath(); g.arc(s.x, s.y, s.r, 0, 6.283); g.fill();
     }
-    // a shooting star every so often
     this.next -= dt;
-    if (!this.shoot && this.next <= 0 && !reduced) { this.shoot = { x: Math.random() * W * 0.6, y: H * 0.25 + Math.random() * H * 0.4, life: 0, len: 120 + Math.random() * 120 }; }
+    if (!this.shoot && this.next <= 0 && !reduced) this.shoot = { x: Math.random() * W * 0.6, y: H * 0.25 + Math.random() * H * 0.4, life: 0, len: 120 + Math.random() * 120 };
     if (this.shoot) {
       const sh = this.shoot; sh.life += dt;
-      // the head flies up and to the right, its tail trailing down-left
       const k = sh.life / 1.3, x = sh.x + k * 380, y = sh.y - k * 160;
       const tx = x - sh.len, ty = y + sh.len * 0.42;
       const grad = g.createLinearGradient(x, y, tx, ty);
@@ -95,21 +73,17 @@ class Sky {
 const sky = new Sky($('#sky'));
 gsap.ticker.add((t, dt) => sky.frame(t, Math.min(0.05, dt / 1000), lenis.animatedScroll || scrollY));
 
-// ---------------------------------------------------------------- reveals
-// mystical, unhurried: type rises out of a soft blur once a block is well in view
-const later = (st) => st.replace(/top (\d+)%/, (m, n) => `top ${Math.max(45, +n - 12)}%`);
-function inOut(targets, trigger, { from = 110, stagger = 0.03, duration = 1.25, start = 'top 82%', end = 'bottom 10%', blur = 10 } = {}) {
-  gsap.set(targets, { yPercent: from, opacity: 0, filter: `blur(${blur}px)` });
-  const show = () => gsap.to(targets, { yPercent: 0, opacity: 1, filter: 'blur(0px)', duration, ease: 'expo.out', stagger, overwrite: true, delay: 0.12 });
-  const hide = (d) => gsap.to(targets, { yPercent: d * from * 0.6, opacity: 0, filter: `blur(${blur}px)`, duration: duration * 0.6, ease: 'power3.in', stagger: stagger * 0.5, overwrite: true });
-  ScrollTrigger.create({ trigger, start: later(start), end, onEnter: show, onEnterBack: show, onLeave: () => hide(-1), onLeaveBack: () => hide(1) });
+// ---------------------------------------------------------------- reveals (once)
+function rise(targets, trigger, { stagger = 0.03, duration = 1.25, start = 'top 85%', from = 110 } = {}) {
+  if (!targets?.length) return;
+  if (reduced) return;
+  gsap.set(targets, { yPercent: from, opacity: 0 });
+  ScrollTrigger.create({ trigger, start, once: true, onEnter: () => gsap.to(targets, { yPercent: 0, opacity: 1, duration, ease: 'expo.out', stagger }) });
 }
-function pops(targets, trigger, opts = {}) {
-  if (!targets.length) return;
-  gsap.set(targets, { y: 30, opacity: 0, filter: 'blur(6px)' });
-  const show = () => gsap.to(targets, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.1, ease: 'expo.out', stagger: 0.05, overwrite: true, delay: 0.1 });
-  const hide = (d) => gsap.to(targets, { y: -24 * d, opacity: 0, filter: 'blur(6px)', duration: 0.55, ease: 'power3.in', stagger: 0.02, overwrite: true });
-  ScrollTrigger.create({ trigger, end: 'bottom 15%', ...opts, start: later(opts.start || 'top 75%'), onEnter: show, onEnterBack: show, onLeave: () => hide(1), onLeaveBack: () => hide(-1) });
+function pops(targets, trigger, { start = 'top 88%', stagger = 0.06 } = {}) {
+  if (!targets?.length || reduced) return;
+  gsap.set(targets, { y: 34, opacity: 0 });
+  ScrollTrigger.create({ trigger, start, once: true, onEnter: () => gsap.to(targets, { y: 0, opacity: 1, duration: 1.1, ease: 'expo.out', stagger }) });
 }
 const split = (el, type) => {
   const s = SplitText.create(el, type === 'chars' ? { type: 'chars,lines', mask: 'lines', linesClass: 'split-line', charsClass: 'split-char' }
@@ -119,60 +93,48 @@ const split = (el, type) => {
 
 // ---------------------------------------------------------------- nav
 const nav = $('#nav'), mark = $('.nav-mark'), links = $$('[data-nav]', nav);
-const secs = ['landing', 'about', 'skills', 'works', 'projects', 'connect', 'contact', 'footer'].map((id) => document.getElementById(id));
-const navMap = { landing: 'landing', about: 'about', skills: 'skills', works: 'projects', projects: 'projects', connect: 'contact', contact: 'contact', footer: 'contact' };
-let secTops = [];
-// where a section starts on the page: on wide screens the blocks share their
-// frame's box, so its place in the frame (data-at) decides
-const docY = (el) => {
-  const y = lenis.animatedScroll || scrollY;
-  if (!app.flow && el.dataset.at != null) return el.closest('.frame').getBoundingClientRect().top + y + (+el.dataset.at) * app.scale;
-  return el.getBoundingClientRect().top + y;
+const secs = ['landing', 'about', 'services', 'work', 'projects', 'connect', 'contact', 'footer'].map((id) => document.getElementById(id));
+const navMap = { landing: 'landing', about: 'about', services: 'services', work: 'work', projects: 'work', connect: 'contact', contact: 'contact', footer: 'contact' };
+let secTops = [], paper = [];
+const measure = () => {
+  secTops = secs.map((el) => ({ el, top: docY(el) }));
+  paper = $$('[data-surface="paper"]').map((el) => { const y = docY(el); return [y - 30, y + el.offsetHeight + 20]; });
 };
-app.docY = docY;
-const measure = () => { secTops = secs.map((el) => ({ el, top: docY(el) })); measurePaper(); };
 const moveMark = (a) => {
   if (!a || !a.closest('.nav-pill')) { mark.style.opacity = 0; return; }
   mark.style.opacity = 1; mark.style.left = a.offsetLeft + 'px'; mark.style.width = a.offsetWidth + 'px';
 };
 gsap.ticker.add(() => {
   if (!secTops.length) return;
-  const y = (lenis.animatedScroll || scrollY) + innerHeight * 0.4;
+  const sy = lenis.animatedScroll || scrollY;
+  const y = sy + innerHeight * 0.4;
   let cur = secTops[0].el;
   for (const s of secTops) if (y >= s.top) cur = s.el;
-  if (cur === app.navSec) return;
-  app.navSec = cur;
-  const key = navMap[cur.id];
-  links.forEach((a) => a.classList.toggle('is-on', a.dataset.nav === key));
-  moveMark(links.find((a) => a.dataset.nav === key));
-});
-// where the paper is (doc y ranges): the nav turns light over it
-let paper = [];
-const measurePaper = () => {
-  const y = lenis.animatedScroll || scrollY, s = app.scale || 1;
-  if (app.flow) { paper = ['#skills', '#projects', '#contact'].map((q) => { const r = document.querySelector(q).getBoundingClientRect(); return [r.top + y - 40, r.bottom + y + 20]; }); return; }
-  const top = (id) => document.getElementById(id).getBoundingClientRect().top + y;
-  const f1 = top('f1'), f2 = top('f2'), f3 = top('f3');
-  paper = [[f1 + 1900 * s, f1 + 2353 * s], [f2 + 1260 * s, f3 + 215 * s], [f3 + 740 * s, f3 + 1737 * s]];
-};
-gsap.ticker.add(() => {
-  if (!paper.length) return;
-  const y = (lenis.animatedScroll || scrollY) + nav.offsetTop + 20;
-  const on = paper.some(([a, b]) => y >= a && y <= b);
+  if (cur !== app.navSec) {
+    app.navSec = cur;
+    const key = navMap[cur.id];
+    links.forEach((a) => { const on = a.dataset.nav === key; a.classList.toggle('is-on', on); if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current'); });
+    moveMark(links.find((a) => a.dataset.nav === key));
+  }
+  const ny = sy + 40;
+  const on = paper.some(([a, b]) => ny >= a && ny <= b);
   if (on !== app.onPaper) { app.onPaper = on; nav.classList.toggle('on-paper', on); }
 });
 let lastY = 0;
 lenis.on('scroll', (l) => {
   const y = l.animatedScroll, d = y - lastY;
-  if (Math.abs(d) > 6) { nav.classList.toggle('is-tucked', d > 0 && y > innerHeight * 0.6); lastY = y; }
+  if (Math.abs(d) > 8) { nav.classList.toggle('is-tucked', d > 0 && y > innerHeight * 0.8); lastY = y; }
 });
-const closeMenu = () => { root.classList.remove('menu-open'); $('.nav-burger').setAttribute('aria-expanded', 'false'); lenis.start(); };
-$('.nav-burger').addEventListener('click', () => {
+const burger = $('.nav-burger'), menu = $('#menu');
+const closeMenu = () => { root.classList.remove('menu-open'); burger.setAttribute('aria-expanded', 'false'); menu.setAttribute('aria-hidden', 'true'); lenis.start(); };
+burger.addEventListener('click', () => {
   const open = !root.classList.contains('menu-open');
   root.classList.toggle('menu-open', open);
-  $('.nav-burger').setAttribute('aria-expanded', String(open));
+  burger.setAttribute('aria-expanded', String(open));
+  menu.setAttribute('aria-hidden', String(!open));
   if (open) { lenis.stop(); gsap.fromTo('.menu a', { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 1, ease: 'expo.out', stagger: 0.06, delay: 0.15 }); } else lenis.start();
 });
+addEventListener('keydown', (e) => { if (e.key === 'Escape' && root.classList.contains('menu-open')) closeMenu(); });
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a[href^="#"]');
   if (!a || a.matches('.pj-next')) return;
@@ -180,7 +142,7 @@ document.addEventListener('click', (e) => {
   if (!t) return;
   e.preventDefault();
   if (root.classList.contains('menu-open')) closeMenu();
-  lenis.scrollTo(t.id === 'landing' ? 0 : docY(t) - (app.flow ? 20 : 0), { duration: 1.8, easing: (x) => 1 - Math.pow(1 - x, 4) });
+  lenis.scrollTo(t.id === 'landing' ? 0 : docY(t) - 20, { duration: 1.6, easing: (x) => 1 - Math.pow(1 - x, 4) });
 });
 
 // ---------------------------------------------------------------- cursor
@@ -205,62 +167,11 @@ class Cursor {
 app.cursor = new Cursor();
 function magnet(el) {
   if (!fine || reduced) return;
-  el.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * 0.18, y: (e.clientY - r.top - r.height / 2) * 0.3, duration: 0.6, ease: 'power3.out' }); });
+  el.addEventListener('pointermove', (e) => { const r = el.getBoundingClientRect(); gsap.to(el, { x: (e.clientX - r.left - r.width / 2) * 0.16, y: (e.clientY - r.top - r.height / 2) * 0.28, duration: 0.6, ease: 'power3.out' }); });
   el.addEventListener('pointerleave', () => gsap.to(el, { x: 0, y: 0, duration: 1, ease: 'elastic.out(1, .45)' }));
 }
 
-// ---------------------------------------------------------------- art layers
-// which layers drift with the scroll, and how much (depth)
-const DEPTH = { planet: 0.16, saturn: 0.18 };
-// shown on tablets and phones too
-const KEEP = { s1: ['planet'], s2: ['saturn'], s3: [] };
-// the emblem's glow is drawn by .mantra itself (both layouts)
-const SKIP = new Set(['glow']);
-
-async function buildArt() {
-  let man;
-  try { man = await (await fetch(`assets/v10/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
-  const byId = {};
-  for (const fr of $$('.frame')) {
-    const key = fr.dataset.frame, art = $('.art', fr);
-    for (const l of man[key] || []) {
-      if (SKIP.has(l.id)) continue;
-      const im = new Image();
-      im.alt = ''; im.decoding = 'async'; if (key !== 's1') im.loading = 'lazy';
-      im.src = `assets/v10/${l.src}?v=${V}`;
-      im.className = `ly ly-${key}-${l.id}` + (l.id.startsWith('tear') ? ' ly-tear' : '') + ((KEEP[key] || []).includes(l.id) ? ' keep' : '');
-      im.style.cssText = `--x:${l.x};--y:${l.y};--w:${l.w};--h:${l.h}`;
-      art.append(im);
-      byId[`${key}-${l.id}`] = im;
-    }
-  }
-  return byId;
-}
-
-function animateArt(L) {
-  if (reduced) return;
-  // the black world floats; its red ring tilts slowly about the world's centre
-  const planet = L['s1-planet'];
-  if (planet) {
-    gsap.to(planet, { y: '+=12', duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    gsap.fromTo(planet, { rotation: -1.6 }, { rotation: 1.6, transformOrigin: '62% 42%', duration: 12, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  }
-  // Saturn floats and its rings sway a touch
-  const sat = L['s2-saturn'];
-  if (sat) {
-    gsap.to(sat, { y: '+=12', duration: 8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    gsap.fromTo(sat, { rotation: -1.2 }, { rotation: 1.2, transformOrigin: '50% 48%', duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  }
-  // depth: the worlds drift at their own pace as the page scrolls (wide screens)
-  if (!app.flow) for (const [k, el] of Object.entries(L)) {
-    const d = DEPTH[k.slice(3)]; if (!d) continue;
-    ScrollTrigger.create({ trigger: el.closest('.frame'), start: 'top bottom', end: 'bottom top', scrub: true, onUpdate: (st) => { el.style.translate = `0 ${(-(st.progress - 0.5) * d * 320).toFixed(1)}px`; } });
-  }
-}
-
 // ---------------------------------------------------------------- splash
-// the emblem's star turns in a red ring that fills as the first frame's art
-// loads; then an iris opens onto the landing
 function splash(imgs) {
   const el = $('#splash'), pc = $('.sp-pc', el);
   const shown = { v: 0 }; let done = 0;
@@ -275,7 +186,7 @@ function splash(imgs) {
       if (goal >= 100 && shown.v > 99.4) shown.v = 100;
       pc.textContent = Math.round(shown.v);
       el.style.setProperty('--p', shown.v.toFixed(1));
-      if (shown.v >= 100 && performance.now() - t0 > 1400 || performance.now() - t0 > 9000) {
+      if ((shown.v >= 100 && performance.now() - t0 > 1100) || performance.now() - t0 > 7000) {
         gsap.ticker.remove(tick);
         gsap.timeline({ onComplete: () => el.remove() })
           .to('.sp-name, .sp-sub', { y: -16, opacity: 0, filter: 'blur(8px)', duration: 0.6, ease: 'power3.in', stagger: 0.05 }, 0)
@@ -291,14 +202,12 @@ function splash(imgs) {
 // ---------------------------------------------------------------- build
 async function boot() {
   try { await Promise.all([document.fonts.load('400 100px Anton'), document.fonts.load('600 20px Montserrat'), document.fonts.ready]); } catch (e) {}
-  const L = await buildArt();
-  animateArt(L);
-  await splash(Object.values(L).filter((im) => !im.loading || im.loading !== 'lazy'));
+  const planet = $('.hero-planet'), saturn = $('.saturn');
+  await splash([planet]);
 
-  // the footer emblem, live: two mantra rings turning against each other
+  // the footer emblem: two mantra rings turning against each other round the star
   try {
     $('.mantra').innerHTML = await (await fetch(`assets/v10/mantra.svg?v=${V}`)).text();
-    // the eight-point star sits inside the rings and turns the other way
     const st = new Image(); st.src = `assets/theme/elements/mantra-star.svg?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st);
     if (!reduced) {
       gsap.to(st, { rotation: -360, duration: 160, ease: 'none', repeat: -1 });
@@ -307,57 +216,52 @@ async function boot() {
     }
   } catch (e) {}
 
-  // splits
-  $$('.pf-l').forEach((l) => l.classList.add('ready'));
-  const chars = (sel) => split($(sel), 'chars');
-  const aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
-  const connectC = chars('.connect-title'), contactC = chars('.contact-title');
-  // small screens: the frame's hand-set line breaks would leave ragged lines
-  if (app.flow) $$('[data-reveal="lines"] br').forEach((br) => br.replaceWith(' '));
+  // projects: the corridor and the grid
+  app.cards = new Cards(app);
+  app.grid = new Grid(app, app.cards.page);
+
+  // splits (after layout is final)
+  const chars = (sel) => $(sel) && split($(sel), 'chars');
   const words = $$('[data-reveal="words"]').map((el) => [el, split(el, 'words')]);
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
+  const heads = $$('[data-split]').map((el) => [el, split(el, 'chars')]);
 
-  // the landing: stars, then the red-ringed world swings in, then the title rises
-  const hero = ['s1-planet'].map((k) => L[k]).filter(Boolean);
-  gsap.set('.pf-l > span', { yPercent: 105, filter: 'blur(12px)' });
-  gsap.set('#landing .pop', { y: 24, opacity: 0, filter: 'blur(6px)' });
-  gsap.set(hero, { opacity: 0, scale: 0.94, rotation: -6, transformOrigin: '62% 42%' });
+  // the landing: the red-ringed world swings in, the title rises, the rest follows
+  if (!reduced) {
+    gsap.set('.pf-l > span', { yPercent: 105 });
+    gsap.set('#landing .pop', { y: 24, opacity: 0 });
+    gsap.set(planet, { opacity: 0, scale: 0.92, rotation: -8, transformOrigin: '62% 42%' });
+  }
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
-  tl.to(sky, { alpha: 1, duration: 2.4, ease: 'power1.out' }, 0)
-    .to(hero, { opacity: 1, scale: 1, rotation: 0, duration: 2.6, ease: 'power3.out', clearProps: 'scale' }, 0.2)
-    .to('.pf-l > span', { yPercent: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.1 }, 0.5)
-    .to('#landing .pop', { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, stagger: 0.08 }, 1.2)
-    .add(() => { root.classList.remove('is-loading'); lenis.start(); measure(); app.afterIntro?.(); }, 0.8);
-  const landOut = gsap.timeline({ paused: true })
-    .to('.pf-l > span', { yPercent: -80, opacity: 0, filter: 'blur(10px)', duration: 0.9, ease: 'power3.in', stagger: 0.05 }, 0)
-    .to('#landing .pop', { y: -20, opacity: 0, filter: 'blur(6px)', duration: 0.6, ease: 'power3.in', stagger: 0.04 }, 0);
-  ScrollTrigger.create({ trigger: '#works', start: 'top 40%', onEnter: () => { nav.classList.add('is-shown'); measure(); moveMark(links.find((a) => a.classList.contains('is-on'))); }, onLeaveBack: () => nav.classList.remove('is-shown') });
-  ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: app.flow ? 'bottom 40%' : 'top -55%',
-    onLeave: () => landOut.play(), onEnterBack: () => landOut.reverse() });
+  tl.to(sky, { alpha: 1, duration: 2.4, ease: 'power1.out' }, 0);
+  if (!reduced) {
+    tl.to(planet, { opacity: 1, scale: 1, rotation: 0, duration: 2.6, ease: 'power3.out' }, 0.1)
+      .to('.pf-l > span', { yPercent: 0, duration: 1.5, stagger: 0.08 }, 0.35)
+      .to('#landing .pop', { y: 0, opacity: 1, duration: 1.2, stagger: 0.07 }, 0.9);
+    // the worlds float, sway and drift with the scroll
+    gsap.to(planet, { y: '+=14', duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2.7 });
+    gsap.to(planet, { yPercent: 18, ease: 'none', scrollTrigger: { trigger: '#landing', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.fromTo(saturn, { rotation: -1.2 }, { rotation: 1.2, duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.fromTo(saturn, { yPercent: 10, scale: 0.94 }, { yPercent: -6, scale: 1, ease: 'none', scrollTrigger: { trigger: '#work', start: 'top bottom', end: 'bottom top', scrub: true } });
+  }
+  tl.add(() => { root.classList.remove('is-loading'); lenis.start(); measure(); app.afterIntro?.(); }, 0.6);
 
   // type, section by section
-  inOut(aboutC, '.about-title', { stagger: 0.035 });
-  inOut(contentC, '.content-title', { stagger: 0.06, duration: 1.5, start: 'top 85%' });
-  inOut(thinkC, '.think', { stagger: 0.03, start: 'top 90%' });
-  inOut(projC, '.proj-title', { stagger: 0.05, start: 'top 90%' });
-  inOut(connectC, '.connect-title', { stagger: 0.045, start: 'top 88%' });
-  inOut(contactC, '.contact-title', { stagger: 0.025, start: 'top 90%' });
-  const foot = (el) => el.closest('#footer') ? { start: 'top 95%', end: 'bottom top' } : {};
-  words.forEach(([el, w]) => inOut(w, el, { stagger: 0.05, from: 100, blur: 6, ...foot(el) }));
-  lines.forEach(([el, l]) => inOut(l, el, { stagger: 0.09, from: 100, blur: 6, ...foot(el) }));
-
-  $$('.xp-list li').forEach((li, i) => gsap.from(li, { x: 50, opacity: 0, filter: 'blur(6px)', duration: 1.2, ease: 'expo.out', delay: i * 0.06, scrollTrigger: { trigger: li, start: 'top 88%', end: 'bottom 8%', toggleActions: 'play reverse play reverse' } }));
+  heads.forEach(([el, c]) => rise(c, el, { stagger: el.classList.contains('work-title') ? 0.08 : 0.035, duration: 1.3 }));
+  words.forEach(([el, w]) => rise(w, el, { stagger: 0.05, from: 100 }));
+  lines.forEach(([el, l]) => rise(l, el, { stagger: 0.08, from: 100 }));
+  pops($$('.facts li'), '.facts');
+  pops($$('.xp-list li'), '.xp-list', { stagger: 0.07 });
+  pops($$('.svc'), '.svc-grid', { stagger: 0.1 });
+  pops($$('.cn-btn'), '.cn-btn', { start: 'top 95%' });
+  pops($$('.contact-card, .contact-form'), '.contact-grid', { start: 'top 75%', stagger: 0.12 });
+  pops($$('.foot-grid > *'), '.foot-grid', { start: 'top 95%' });
+  if (!reduced) gsap.from('.mantra', { scale: 0.85, opacity: 0, rotation: -20, duration: 2.2, ease: 'expo.out', scrollTrigger: { trigger: '.mantra', start: 'top 85%', once: true } });
   $$('[data-count]').forEach((el) => {
     const end = +el.dataset.count, suf = el.dataset.suffix || '', o = { v: 0 };
-    ScrollTrigger.create({ trigger: el, start: 'top 85%', onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.8, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
+    if (reduced) return;
+    ScrollTrigger.create({ trigger: el, start: 'top 95%', once: true, onEnter: () => gsap.fromTo(o, { v: 0 }, { v: end, duration: 1.8, delay: 0.9, ease: 'expo.out', onUpdate: () => { el.textContent = Math.round(o.v) + suf; } }) });
   });
-  pops($$('.stats > div'), '.stats', { start: 'top 90%' });
-  $$('.skill-col').forEach((col) => pops($$('.skill-head, .chips li', col), col, { start: 'top 88%' }));
-  pops($$('#works .pop'), '#works .see-more', { start: 'top 95%', end: 'bottom 5%' });
-  pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 95%', end: 'bottom 5%' });
-  pops($$('#contact .pop'), app.flow ? '#contact' : '.form-title', { start: 'top 92%', end: app.flow ? 'bottom 10%' : 'bottom -75%' });
-  pops($$('#footer .pop'), '.foot-copy', { start: 'top 98%', end: 'bottom top' });
-  gsap.from('.mantra', { scale: 0.8, opacity: 0, filter: 'blur(14px)', rotation: -20, duration: 2.2, ease: 'expo.out', scrollTrigger: { trigger: '.mantra', start: 'top 85%', toggleActions: 'play none none reverse' } });
 
   // marquee: an endless, unhurried run that leans on the scroll speed
   const track = $('.mq-track');
@@ -367,13 +271,11 @@ async function boot() {
   lenis.on('scroll', (l) => { boost = Math.min(5, Math.abs(l.velocity) * 0.2); });
   gsap.ticker.add((t, dt) => { if (reduced) return; boost *= 0.94; mx -= (0.7 + boost) * (dt / 16.7); if (mx < -unitW) mx += unitW; track.style.transform = `translate3d(${mx.toFixed(2)}px,0,0)`; });
 
-  // projects: the fan of cards
-  app.cards = new Cards(app);
-
   $$('.btn, .nav-contact, .topic').forEach(magnet);
   measure();
-  addEventListener('resize', () => setTimeout(measure, 80));
-  ScrollTrigger.refresh();
+  let rt;
+  addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { ScrollTrigger.refresh(); measure(); }, 120); });
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => { ScrollTrigger.refresh(); measure(); }, 120); }).observe($('main'));
 }
 
 // ---------------------------------------------------------------- contact form (GitHub Pages: the mail app opens, filled in)

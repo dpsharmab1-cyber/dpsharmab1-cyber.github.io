@@ -129,5 +129,5 @@
 .rp-tear-top, .rp-tear-bottom { position: relative; }
 .rp-tear-top::before, .rp-tear-bottom::after { content: ''; position: absolute; left: 0; right: 0; height: var(--tear-h, 72px); pointer-events: none;
   background-position: center; background-repeat: no-repeat; background-size: auto 100%; }
-.rp-tear-top::before { bottom: 100%; margin-bottom: calc(var(--tear-h, 72px) * -.45); background-image: url(elements/tear-down.svg); background-size: max(100%, calc(var(--tear-h, 72px) * 7.56)) 100%; }
-.rp-tear-bottom::after { top: 100%; margin-top: calc(var(--tear-h, 72px) * -.45); background-image: url(elements/tear-up.svg); background-size: max(100%, calc(var(--tear-h, 72px) * 10.6)) 100%; }
+.rp-tear-top::before { bottom: 100%; margin-bottom: calc(var(--tear-h, 72px) * -.45); background-image: url(elements/tear-down.svg); background-size: 100% 100%; }
+.rp-tear-bottom::after { top: 100%; margin-top: calc(var(--tear-h, 72px) * -.45); background-image: url(elements/tear-up.svg); background-size: 100% 100%; }
