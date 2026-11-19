@@ -379,3 +379,18 @@ html.has-cursor .cursor { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .mq-track i, .mantra::before, .sp-star, .scroll-cue i { animation: none; } }
 .pcard { cursor: pointer; }
 .filter small { margin-left: 4px; font-size: 11px; opacity: .55; }
+
+/* ---------- resume downloads ---------- */
+.nav-resume { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 999px; font: 600 13px/1 var(--font-body); color: #fff; background: var(--red); box-shadow: 0 8px 20px rgba(255, 0, 0, .28); transition: background .4s, transform .5s var(--ease); }
+.nav-resume:hover { background: #d40000; transform: translateY(-2px); }
+.nav-resume .ic { width: 16px; height: 16px; }
+.hero-resume { color: var(--cream); }
+.hero-resume .go { background: transparent; border: 1px solid rgba(255, 224, 181, .5); }
+.hero-resume .go svg { stroke: var(--cream); }
+.hero-resume:hover .go svg { stroke: #fff; }
+.resume-btn { margin-top: 22px; height: 54px; padding-left: 24px; gap: 18px; }
+.resume-btn small { display: block; margin-top: 3px; font-size: 11px; font-weight: 400; color: var(--muted-ink); letter-spacing: .02em; }
+.resume-btn > span { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+.menu .menu-resume { color: var(--cream) !important; font-size: clamp(28px, 8vw, 40px); margin-top: 14px; }
+@media (max-width: 1100px) { .nav-resume { width: 44px; padding: 0; justify-content: center; } .nav-resume span { display: none; } }
+@media (max-width: 760px) { .nav-resume { display: none; } .hero-resume { flex-basis: 100%; } }
