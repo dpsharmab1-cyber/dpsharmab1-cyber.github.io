@@ -1,9 +1,10 @@
-// Portfolio 2026 · Celestial Gold (v9). The three Figma frames as one page: art
-// layers (assets/v9, cut by tools/v9/layers.js),
+// Portfolio 2026 · Red Planet (v10). The three mockup frames as one page: art
+// layers (assets/v10, cut by tools/v10/build_theme.py; the torn edges are
+// vectors from assets/theme/elements),
 // live type and UI on top. Wide screens show the frames scaled to the width;
 // tablets and phones reflow. GSAP drives every motion, Lenis the scroll.
 import Lenis from '../vendor/lenis.mjs';
-import { Cards } from './projects.js?v=91';
+import { Cards } from './projects.js?v=100';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 gsap.registerPlugin(ScrollTrigger, SplitText);
@@ -129,7 +130,7 @@ const docY = (el) => {
   return el.getBoundingClientRect().top + y;
 };
 app.docY = docY;
-const measure = () => { secTops = secs.map((el) => ({ el, top: docY(el) })); };
+const measure = () => { secTops = secs.map((el) => ({ el, top: docY(el) })); measurePaper(); };
 const moveMark = (a) => {
   if (!a || !a.closest('.nav-pill')) { mark.style.opacity = 0; return; }
   mark.style.opacity = 1; mark.style.left = a.offsetLeft + 'px'; mark.style.width = a.offsetWidth + 'px';
@@ -144,6 +145,21 @@ gsap.ticker.add(() => {
   const key = navMap[cur.id];
   links.forEach((a) => a.classList.toggle('is-on', a.dataset.nav === key));
   moveMark(links.find((a) => a.dataset.nav === key));
+});
+// where the paper is (doc y ranges): the nav turns light over it
+let paper = [];
+const measurePaper = () => {
+  const y = lenis.animatedScroll || scrollY, s = app.scale || 1;
+  if (app.flow) { paper = ['#skills', '#projects', '#contact'].map((q) => { const r = document.querySelector(q).getBoundingClientRect(); return [r.top + y - 40, r.bottom + y + 20]; }); return; }
+  const top = (id) => document.getElementById(id).getBoundingClientRect().top + y;
+  const f1 = top('f1'), f2 = top('f2'), f3 = top('f3');
+  paper = [[f1 + 1900 * s, f1 + 2353 * s], [f2 + 1260 * s, f3 + 215 * s], [f3 + 740 * s, f3 + 1737 * s]];
+};
+gsap.ticker.add(() => {
+  if (!paper.length) return;
+  const y = (lenis.animatedScroll || scrollY) + nav.offsetTop + 20;
+  const on = paper.some(([a, b]) => y >= a && y <= b);
+  if (on !== app.onPaper) { app.onPaper = on; nav.classList.toggle('on-paper', on); }
 });
 let lastY = 0;
 lenis.on('scroll', (l) => {
@@ -195,15 +211,15 @@ function magnet(el) {
 
 // ---------------------------------------------------------------- art layers
 // which layers drift with the scroll, and how much (depth)
-const DEPTH = { stars: 0.25, 'stars-2': 0.25, 'hero-halo': 0.14, 'hero-planet': 0.14, 'hero-orbit': 0.14, 'hero-probe': 0.32, crescent: 0.3, comet: 0.4, 'layer-1': 0.1, 'hero-ring-back': 0.18, 'hero-planet-body': 0.18, 'hero-ring-front': 0.18, 'moon-right': 0.3, 'planet-left': 0.15, 'planet-right': 0.2, 'relay-probe': 0.3, 'panel-planet': 0.22 };
+const DEPTH = { planet: 0.16, saturn: 0.18 };
 // shown on tablets and phones too
-const KEEP = { s1: ['hero-halo', 'hero-planet', 'hero-orbit', 'crescent', 'comet'], s2: ['layer-1', 'hero-ring-back', 'hero-planet-body', 'hero-ring-front', 'hero-probe'], s3: ['planet-left', 'planet-right'] };
-// hidden: replaced by live versions (marquee stars, footer backdrop, the emblem's rings)
-const SKIP = new Set(['marq-star-215', 'marq-star-640', 'marq-star-1130', 'footer-bg']);
+const KEEP = { s1: ['planet'], s2: ['saturn'], s3: [] };
+// the emblem's glow is drawn by .mantra itself (both layouts)
+const SKIP = new Set(['glow']);
 
 async function buildArt() {
   let man;
-  try { man = await (await fetch(`assets/v9/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
+  try { man = await (await fetch(`assets/v10/layers.json?v=${V}`)).json(); } catch (e) { return {}; }
   const byId = {};
   for (const fr of $$('.frame')) {
     const key = fr.dataset.frame, art = $('.art', fr);
@@ -211,8 +227,8 @@ async function buildArt() {
       if (SKIP.has(l.id)) continue;
       const im = new Image();
       im.alt = ''; im.decoding = 'async'; if (key !== 's1') im.loading = 'lazy';
-      im.src = `assets/v9/${l.src}?v=${V}`;
-      im.className = `ly ly-${key}-${l.id}` + ((KEEP[key] || []).includes(l.id) ? ' keep' : '');
+      im.src = `assets/v10/${l.src}?v=${V}`;
+      im.className = `ly ly-${key}-${l.id}` + (l.id.startsWith('tear') ? ' ly-tear' : '') + ((KEEP[key] || []).includes(l.id) ? ' keep' : '');
       im.style.cssText = `--x:${l.x};--y:${l.y};--w:${l.w};--h:${l.h}`;
       art.append(im);
       byId[`${key}-${l.id}`] = im;
@@ -223,48 +239,19 @@ async function buildArt() {
 
 function animateArt(L) {
   if (reduced) return;
-  const all = (...ids) => ids.map((i) => L[i]).filter(Boolean);
-  const breathe = (els, d = 6) => els.length && gsap.to(els, { opacity: 0.72, scale: 1.04, duration: d, ease: 'sine.inOut', yoyo: true, repeat: -1, transformOrigin: '50% 50%' });
-  const float = (els, y = 10, d = 7, r = 0) => els.length && gsap.to(els, { y: `+=${y}`, rotation: r ? `+=${r}` : '+=0', duration: d, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  // ringed planets: the planet floats, its rings sway slowly about its centre
-  const ringed = (back, body, front, ox, oy, sway = 2.2) => {
-    const els = all(back, body, front);
-    if (!els.length) return;
-    gsap.to(els, { y: '+=12', duration: 8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-    const rings = all(back, front);
-    gsap.set(rings, { transformOrigin: `${ox}% ${oy}%` });
-    gsap.fromTo(rings, { rotation: -sway }, { rotation: sway, duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  };
-  // the landing's spiked halo breathes round its blue world; the orbit tilts
-  gsap.fromTo(all('s1-hero-halo'), { scale: 0.985 }, { scale: 1.025, transformOrigin: '56.5% 48.5%', duration: 7, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  gsap.to(all('s1-hero-halo'), { opacity: 0.82, duration: 5, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  float(all('s1-hero-planet'), 10, 9);
-  gsap.fromTo(all('s1-hero-orbit'), { rotation: -3 }, { rotation: 3, transformOrigin: '50% 50%', duration: 12, ease: 'sine.inOut', yoyo: true, repeat: -1 });
-  ringed('s2-hero-ring-back', 's2-hero-planet-body', 's2-hero-ring-front', 50, 50, 1.6);
-  ringed('s1-ringed-back', 's1-ringed-body', 's1-ringed-front', 50, 50, 5);
-  breathe(all('s2-layer-1', 's2-layer-10', 's3-layer-14'), 6.5);
-  // probes drift and tilt; moons and crescents bob; comets streak through now and then
-  float(all('s1-hero-probe'), 14, 8, 6); float(all('s2-hero-probe'), 16, 10, -3); float(all('s3-relay-probe'), 12, 9, 5);
-  float(all('s1-crescent'), 8, 7, 4); float(all('s2-moon-right'), 10, 8);
-  for (const id of ['s1-comet', 's2-comet', 's3-comet']) {
-    const el = L[id]; if (!el) continue;
-    gsap.timeline({ repeat: -1, repeatDelay: 5 + Math.random() * 4, delay: 1 + Math.random() * 3 })
-      .fromTo(el, { x: -160, y: 70, opacity: 0 }, { x: 0, y: 0, opacity: 1, duration: 1.2, ease: 'power2.out' })
-      .to(el, { x: 140, y: -62, opacity: 0, duration: 1.4, ease: 'power2.in' });
+  // the black world floats; its red ring tilts slowly about the world's centre
+  const planet = L['s1-planet'];
+  if (planet) {
+    gsap.to(planet, { y: '+=12', duration: 9, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.fromTo(planet, { rotation: -1.6 }, { rotation: 1.6, transformOrigin: '62% 42%', duration: 12, ease: 'sine.inOut', yoyo: true, repeat: -1 });
   }
-  float(all('s3-planet-left'), 14, 12, 2); float(all('s3-planet-right'), -12, 13, -2);
-  float(all('s3-panel-planet'), 10, 6);
-  float(all('s1-path-72', 's1-path-430', 's1-path-760', 's1-path-1080', 's1-path-1440'), 8, 4.5);
-  // the connect title's signal arcs pulse outward
-  all('s3-layer-5', 's3-layer-7', 's3-layer-9', 's3-layer-6', 's3-layer-8', 's3-layer-10').forEach((el, i) => gsap.fromTo(el, { opacity: 0.15 }, { opacity: 1, duration: 1.2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: (i % 3) * 0.4 }));
-  // timeline dots glow in turn
-  const dots = all('s1-exp-dot-1', 's1-exp-dot-2', 's1-exp-dot-3', 's1-exp-dot-4', 's1-exp-dot-5', 's1-exp-dot-6');
-  if (dots.length) gsap.to(dots, { scale: 1.25, filter: 'brightness(1.5)', transformOrigin: '50% 50%', duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: { each: 0.5, repeat: -1, yoyo: true } });
-  // the footer emblem: the spiked halo and star turn one way, the rings the other
-  gsap.to(all('s3-mantra-halo'), { rotation: 360, transformOrigin: '50% 50%', duration: 260, ease: 'none', repeat: -1 });
-  gsap.to(all('s3-mantra-star'), { rotation: -360, transformOrigin: '50% 50%', duration: 160, ease: 'none', repeat: -1 });
-  all('s3-layer-21', 's3-layer-22', 's3-layer-23', 's3-layer-24').forEach((el, i) => gsap.to(el, { rotation: i % 2 ? -360 : 360, transformOrigin: '50% 50%', duration: 200 + i * 40, ease: 'none', repeat: -1 }));
-  // depth: layers drift at their own pace as the page scrolls (wide screens)
+  // Saturn floats and its rings sway a touch
+  const sat = L['s2-saturn'];
+  if (sat) {
+    gsap.to(sat, { y: '+=12', duration: 8, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+    gsap.fromTo(sat, { rotation: -1.2 }, { rotation: 1.2, transformOrigin: '50% 48%', duration: 11, ease: 'sine.inOut', yoyo: true, repeat: -1 });
+  }
+  // depth: the worlds drift at their own pace as the page scrolls (wide screens)
   if (!app.flow) for (const [k, el] of Object.entries(L)) {
     const d = DEPTH[k.slice(3)]; if (!d) continue;
     ScrollTrigger.create({ trigger: el.closest('.frame'), start: 'top bottom', end: 'bottom top', scrub: true, onUpdate: (st) => { el.style.translate = `0 ${(-(st.progress - 0.5) * d * 320).toFixed(1)}px`; } });
@@ -310,12 +297,13 @@ async function boot() {
 
   // the footer emblem, live: two mantra rings turning against each other
   try {
-    $('.mantra').innerHTML = await (await fetch(`assets/v9/mantra.svg?v=${V}`)).text();
-    // small screens: the emblem's star sits inside the rings (the art layers are hidden there)
-    if (app.flow) { const st = new Image(); st.src = `assets/v9/s3-mantra-star.webp?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st); if (!reduced) gsap.to(st, { rotation: 360, duration: 160, ease: 'none', repeat: -1 }); }
+    $('.mantra').innerHTML = await (await fetch(`assets/v10/mantra.svg?v=${V}`)).text();
+    // the eight-point star sits inside the rings and turns the other way
+    const st = new Image(); st.src = `assets/theme/elements/mantra-star.svg?v=${V}`; st.alt = ''; st.className = 'mantra-star'; $('.mantra').append(st);
     if (!reduced) {
-      gsap.to('.mantra .ring-outer', { rotation: 360, svgOrigin: '756 2160', duration: 120, ease: 'none', repeat: -1 });
-      gsap.to('.mantra .ring-inner', { rotation: -360, svgOrigin: '756 2160', duration: 90, ease: 'none', repeat: -1 });
+      gsap.to(st, { rotation: -360, duration: 160, ease: 'none', repeat: -1 });
+      gsap.to('.mantra .ring-outer', { rotation: 360, svgOrigin: '756 2236', duration: 120, ease: 'none', repeat: -1 });
+      gsap.to('.mantra .ring-inner', { rotation: -360, svgOrigin: '756 2236', duration: 90, ease: 'none', repeat: -1 });
     }
   } catch (e) {}
 
@@ -324,24 +312,26 @@ async function boot() {
   const chars = (sel) => split($(sel), 'chars');
   const aboutC = chars('.about-title'), contentC = chars('.content-title'), thinkC = chars('.think'), projC = chars('.proj-title');
   const connectC = chars('.connect-title'), contactC = chars('.contact-title');
+  // small screens: the frame's hand-set line breaks would leave ragged lines
+  if (app.flow) $$('[data-reveal="lines"] br').forEach((br) => br.replaceWith(' '));
   const words = $$('[data-reveal="words"]').map((el) => [el, split(el, 'words')]);
   const lines = $$('[data-reveal="lines"]').map((el) => [el, split(el, 'lines')]);
 
-  // the landing: stars, then the planet blooms in, then the title rises
-  const hero = ['s1-hero-halo', 's1-hero-planet', 's1-hero-orbit'].map((k) => L[k]).filter(Boolean);
+  // the landing: stars, then the red-ringed world swings in, then the title rises
+  const hero = ['s1-planet'].map((k) => L[k]).filter(Boolean);
   gsap.set('.pf-l > span', { yPercent: 105, filter: 'blur(12px)' });
   gsap.set('#landing .pop', { y: 24, opacity: 0, filter: 'blur(6px)' });
-  gsap.set(hero, { opacity: 0, scale: 0.94, transformOrigin: '60% 50%' });
+  gsap.set(hero, { opacity: 0, scale: 0.94, rotation: -6, transformOrigin: '62% 42%' });
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
   tl.to(sky, { alpha: 1, duration: 2.4, ease: 'power1.out' }, 0)
-    .to(hero, { opacity: 1, scale: 1, duration: 2.6, ease: 'power3.out', stagger: 0.12, clearProps: 'scale' }, 0.2)
+    .to(hero, { opacity: 1, scale: 1, rotation: 0, duration: 2.6, ease: 'power3.out', clearProps: 'scale' }, 0.2)
     .to('.pf-l > span', { yPercent: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.1 }, 0.5)
     .to('#landing .pop', { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.2, stagger: 0.08 }, 1.2)
     .add(() => { root.classList.remove('is-loading'); lenis.start(); measure(); app.afterIntro?.(); }, 0.8);
   const landOut = gsap.timeline({ paused: true })
     .to('.pf-l > span', { yPercent: -80, opacity: 0, filter: 'blur(10px)', duration: 0.9, ease: 'power3.in', stagger: 0.05 }, 0)
     .to('#landing .pop', { y: -20, opacity: 0, filter: 'blur(6px)', duration: 0.6, ease: 'power3.in', stagger: 0.04 }, 0);
-  ScrollTrigger.create({ trigger: '#projects', start: 'top 60%', onEnter: () => { nav.classList.add('is-shown'); measure(); moveMark(links.find((a) => a.classList.contains('is-on'))); }, onLeaveBack: () => nav.classList.remove('is-shown') });
+  ScrollTrigger.create({ trigger: '#works', start: 'top 40%', onEnter: () => { nav.classList.add('is-shown'); measure(); moveMark(links.find((a) => a.classList.contains('is-on'))); }, onLeaveBack: () => nav.classList.remove('is-shown') });
   ScrollTrigger.create({ trigger: '#landing', start: 'top top', end: app.flow ? 'bottom 40%' : 'top -55%',
     onLeave: () => landOut.play(), onEnterBack: () => landOut.reverse() });
 
@@ -365,7 +355,7 @@ async function boot() {
   $$('.skill-col').forEach((col) => pops($$('.skill-head, .chips li', col), col, { start: 'top 88%' }));
   pops($$('#works .pop'), '#works .see-more', { start: 'top 95%', end: 'bottom 5%' });
   pops($$('#connect .pop'), '#connect .cn-btn', { start: 'top 95%', end: 'bottom 5%' });
-  pops($$('#contact .pop'), app.flow ? '#contact' : '.contact-card', { start: 'top 85%', end: app.flow ? 'bottom 10%' : 'bottom -40%' });
+  pops($$('#contact .pop'), app.flow ? '#contact' : '.form-title', { start: 'top 92%', end: app.flow ? 'bottom 10%' : 'bottom -75%' });
   pops($$('#footer .pop'), '.foot-copy', { start: 'top 98%', end: 'bottom top' });
   gsap.from('.mantra', { scale: 0.8, opacity: 0, filter: 'blur(14px)', rotation: -20, duration: 2.2, ease: 'expo.out', scrollTrigger: { trigger: '.mantra', start: 'top 85%', toggleActions: 'play none none reverse' } });
 

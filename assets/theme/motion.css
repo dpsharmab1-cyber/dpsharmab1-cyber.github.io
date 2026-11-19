@@ -1,0 +1,52 @@
+/* =========================================================================
+   Red Planet · motion
+   Loops for the art, reveals for type, and the hover language. Each loop
+   is a class with custom properties, so one rule serves every element:
+     <img class="rp-float" style="--amp:14px;--dur:9s">
+   The site runs the same specs through GSAP (js/main.js); the table in the
+   asset page lists both. Everything stops under prefers-reduced-motion.
+   ========================================================================= */
+
+/* ---- loops --------------------------------------------------------------- */
+@keyframes rp-float   { 50% { translate: 0 var(--amp, 12px); } }
+@keyframes rp-sway    { from { rotate: calc(var(--deg, 2.5deg) * -1); } to { rotate: var(--deg, 2.5deg); } }
+@keyframes rp-spin    { to { rotate: 360deg; } }
+@keyframes rp-breathe { 50% { opacity: var(--lo, .72); scale: var(--grow, 1.04); } }
+@keyframes rp-twinkle { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes rp-glow    { 50% { filter: drop-shadow(0 0 var(--glow, 26px) rgba(255, 0, 0, .75)); } }
+@keyframes rp-marquee { to { translate: -50% 0; } }
+@keyframes rp-comet   { 0% { translate: -160px 70px; opacity: 0; } 30% { opacity: 1; } 70% { opacity: 1; } 100% { translate: 160px -70px; opacity: 0; } }
+
+.rp-float   { animation: rp-float var(--dur, 8s) var(--ease-soft) infinite; }
+.rp-sway    { animation: rp-sway var(--dur, 11s) var(--ease-soft) infinite alternate; transform-origin: var(--origin, 50% 50%); }
+.rp-spin    { animation: rp-spin var(--dur, 160s) linear infinite; }
+.rp-spin-rev { animation: rp-spin var(--dur, 120s) linear infinite reverse; }
+.rp-breathe { animation: rp-breathe var(--dur, 6s) var(--ease-soft) infinite; }
+.rp-twinkle { animation: rp-twinkle var(--dur, 2.8s) var(--ease-soft) infinite; animation-delay: var(--delay, 0s); }
+.rp-glow    { animation: rp-glow var(--dur, 3.2s) var(--ease-soft) infinite; }
+.rp-comet   { animation: rp-comet var(--dur, 2.6s) var(--ease-io) infinite; animation-delay: var(--delay, 1s); }
+.rp-marquee-track.is-running { animation: rp-marquee var(--dur, 28s) linear infinite; }
+
+/* ---- reveals (add [data-rp] and let motion.js add .is-in) ---------------- */
+[data-rp] { transition: opacity var(--t-reveal) var(--ease), translate var(--t-reveal) var(--ease), filter var(--t-reveal) var(--ease), clip-path 1.4s var(--ease-io); transition-delay: var(--delay, 0s); }
+[data-rp="rise"]  { opacity: 0; translate: 0 40px; filter: blur(8px); }
+[data-rp="pop"]   { opacity: 0; translate: 0 24px; filter: blur(6px); }
+[data-rp="tear"]  { clip-path: inset(0 100% 0 0); }               /* torn paper slides in */
+[data-rp="iris"]  { clip-path: circle(0 at 50% 50%); }            /* the splash and the emblem */
+[data-rp].is-in   { opacity: 1; translate: 0 0; filter: blur(0); clip-path: inset(0 0 0 0); }
+[data-rp="iris"].is-in { clip-path: circle(75% at 50% 50%); }
+/* display type rises letter by letter out of a mask */
+.rp-mask { display: inline-block; overflow: clip; overflow-clip-margin: .14em; vertical-align: top; }
+.rp-mask > span { display: inline-block; translate: 0 105%; transition: translate 1.4s var(--ease); transition-delay: calc(var(--i, 0) * 60ms); }
+.is-in .rp-mask > span, .rp-mask.is-in > span { translate: 0 0; }
+
+/* ---- hover language ---------------------------------------------------- */
+.rp-lift { transition: translate .6s var(--ease), box-shadow .6s var(--ease); }
+.rp-lift:hover { translate: 0 -4px; box-shadow: 0 14px 30px rgba(0, 0, 0, .18); }
+.rp-underline { background: linear-gradient(var(--red), var(--red)) 0 100% / 0 1.5px no-repeat; transition: background-size .6s var(--ease); }
+.rp-underline:hover { background-size: 100% 1.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-float, .rp-sway, .rp-spin, .rp-spin-rev, .rp-breathe, .rp-twinkle, .rp-glow, .rp-comet, .rp-marquee-track.is-running { animation: none; }
+  [data-rp], .rp-mask > span { transition: none; opacity: 1; translate: none; filter: none; clip-path: none; }
+}

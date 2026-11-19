@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Red Planet · Asset Pack</title>
+<meta name="description" content="Design tokens, icons, elements, animations, cards and layouts for Deepak Sharma's Portfolio 2026 (v10, Red Planet theme).">
+<meta name="robots" content="noindex">
+<link rel="icon" href="elements/red-planet.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<link rel="stylesheet" href="motion.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--space); color-scheme: dark; overflow-x: clip; }
+  body { font: 400 15px/1.6 var(--font-body); color: var(--cream); background: var(--space) url(elements/starfield.svg) 0 0 / 400px; overflow-x: clip; }
+  a { color: inherit; text-decoration: none; }
+  button { font: inherit; border: 0; background: none; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--red); outline-offset: 3px; }
+  .wrap { width: min(1180px, 100% - 32px); margin: 0 auto; }
+  header.top { padding: 72px 0 56px; position: relative; overflow: hidden; }
+  header.top .planet { position: absolute; right: -60px; top: -40px; width: min(420px, 60vw); opacity: .95; }
+  header.top h1 { font: 400 clamp(64px, 13vw, 168px)/.9 var(--font-display); text-transform: uppercase; color: var(--cream); position: relative; }
+  header.top h1 em { font-style: normal; color: var(--red); }
+  header.top p { max-width: 560px; margin-top: 22px; color: var(--dust); position: relative; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; position: relative; }
+  .toc a { text-decoration: none; }
+  section.blk { padding: 72px 0; position: relative; }
+  section.blk[data-surface="paper"] { background: var(--paper); color: var(--ink); }
+  section.blk[data-surface="paper"].rp-tear-top { --tear-h: 90px; margin-top: 40px; }
+  section.blk[data-surface="paper"].rp-tear-bottom { margin-bottom: 40px; }
+  .h2 { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+  .h2 b { font: 400 clamp(40px, 7vw, 64px)/1 var(--font-display); text-transform: uppercase; color: var(--cream); }
+  [data-surface="paper"] .h2 b { color: var(--ink); }
+  .h2 small { font-size: 13px; letter-spacing: .2em; text-transform: uppercase; color: var(--red); }
+  .note { color: var(--dust); font-size: 14px; max-width: 720px; margin: -12px 0 26px; }
+  [data-surface="paper"] .note { color: var(--muted-ink); }
+  code { font: 500 12.5px/1.4 ui-monospace, Consolas, monospace; background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 6px; }
+  [data-surface="paper"] code { background: #f1f1f1; }
+  .grid { display: grid; gap: 14px; }
+  .g4 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); }
+  .g6 { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+  /* swatches */
+  .sw { border-radius: 16px; overflow: hidden; border: 1px solid #222; background: #0b0b0b; }
+  .sw i { display: block; height: 96px; }
+  .sw div { padding: 12px 14px; font-size: 13px; }
+  .sw b { display: block; color: var(--white); }
+  .sw span { color: var(--dust); }
+  /* type */
+  .type-row { display: grid; grid-template-columns: 170px 1fr; gap: 20px; align-items: baseline; padding: 18px 0; border-top: 1px solid var(--rule-dark); }
+  .type-row small { color: var(--dust); font-size: 12px; }
+  .type-row .ex { overflow-wrap: anywhere; min-width: 0; }
+  /* spacing */
+  .sp { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+  .sp i { display: block; height: 14px; background: var(--red); border-radius: 3px; }
+  .radii { display: flex; flex-wrap: wrap; gap: 18px; }
+  .radii div { width: 120px; height: 80px; background: #1a1a1a; border: 1px solid #333; display: grid; place-items: end start; padding: 10px; font-size: 12px; color: var(--dust); }
+  .shadows { display: flex; flex-wrap: wrap; gap: 26px; }
+  .shadows div { width: 170px; height: 90px; border-radius: 18px; background: #fff; display: grid; place-items: center; font-size: 12px; color: #333; }
+  /* icons */
+  .ico { aspect-ratio: 1; border-radius: 14px; border: 1px solid #ececec; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 11px; color: var(--muted-ink); transition: color .4s, border-color .4s, translate .5s var(--ease); }
+  .ico svg { width: 28px; height: 28px; color: var(--ink); transition: color .4s; }
+  .ico:hover { border-color: var(--red); translate: 0 -3px; }
+  .ico:hover svg { color: var(--red); }
+  /* elements */
+  .el { border-radius: 18px; border: 1px solid #222; background: #050505; overflow: hidden; }
+  .el .stage { height: 220px; display: grid; place-items: center; position: relative; overflow: hidden; }
+  .el .stage img { max-width: 92%; max-height: 92%; }
+  .el p { padding: 12px 16px; font-size: 13px; color: var(--dust); border-top: 1px solid #1c1c1c; }
+  .el p b { color: var(--white); display: block; }
+  .stage.tear { background: #000; place-items: stretch; }
+  .stage.tear img { position: absolute; left: 50%; top: 50%; width: 1100px; max-width: none; max-height: none; translate: -50% -50%; }
+  .stage.tear.paper-top { background: linear-gradient(#fff 50%, #000 50%); }
+  .stage.tear.paper-bot { background: linear-gradient(#000 50%, #fff 50%); }
+  /* animation demos */
+  .anim .stage { background: #000; }
+  .anim .stage .dot { width: 70px; height: 70px; }
+  table.spec { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 28px; }
+  table.spec th, table.spec td { text-align: left; padding: 10px 12px; border-top: 1px solid var(--rule-dark); vertical-align: top; }
+  table.spec th { color: var(--red); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; }
+  .tbl { overflow-x: auto; }
+  /* components */
+  .demo { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 28px; border-radius: 20px; }
+  .demo.dark { background: #000; border: 1px solid #1f1f1f; }
+  .demo.light { background: #fff; }
+  .demo + .cap { margin: 10px 4px 30px; font-size: 13px; color: var(--muted-ink); }
+  .form { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; width: 100%; }
+  .form .full { grid-column: 1 / -1; }
+  .panel-demo { width: min(100%, 460px); padding: 8px 26px; }
+  .panel-demo div { display: grid; grid-template-columns: 130px 1fr; padding: 16px 0; font-size: 13px; }
+  .panel-demo div + div { border-top: 1px solid var(--rule-light); }
+  .stats-demo { display: flex; gap: 46px; }
+  .xp-demo { width: min(100%, 520px); }
+  .rp-marquee { width: 100%; border-radius: 0; }
+  /* cards */
+  .corr { position: relative; height: 380px; perspective: 900px; perspective-origin: 50% 40%; overflow: hidden; }
+  .corr .rp-card { position: absolute; left: 0; top: 40px; width: 150px; }
+  .corr::after { content: ''; position: absolute; inset: auto 0 0; height: 110px; background: linear-gradient(transparent, #fff 85%); pointer-events: none; }
+  .posters { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px; margin-top: 30px; }
+  .posters figure { font-size: 11px; color: var(--muted-ink); text-align: center; }
+  .posters img { width: 100%; border-radius: 2px; display: block; margin-bottom: 6px; box-shadow: var(--shadow-chip); }
+  /* layouts */
+  .frames { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 24px; }
+  .frame-card { background: #0b0b0b; border: 1px solid #222; border-radius: 18px; overflow: hidden; }
+  .frame-card .shot { position: relative; }
+  .frame-card .shot img { width: 100%; display: block; }
+  .frame-card .shot i { position: absolute; left: 0; right: 0; border: 1px dashed rgba(255, 0, 0, .8); background: rgba(255, 0, 0, .06); font: 600 10px/1 var(--font-body); letter-spacing: .1em; color: #fff; padding: 4px 6px; text-transform: uppercase; font-style: normal; text-shadow: 0 1px 2px #000; }
+  .frame-card ol { list-style: none; padding: 14px 18px 18px; font-size: 13px; color: var(--dust); }
+  .frame-card li { padding: 6px 0; border-top: 1px solid #1c1c1c; }
+  .frame-card li b { color: var(--white); }
+  footer.end { padding: 60px 0 90px; color: var(--dust); font-size: 13px; }
+  @media (max-width: 640px) {
+    .type-row { grid-template-columns: 1fr; gap: 6px; }
+    .form { grid-template-columns: 1fr; }
+    .stats-demo { gap: 26px; }
+    section.blk { padding: 56px 0; }
+    .demo { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top wrap">
+  <img class="planet rp-float" style="--amp:14px;--dur:9s" src="elements/red-planet.svg" alt="">
+  <p class="rp-eyebrow red" style="letter-spacing:.25em">Portfolio 2026 · v10</p>
+  <h1>Red <em>Planet</em><br>asset pack</h1>
+  <p>Everything the new theme is built from, taken from the three mockups: tokens, icons, elements, motion, components, cards and the section layouts. The site loads <code>tokens.css</code>, <code>components.css</code> and <code>icons.svg</code> straight from this folder.</p>
+  <nav class="toc" aria-label="Sections">
+    <a class="rp-chip" href="#colour">Colour</a><a class="rp-chip" href="#type">Type</a><a class="rp-chip" href="#space">Space &amp; radii</a><a class="rp-chip" href="#icons">Icons</a><a class="rp-chip" href="#elements">Elements</a><a class="rp-chip" href="#motion">Motion</a><a class="rp-chip" href="#components">Components</a><a class="rp-chip" href="#cards">Cards</a><a class="rp-chip" href="#layouts">Layouts</a>
+  </nav>
+</header>
+
+<main>
+<!-- ============ colour -->
+<section class="blk wrap" id="colour">
+  <div class="h2"><b>Colour</b><small>tokens.css</small></div>
+  <p class="note">Two surfaces, space and torn paper, and two inks, cream and red. Red is the planet: headlines, numbers, the one active thing. Cream is for display type on black.</p>
+  <div class="grid g4" id="swatches"></div>
+</section>
+
+<!-- ============ type -->
+<section class="blk wrap" id="type">
+  <div class="h2"><b>Type</b><small>Anton · Montserrat · Noto Sans Devanagari</small></div>
+  <p class="note">Anton, always upper case, carries every headline; Montserrat does the rest. Sizes are the frame's (1512 px wide); the site scales the frame on wide screens and uses fluid sizes on phones.</p>
+  <div class="type-row"><small>Hero · Anton 200</small><div class="ex rp-display" style="font-size:clamp(72px,12vw,150px)"><span class="cream">PO</span><span class="red">20</span></div></div>
+  <div class="type-row"><small>H1 · Anton 130 · red</small><div class="ex rp-display red" style="font-size:clamp(46px,8vw,104px)">Let’s connect</div></div>
+  <div class="type-row"><small>H2 · Anton 96 · cream</small><div class="ex rp-display cream" style="font-size:clamp(40px,6.4vw,82px)">Deepak Sharma</div></div>
+  <div class="type-row"><small>H3 · Anton 64</small><div class="ex rp-display" style="font-size:clamp(36px,5vw,64px);color:var(--white)">Content</div></div>
+  <div class="type-row"><small>Tag · Anton 30 · red</small><div class="ex rp-display red" style="font-size:30px">Think beyond</div></div>
+  <div class="type-row"><small>Stat · Montserrat 700 48</small><div class="ex" style="font:700 48px/1 var(--font-body);color:var(--red)">7+</div></div>
+  <div class="type-row"><small>Lead · Montserrat 700 20</small><div class="ex" style="font:700 20px/1 var(--font-body);color:var(--red);letter-spacing:.04em">GRAPHIC DESIGNER</div></div>
+  <div class="type-row"><small>Eyebrow · 500 16</small><div class="ex rp-eyebrow cream" style="font-size:16px">About me</div></div>
+  <div class="type-row"><small>Body · 400 14 / 22</small><div class="ex rp-body cream" style="max-width:520px">A detail-oriented senior graphics and visual designer with 7+ years across brand identity, UI/UX, game assets, 3D modeling, packaging and print.</div></div>
+  <div class="type-row"><small>Mantra · Devanagari 600</small><div class="ex cream" style="font:600 20px/1.4 var(--font-mantra)">ॐ सर्वे भवन्तु सुखिनः</div></div>
+</section>
+
+<!-- ============ space -->
+<section class="blk wrap" id="space">
+  <div class="h2"><b>Space, radii, depth</b><small>8 px base</small></div>
+  <div class="grid g3">
+    <div class="grid" id="spaces" style="gap:10px"></div>
+    <div>
+      <p class="note" style="margin:0 0 14px">Radii: pills for anything you press, 20 px for fields and panels, near-square slabs for the work.</p>
+      <div class="radii"><div style="border-radius:999px">pill · 999</div><div style="border-radius:20px">field · 20</div><div style="border-radius:19px">chip · 19</div><div style="border-radius:2px">card · 2</div></div>
+    </div>
+  </div>
+  <p class="note" style="margin:34px 0 14px">Depth on paper is soft and low, straight from the mockup's drop shadows:</p>
+  <div class="shadows"><div style="box-shadow:var(--shadow-chip)">--shadow-chip</div><div style="box-shadow:var(--shadow-field)">--shadow-field</div><div style="box-shadow:var(--shadow-nav)">--shadow-nav</div><div style="box-shadow:var(--shadow-panel)">--shadow-panel</div><div style="box-shadow:var(--glow-red)">--glow-red</div></div>
+</section>
+
+<!-- ============ icons -->
+<section class="blk rp-tear-top rp-tear-bottom" data-surface="paper" id="icons">
+  <div class="wrap">
+    <div class="h2"><b>Icons</b><small>icons.svg · icons/*.svg</small></div>
+    <p class="note">45 icons on a 24 px grid: 1.8 px round strokes in <code>currentColor</code>, and filled glyphs for the theme's own shapes. Use the sprite: <code>&lt;svg&gt;&lt;use href="icons.svg#arrow-right"/&gt;&lt;/svg&gt;</code>, or a single file from <code>icons/</code>.</p>
+    <div class="grid g6" id="iconGrid"></div>
+  </div>
+</section>
+
+<!-- ============ elements -->
+<section class="blk wrap" id="elements">
+  <div class="h2"><b>Elements &amp; SVG pack</b><small>elements/ · ../v10/</small></div>
+  <p class="note">Vector where it can be, rendered at 2x where the mockup's gradients need it. Torn edges keep their black side clear, so the live starfield shows through.</p>
+  <div class="grid g3">
+    <div class="el"><div class="stage tear paper-bot"><img src="elements/tear-down.svg" alt=""></div><p><b>tear-down.svg</b>Black sheet above, paper below (landing, content)</p></div>
+    <div class="el"><div class="stage tear paper-top"><img src="elements/tear-up.svg" alt=""></div><p><b>tear-up.svg</b>Paper above, black sheet below (connect band)</p></div>
+    <div class="el"><div class="stage tear paper-bot"><img src="elements/tear-down-3.svg" alt=""></div><p><b>tear-down-3.svg</b>The connect band's lower edge</p></div>
+    <div class="el"><div class="stage"><img src="../v10/s1-planet.webp" alt=""></div><p><b>s1-planet.webp</b>The landing's black world in its red ring (2x)</p></div>
+    <div class="el"><div class="stage"><img src="../v10/s2-saturn.webp" alt=""></div><p><b>s2-saturn.webp</b>The red Saturn over CONTENT (2x)</p></div>
+    <div class="el"><div class="stage"><img src="elements/red-planet.svg" alt="" style="width:170px"></div><p><b>red-planet.svg</b>The world, flat: splash, badges, favicon</p></div>
+    <div class="el"><div class="stage" style="background:#000"><img src="elements/glow-ring.svg" alt="" style="position:absolute;width:200px"><img src="elements/mantra-star.svg" alt="" style="position:absolute;width:118px"></div><p><b>glow-ring.svg + mantra-star.svg</b>The footer emblem's two layers</p></div>
+    <div class="el"><div class="stage"><img src="elements/orbit-ring.svg" alt=""></div><p><b>orbit-ring.svg</b>Saturn's ring bands in greys</p></div>
+    <div class="el"><div class="stage" style="background:#000 url(elements/starfield.svg) 0 0 / 200px"></div><p><b>starfield.svg</b>A 400 px tile of the mockups' stars</p></div>
+  </div>
+</section>
+
+<!-- ============ motion -->
+<section class="blk wrap" id="motion">
+  <div class="h2"><b>Motion</b><small>motion.css · motion.js · GSAP on the site</small></div>
+  <p class="note">Unhurried and weightless: worlds float and sway, the emblem turns, type rises out of a mask. Every loop is a class with custom properties; reduced motion stops them all.</p>
+  <div class="grid g4 anim">
+    <div class="el"><div class="stage"><img class="rp-float" style="--amp:16px;--dur:6s;width:90px" src="elements/red-planet.svg" alt=""></div><p><b>.rp-float</b>--amp 12px · --dur 8s · sine</p></div>
+    <div class="el"><div class="stage"><img class="rp-sway" style="--deg:6deg;--dur:4s;width:180px" src="elements/orbit-ring.svg" alt=""></div><p><b>.rp-sway</b>--deg 2.5° · --dur 11s · alternate</p></div>
+    <div class="el"><div class="stage"><img class="rp-spin" style="--dur:24s;width:110px" src="elements/mantra-star.svg" alt=""></div><p><b>.rp-spin / .rp-spin-rev</b>star 160s, rings 120s / 90s</p></div>
+    <div class="el"><div class="stage"><img class="rp-glow rp-breathe" style="width:150px" src="elements/glow-ring.svg" alt=""></div><p><b>.rp-glow + .rp-breathe</b>3.2s glow, 6s breath</p></div>
+    <div class="el"><div class="stage" style="background:#000 url(elements/starfield.svg) 0 0 / 200px"><svg class="rp-comet" width="70" height="70" style="color:var(--cream)"><use href="icons.svg#comet"/></svg></div><p><b>.rp-comet</b>a streak every few seconds</p></div>
+    <div class="el"><div class="stage"><svg class="rp-twinkle" width="40" height="40" style="color:var(--cream)"><use href="icons.svg#sparkle"/></svg><svg class="rp-twinkle" width="22" height="22" style="color:var(--red);--delay:.9s;position:absolute;left:30%;top:30%"><use href="icons.svg#sparkle"/></svg></div><p><b>.rp-twinkle</b>2.8s, staggered by --delay</p></div>
+    <div class="el"><div class="stage" id="maskDemo"><div class="rp-display red" style="font-size:64px" data-split>Content</div></div><p><b>.rp-mask rise</b>letters 60 ms apart, 1.4s expo-out <button class="rp-chip" id="replay" style="margin-top:10px;height:30px">Replay</button></p></div>
+    <div class="el"><div class="stage" style="background:linear-gradient(#000 50%,#fff 50%)"><img data-rp="tear" src="elements/tear-down.svg" alt="" style="width:600px;max-width:none" id="tearDemo"></div><p><b>[data-rp="tear"]</b>paper tears in from the left, 1.4s</p></div>
+  </div>
+  <div class="tbl"><table class="spec">
+    <thead><tr><th>Move</th><th>Where</th><th>Spec</th></tr></thead>
+    <tbody>
+      <tr><td>Splash</td><td>first load</td><td>red ring fills with load progress; star spins 14s; iris closes 1.3s <code>expo.inOut</code></td></tr>
+      <tr><td>Hero rise</td><td>PO 20 / RT 26 / FOLIO</td><td>each line yPercent 105 → 0, blur 12 → 0, 1.6s <code>expo.out</code>, 0.1s stagger</td></tr>
+      <tr><td>Planet in</td><td>landing world</td><td>opacity 0 → 1, scale .94 → 1, rotate -6° → 0, 2.6s <code>power3.out</code>; then float 10px / 9s and sway ±2° / 12s</td></tr>
+      <tr><td>Headline mask</td><td>DEEPAK SHARMA, CONTENT, LET’S CONNECT</td><td>chars yPercent 110 → 0, blur 10 → 0, 1.25s <code>expo.out</code>, 30–60 ms stagger; reverse on leave</td></tr>
+      <tr><td>Pop</td><td>stats, chips, form</td><td>y 30 → 0, blur 6 → 0, 1.1s <code>expo.out</code>, 0.05s stagger</td></tr>
+      <tr><td>Count up</td><td>7+ · 6 · 4</td><td>0 → n, 1.8s <code>expo.out</code></td></tr>
+      <tr><td>Saturn</td><td>content hero</td><td>float 12px / 8s; scroll parallax 0.18</td></tr>
+      <tr><td>Corridor</td><td>the work</td><td>slabs turn on Y: 62° near the middle, 26° at the ends; drag or arrows glide 5.5/s; centre card shows the real work</td></tr>
+      <tr><td>Marquee</td><td>name band</td><td>0.7 px/frame, speeds up with scroll velocity (×5 max)</td></tr>
+      <tr><td>Emblem</td><td>footer</td><td>star 160s, outer mantra 120s, inner 90s reversed; glow breathes 6s</td></tr>
+      <tr><td>Hover</td><td>buttons, chips, labels</td><td>go-dot turns red, rotates -12°; chips lift 3px and fill red; magnet pull 0.18 × offset</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ============ components -->
+<section class="blk rp-tear-top" data-surface="paper" id="components">
+  <div class="wrap">
+    <div class="h2"><b>Components</b><small>components.css</small></div>
+    <p class="note">Each component sits on black by default and switches when it is inside <code>[data-surface="paper"]</code>. The site's own class names share the same rules.</p>
+
+    <div class="demo dark" data-surface="space">
+      <nav class="rp-nav" aria-label="Demo nav"><i class="rp-nav-mark" style="left:6px;width:76px"></i><a class="is-on" href="#components">Home</a><a href="#components">Services</a><a href="#components">About Me</a><a href="#components">Projects</a></nav>
+      <a class="rp-nav-cta" href="#components">Contact</a>
+      <a class="rp-btn" href="#components">Start a conversation<i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+      <a class="rp-btn rp-btn--red" href="#components">Open project<i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+    </div>
+    <p class="cap">Nav pills, the moving red mark, and buttons on space.</p>
+
+    <div class="demo light">
+      <nav class="rp-nav" aria-label="Demo nav on paper" style="background:var(--glass-light);border-color:rgba(0,0,0,.04)"><a href="#components" style="color:var(--slate)">Home</a><a href="#components" style="color:var(--slate)">Services</a><a href="#components" style="color:var(--slate)">About Me</a><a href="#components" style="color:var(--slate)">Projects</a></nav>
+      <a class="rp-btn" href="#components">Send Message<i class="go"><svg viewBox="0 0 24 24"><path d="M5 12h13M12.5 6.5 18 12l-5.5 5.5"/></svg></i></a>
+      <a class="rp-btn rp-btn--bare" href="#components">SEE MORE<i class="go"><svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg></i></a>
+    </div>
+    <p class="cap">On paper: slate nav labels, white pill, bare SEE MORE.</p>
+
+    <div class="demo light">
+      <span class="rp-chip">Visual Design</span><span class="rp-chip">Branding</span><span class="rp-chip">Logo design</span><span class="rp-chip">UI / UX</span><span class="rp-chip">Blender 3D</span><span class="rp-chip">AI workflows</span>
+    </div>
+    <p class="cap">Chips (skills): white glass and a soft drop; they fill red on hover.</p>
+
+    <div class="demo light" style="display:block">
+      <div class="topics" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:22px" role="radiogroup" aria-label="Topic">
+        <button class="rp-topic is-on" role="radio" aria-checked="true">A New Project</button><button class="rp-topic" role="radio" aria-checked="false">A Design Role</button><button class="rp-topic" role="radio" aria-checked="false">Just Saying hi</button>
+      </div>
+      <div class="form">
+        <label class="rp-field"><span>Name</span><input autocomplete="off"></label>
+        <label class="rp-field"><span>Email</span><input type="email" autocomplete="off"></label>
+        <label class="rp-field full"><span>Message*</span><textarea></textarea></label>
+      </div>
+    </div>
+    <p class="cap">Topic pills and fields: the contact form's parts.</p>
+
+    <div class="demo light" style="gap:40px;align-items:flex-start">
+      <dl class="rp-panel panel-demo"><div><dt>Email</dt><dd>dpsharmab1@gmail.com</dd></div><div><dt>Based in</dt><dd>Hyderabad, India</dd></div><div><dt>Works</dt><dd>On-site in Hyderabad<br>Remote worldwide</dd></div></dl>
+    </div>
+    <p class="cap">Info panel (contact card).</p>
+
+    <div class="demo dark" style="gap:56px;align-items:flex-start">
+      <dl class="stats-demo"><div class="rp-stat"><dt>7+</dt><dd>Years in design</dd></div><div class="rp-stat"><dt>6</dt><dd>Roles since 2018</dd></div><div class="rp-stat"><dt>4</dt><dd>Core disciplines</dd></div></dl>
+      <div class="xp-demo"><div class="rp-xp"><span>2025 — NOW</span><div><b>Senior Visual Designer</b><em>Ergon Xlu</em></div></div><div class="rp-xp"><span>2024 — 2025</span><div><b>Senior Graphic Designer</b><em>Edify Technologies</em></div></div></div>
+    </div>
+    <p class="cap">Stats and experience rows on space.</p>
+
+    <div class="rp-marquee"><div class="rp-marquee-track is-running"><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i><span>Welcome To My Portfolio</span><i></i><span>DEEPAK SHARMA</span><i></i></div></div>
+    <p class="cap">Marquee band with spinning sparkles.</p>
+  </div>
+</section>
+
+<!-- ============ cards -->
+<section class="blk" data-surface="paper" id="cards" style="padding-top:20px">
+  <div class="wrap">
+    <div class="h2"><b>Cards</b><small>posters/ · the corridor</small></div>
+    <p class="note">The work as slabs in a corridor: the nearer the middle, the more edge-on, the red spine catching the light. Move the pointer across to walk it. On the site the middle slab turns its face to show the real project.</p>
+  </div>
+  <div class="corr" id="corr"></div>
+  <div class="wrap">
+    <div class="posters" id="posters"></div>
+  </div>
+</section>
+
+<!-- ============ layouts -->
+<section class="blk wrap" id="layouts">
+  <div class="h2"><b>Layouts</b><small>three 1512 px frames</small></div>
+  <p class="note">The page is the three frames stacked (1512 × 7856). Wide screens scale the frames as a piece; below 1024 px, or on a tall screen, the sections reflow in one column with the same order and surfaces.</p>
+  <div class="frames">
+    <div class="frame-card"><div class="shot"><img src="mockups/1-landing-about.webp" alt="Landing and About me mockup" loading="lazy">
+      <i style="top:3%;height:33%">Landing · space</i><i style="top:48%;height:27%">About · space</i><i style="top:76%;height:19%">Skills · paper</i><i style="top:95.6%;height:4.4%">Marquee</i></div>
+      <ol><li><b>Landing</b> · PORT/FOLIO 2026 left (x 130), world top right, three stats at y 848, role at x 1223</li><li><b>About</b> · name and bio at x 72; experience in a 440 px column at x 950</li><li><b>Skills</b> · torn paper, three chip columns at x 72 · 578 · 1044</li><li><b>Marquee</b> · black band, 109 px</li></ol></div>
+    <div class="frame-card"><div class="shot"><img src="mockups/2-content-cards.webp" alt="Content and cards mockup" loading="lazy">
+      <i style="top:1%;height:4%">Nav</i><i style="top:5%;height:42%">Saturn + CONTENT · space</i><i style="top:52%;height:6%">See more · paper</i><i style="top:60%;height:38%">The work · paper</i></div>
+      <ol><li><b>Hero</b> · Saturn centred, CONTENT 250 px red at y 839, THINK BEYOND under it</li><li><b>Tear</b> · y 1156–1356, then paper to the end</li><li><b>The work</b> · CONTENT 64 px black at y 1497, the corridor y 1620–2230, labels at y 2286</li></ol></div>
+    <div class="frame-card"><div class="shot"><img src="mockups/3-connect-contact-footer.webp" alt="Connect, contact and footer mockup" loading="lazy">
+      <i style="top:6%;height:20%">Connect band · space</i><i style="top:32%;height:27%">Contact · paper</i><i style="top:59%;height:41%">Footer · space</i></div>
+      <ol><li><b>Connect</b> · torn black band y 145–810, LET’S CONNECT 130 px red</li><li><b>Contact</b> · copy and info panel left (x 215), form right (x 788)</li><li><b>Footer</b> · the emblem centred (y 1858), credits at x 161</li></ol></div>
+  </div>
+</section>
+</main>
+
+<footer class="end wrap">Red Planet asset pack · Deepak Sharma, Portfolio 2026. Built from the mockups of 19 Nov 2026 by <code>tools/v10/build_theme.py</code>, <code>build_icons.py</code> and <code>build_posters.py</code>.</footer>
+
+<script type="module">
+  import { reveal, splitMask, corridor } from './motion.js';
+  const SW = [['--space', '#000000', 'Space'], ['--paper', '#FFFFFF', 'Paper'], ['--cream', '#FFE0B5', 'Cream'], ['--red', '#FF0000', 'Red'], ['--red-deep', '#B30000', 'Red deep'], ['--red-ember', '#7A0000', 'Ember'], ['--slate', '#52707A', 'Slate (nav on paper)'], ['--red-ink', '#E00000', 'Red ink (small red on paper)'], ['--mist', '#CFCFCF', 'Mist (fills at 10–20%)'], ['--dust', '#B9B2A8', 'Dust (quiet on black)'], ['--umber', '#3A2E1E', 'Umber (tear shadow)']];
+  document.getElementById('swatches').innerHTML = SW.map(([v, hex, n]) => `<div class="sw"><i style="background:var(${v})"></i><div><b>${n}</b><span>${v} · ${hex}</span></div></div>`).join('');
+  const SP = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+  document.getElementById('spaces').innerHTML = SP.map((s, i) => `<div class="sp"><i style="width:${s}px"></i>--sp-${i + 1} · ${s}px</div>`).join('') + '<div class="sp"><i style="width:72px;background:var(--cream)"></i>--gutter · 72px</div>';
+  const ICONS = ['arrow-right', 'arrow-down', 'arrow-up', 'arrow-up-right', 'chevron-left', 'chevron-right', 'close', 'menu', 'plus', 'check', 'drag', 'external', 'download', 'play', 'eye', 'mail', 'phone', 'pin', 'clock', 'globe', 'chat', 'briefcase', 'resume', 'pen', 'layers', 'box', 'screen', 'mobile', 'type', 'palette', 'cube', 'gamepad', 'megaphone', 'print', 'ai', 'team', 'code', 'planet', 'saturn', 'star-8', 'sparkle', 'comet', 'moon', 'orbit', 'tear'];
+  document.getElementById('iconGrid').innerHTML = ICONS.map((n) => `<a class="ico" href="icons/${n}.svg" download><svg aria-hidden="true"><use href="icons.svg#${n}"/></svg>${n}</a>`).join('');
+  const POSTERS = ['01-oaks-dashboard', '02-gaurav', '03-elixir', '04-coldtrace', '05-p7', '06-momma', '07-social', '08-ergonxlu', '09-fibril', '10-teacher-app'];
+  const corr = document.getElementById('corr');
+  corr.innerHTML = POSTERS.map((p) => `<div class="rp-card"><div class="rp-card-face"><img src="posters/${p}.svg" alt=""></div><i class="rp-card-spine"></i></div>`).join('');
+  corridor(corr);
+  document.getElementById('posters').innerHTML = POSTERS.map((p) => `<figure><img src="posters/${p}.svg" alt="" loading="lazy">${p}</figure>`).join('');
+  document.querySelectorAll('[data-split]').forEach(splitMask);
+  reveal();
+  document.querySelectorAll('#maskDemo .rp-mask').forEach((m) => m.classList.add('rp-reveal'));
+  const mask = () => { const ms = document.querySelectorAll('#maskDemo .rp-mask'); ms.forEach((m) => m.classList.remove('is-in')); requestAnimationFrame(() => requestAnimationFrame(() => ms.forEach((m) => m.classList.add('is-in')))); };
+  document.getElementById('replay').addEventListener('click', () => { mask(); const t = document.getElementById('tearDemo'); t.classList.remove('is-in'); requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('is-in'))); });
+</script>
+</body>
+</html>

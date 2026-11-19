@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 760" width="760" height="760">
+<!-- The footer emblem's red glow: a ring blurred as the mockup's (stdDeviation 18.9) -->
+<defs><filter id="g" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="18.9"/></filter></defs>
+<circle cx="380" cy="380" r="318" fill="none" stroke="#ff0000" stroke-width="46" filter="url(#g)"/>
+<circle cx="380" cy="380" r="318" fill="none" stroke="#ff2a1a" stroke-width="10" opacity=".9"/>
+</svg>

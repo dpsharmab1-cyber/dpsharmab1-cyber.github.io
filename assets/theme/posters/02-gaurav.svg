@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450"><defs>
+<linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".38" stop-color="#000"/><stop offset="1" stop-color="#c9c9c9"/></linearGradient>
+<linearGradient id="grey" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4e4e4"/><stop offset="1" stop-color="#7a7a7a"/></linearGradient>
+<linearGradient id="redfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff0000"/><stop offset="1" stop-color="#ff8a8a"/></linearGradient>
+<linearGradient id="dark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b4b4b"/><stop offset="1" stop-color="#a3a3a3"/></linearGradient>
+</defs>
+<rect width="300" height="450" fill="url(#fade)"/><path d="M95 450V190a55 55 0 0 1 110 0V450z" fill="url(#grey)"/><rect x="128" y="330" width="44" height="120" fill="url(#redfade)"/></svg>

@@ -1,23 +1,22 @@
-// The ten works as the frame's fan of cards: each card wears one of the
-// frame's space posters and carries a project's name below; the middle one
-// stands tallest. Drag with the mouse or swipe and the
-// projects slide from place to place around the fan, looping both ways; a
-// card off to the side comes to the middle when clicked, the middle one opens
-// its project page. Wide screens use the frame's exact card places; tablets
-// and phones a closer fan sized to the screen.
+// The ten works as the "Content and cards" mockup draws them: tall slabs in a
+// corridor, each turned on its vertical axis. The nearer the middle, the more
+// edge-on; the red spine sits on each slab's near edge. Drag, swipe or use
+// the arrow keys to walk the corridor; click a slab and it glides to the
+// middle and turns to face you, showing the real work; click it again (or
+// its SEE MORE) to open the project page. Wide screens use the mockup's
+// spacing; tablets and phones a closer corridor sized to the screen.
 import Lenis from '../vendor/lenis.mjs';
-import { PROJECTS } from './data.js?v=91';
+import { PROJECTS } from './data.js?v=100';
 
 const { gsap, ScrollTrigger, SplitText } = window;
 const ARROW = '<svg viewBox="0 0 24 24"><path d="M12 5v13M6.5 12.5 12 18l5.5-5.5"/></svg>';
 const fine = matchMedia('(pointer: fine)').matches;
-// the frame's cards (frame 2 px): left, top, width, height, tilt; each turns about its bottom middle
-const SLOTS = [[-99, 1881, 182, 273, -8.8], [53, 1893, 202, 303, -6.6], [205, 1893, 222, 333, -4.4], [357, 1881, 242, 363, -2.2], [529, 1857, 262, 393, 0],
-  [735, 1881, 242, 363, 2.2], [941, 1893, 222, 333, 4.4], [1147, 1893, 202, 303, 6.6], [1353, 1881, 182, 273, 8.8]]
-  .map(([x, y, w, h, r]) => ({ px: x + w / 2, py: y + h, s: w / 262, r }));
-const lerp = (a, b, t) => a + (b - a) * t;
-// each project's own card art (assets/v9/cards, from Celestial-Gold-Portfolio.zip)
-const CARD = ['01-oaks-dashboard', '02-gaurav', '03-elixir-elements-defence', '04-coldtrace', '05-p7-architecture', '06-momma-probiotics', '07-social-media', '08-ergon-xlu', '09-fibril-india', '10-teacher-app'];
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// each project's poster (assets/theme/posters, tools/v10/build_posters.py)
+const POSTER = ['01-oaks-dashboard', '02-gaurav', '03-elixir', '04-coldtrace', '05-p7', '06-momma', '07-social', '08-ergonxlu', '09-fibril', '10-teacher-app'];
+// how far a slab turns for an offset a from the middle: square-on at the very
+// middle, 72° just beside it, opening to 22° at the ends (fitted to the mockup)
+const turn = (a) => (a < 0.5 ? 144 * a : Math.max(22, 78 - 11.5 * a));
 
 export class Cards {
   constructor(app) {
@@ -26,17 +25,21 @@ export class Cards {
     this.box = this.sec.querySelector('.cards');
     this.page = new ProjectPage(app, this);
     this.n = PROJECTS.length;
-    this.c = 4; this.goal = 4; this.vel = 0; this.rise = { v: 0 };   // P7 in the middle, as in the frame
+    // wide: the mockup's resting view, the middle between two slabs; small
+    // screens: one slab faces you so its name shows
+    this.c = this.goal = app.flow ? 4 : 4.5;
+    this.vel = 0; this.rise = { v: 0 }; this.hover = -1;
     this.items = PROJECTS.map((p, i) => this.build(p, i));
     this.size();
     addEventListener('resize', () => this.size());
     this.bind();
     new IntersectionObserver(([e]) => { this.away = !e.isIntersecting; }, { rootMargin: '15% 0px' }).observe(this.box);
     ScrollTrigger.create({ trigger: this.box, start: 'top 85%', end: 'bottom 5%',
-      onEnter: () => gsap.to(this.rise, { v: 1, duration: 2, ease: 'expo.out', overwrite: true }),
+      onEnter: () => gsap.to(this.rise, { v: 1, duration: 2.2, ease: 'expo.out', overwrite: true }),
       onEnterBack: () => gsap.to(this.rise, { v: 1, duration: 1.6, ease: 'expo.out', overwrite: true }),
       onLeave: () => gsap.to(this.rise, { v: 0, duration: 0.9, ease: 'power3.in', overwrite: true }),
       onLeaveBack: () => gsap.to(this.rise, { v: 0, duration: 0.9, ease: 'power3.in', overwrite: true }) });
+    if (reduced) this.rise.v = 1;
     gsap.ticker.add((t, dt) => this.update(Math.min(0.05, dt / 1000), t));
   }
 
@@ -45,10 +48,9 @@ export class Cards {
     el.className = 'card';
     el.setAttribute('role', 'listitem');
     el.tabIndex = 0;
-    el.setAttribute('aria-label', `${p.title}, ${p.kind}. Open project`);
-    // the card faces are the frame's space posters (in the frame's order)
-    const inner = `<div class="card-in"><img src="assets/v9/cards/${CARD[i]}-art-only.webp?v=91" alt="" loading="lazy" decoding="async"></div>`;
-    el.innerHTML = `${inner}<i class="card-edge"></i>`;
+    el.setAttribute('aria-label', `${p.title}, ${p.kind}. Press Enter to open the project`);
+    const shot = p.cover ? `<img class="shot" src="${p.cover.thumb || p.cover.src}" alt="" loading="lazy" decoding="async">` : '';
+    el.innerHTML = `<div class="card-in"><img class="poster" src="assets/theme/posters/${POSTER[i]}.svg?v=100" alt="" loading="lazy" decoding="async">${shot}<i class="card-spine"></i><b class="card-no">${p.no}</b></div>`;
     this.box.append(el);
     const lab = document.createElement('div');
     lab.className = 'lab';
@@ -57,51 +59,44 @@ export class Cards {
     const it = { p, i, el, lab, last: {} };
     const open = () => { if (!this.dragged) this.page.open(i, null); };
     el.addEventListener('click', () => {
+      if (this.dragged) return;
       const d = this.rel(i);
-      if (Math.abs(d) > 0.5 && !this.dragged) { this.goal = this.c + d; return; }
+      if (Math.abs(d) > 0.25) { this.goal = this.c + d; return; }
       open();
     });
     el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    el.addEventListener('focus', () => { if (Math.abs(this.rel(i)) > 0.25) this.goal = this.c + this.rel(i); });
     lab.querySelector('button').addEventListener('click', open);
-    el.addEventListener('pointerenter', () => { if (fine) this.app.cursor?.state('big', Math.abs(this.rel(i)) < 0.5 ? 'OPEN' : 'VIEW'); });
-    el.addEventListener('pointerleave', () => this.app.cursor?.state());
+    el.addEventListener('pointerenter', () => { this.hover = i; if (fine) this.app.cursor?.state('big', Math.abs(this.rel(i)) < 0.25 ? 'OPEN' : 'TURN'); });
+    el.addEventListener('pointerleave', () => { this.hover = -1; this.app.cursor?.state(); });
     return it;
   }
 
   rel(i) { const n = this.n; return ((((i - this.c + n / 2) % n) + n) % n) - n / 2; }
 
-  // the base card box: the frame's middle card, or one sized to the screen
   size() {
     this.flow = this.app.flow;
     if (this.flow) {
       const W = this.box.clientWidth;
       this.W = W;
-      this.bw = Math.min(W * 0.56, 360); this.bh = this.bw * 1.5;
-    } else { this.bw = 262; this.bh = 393; }
-    for (const it of this.items) { it.el.style.width = this.bw + 'px'; it.el.style.height = this.bh + 'px'; it.last = {}; }
+      this.bw = Math.min(W * 0.4, 230); this.bh = this.bw * 2.3;
+      this.top = 30; this.step = Math.min(W * 0.26, 190);
+      this.box.style.height = `${this.top + this.bh + 140}px`;
+      this.box.style.setProperty('--cw', this.bw + 'px'); this.box.style.setProperty('--ch', this.bh + 'px');
+      this.box.style.perspectiveOrigin = `50% ${this.top + this.bh * 0.5}px`;
+    } else { this.W = 1512; this.bw = 240; this.bh = 580; this.top = 1635; this.step = 152; this.box.style.height = ''; }
   }
 
-  // where a card sits for an offset o from the middle (continuous)
+  // where a slab sits for an offset o from the middle (continuous)
   place(o) {
-    if (!this.flow) {
-      const k = o + 4, i = Math.floor(k), f = k - i;
-      const get = (j) => {
-        if (j < 0) { const a = SLOTS[0], b = SLOTS[1]; return { px: a.px - (b.px - a.px) * -j, py: a.py - 10 * -j, s: a.s * 0.9 ** -j, r: a.r - 2.2 * -j }; }
-        if (j > 8) { const a = SLOTS[8], b = SLOTS[7]; return { px: a.px + (a.px - b.px) * (j - 8), py: a.py - 10 * (j - 8), s: a.s * 0.9 ** (j - 8), r: a.r + 2.2 * (j - 8) }; }
-        return SLOTS[j];
-      };
-      const A = get(i), B = get(i + 1);
-      return { px: lerp(A.px, B.px, f), py: lerp(A.py, B.py, f), s: lerp(A.s, B.s, f), r: lerp(A.r, B.r, f) };
-    }
-    const W = this.W, a = Math.abs(o), sg = Math.sign(o) || 1;
-    const dx = 0.38 * W * Math.min(a, 1) + 0.24 * W * Math.max(0, Math.min(a, 2) - 1) + 0.3 * W * Math.max(0, a - 2);
-    const s = 1 - 0.22 * Math.min(a, 2) - 0.08 * Math.max(0, a - 2);
-    return { px: W / 2 + sg * dx, py: 40 + this.bh, s, r: o * 6 };
+    const a = Math.abs(o), sg = Math.sign(o) || 0;
+    const x = this.W / 2 + o * this.step + sg * (this.flow ? 0.04 : 1.4) * a * a * (this.flow ? this.step : 1);
+    return { x, ry: -sg * turn(a) };
   }
 
   bind() {
     let sx = 0, sc = 0, down = false, lx = 0, lt = 0;
-    const px = () => (this.flow ? this.W * 0.38 : 162 * (this.app.scale || 1));
+    const px = () => this.step * (this.flow ? 1 : this.app.scale || 1);
     this.box.addEventListener('pointerdown', (e) => { down = true; this.dragged = false; sx = lx = e.clientX; lt = performance.now(); sc = this.c; this.vel = 0; });
     addEventListener('pointermove', (e) => {
       if (!down) return;
@@ -120,8 +115,8 @@ export class Cards {
       setTimeout(() => { this.dragged = false; }, 0);
     });
     this.sec.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight') this.goal = Math.round(this.goal) + 1;
-      if (e.key === 'ArrowLeft') this.goal = Math.round(this.goal) - 1;
+      if (e.key === 'ArrowRight') { e.preventDefault(); this.goal = Math.round(this.goal) + 1; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); this.goal = Math.round(this.goal) - 1; }
     });
   }
 
@@ -132,22 +127,27 @@ export class Cards {
     for (const it of this.items) {
       const o = this.rel(it.i), a = Math.abs(o);
       const g = this.place(o);
-      const r = Math.min(1, Math.max(0, rise * 1.6 - a * 0.1));
-      const drop = (1 - r) * (1 - r) * 340;
-      const bob = Math.sin(t * 0.9 + it.i) * 3;
-      const fade = this.flow ? Math.max(0, Math.min(1, (2.6 - a) * 1.5)) : Math.max(0, Math.min(1, (4.45 - a) * 3));
+      const r = Math.min(1, Math.max(0, rise * 1.5 - a * 0.08));
+      const drop = (1 - r) * (1 - r) * 380;
+      // a slab you point at opens a little toward you
+      const open = it.i === this.hover && a > 0.25 ? 0.72 : 1;
+      const ry = g.ry * open + (1 - r) * 30 * (Math.sign(o) || 1);
+      const fade = this.flow ? Math.max(0, Math.min(1, (3.2 - a) * 1.4)) : Math.max(0, Math.min(1, (5.2 - a) * 2.5));
       const L = it.last;
-      it.el.style.transform = `translate3d(${(g.px - this.bw / 2).toFixed(1)}px,${(g.py - this.bh + drop + bob).toFixed(1)}px,0) rotate(${(g.r + (1 - r) * 8 * Math.sign(o || 1)).toFixed(2)}deg) scale(${g.s.toFixed(4)})`;
+      it.el.style.transform = `translate3d(${(g.x - this.bw / 2).toFixed(1)}px,${(this.top + drop).toFixed(1)}px,0) rotateY(${ry.toFixed(2)}deg)`;
       it.el.style.opacity = (r * fade).toFixed(3);
-      const z = String(100 - Math.round(a * 10));
+      const z = String(a < 0.5 ? 200 : 100 + Math.round(a * 10));
       if (L.z !== z) { it.el.style.zIndex = z; L.z = z; }
-      const centre = a < 0.5;
+      const right = o > 0;
+      if (L.r !== right) { it.el.classList.toggle('is-right', right); L.r = right; }
+      const centre = a < 0.25;
       if (L.c !== centre) { it.el.classList.toggle('is-centre', centre); it.lab.classList.toggle('is-centre', centre); L.c = centre; }
       if (this.flow) {
-        it.lab.style.transform = `translate3d(${(this.W / 2).toFixed(1)}px,${(this.bh + 70).toFixed(1)}px,0)`;
-        it.lab.style.opacity = (r * Math.max(0, 1 - a * 2.2)).toFixed(3);
+        it.lab.style.transform = `translate3d(${(this.W / 2).toFixed(1)}px,${(this.top + this.bh + 34).toFixed(1)}px,0)`;
+        it.lab.style.opacity = (r * Math.max(0, 1 - a * 2.6)).toFixed(3);
+        it.lab.style.pointerEvents = a < 0.3 ? 'auto' : 'none';
       } else {
-        it.lab.style.transform = `translate3d(${g.px.toFixed(1)}px,${(drop * 0.3).toFixed(1)}px,0)`;
+        it.lab.style.transform = `translate3d(${g.x.toFixed(1)}px,${(drop * 0.3).toFixed(1)}px,0)`;
         it.lab.style.opacity = (r * fade).toFixed(3);
       }
     }
@@ -214,7 +214,8 @@ class ProjectPage {
           <h2 class="t-anton pj-title" id="pj-title">${p.title}</h2>
           <ul class="pj-meta">${p.meta.map((m) => `<li>${m}</li>`).join('')}</ul>
         </div>
-        <img class="pj-card" src="assets/v9/cards/${CARD[i]}-with-text.webp?v=91" alt="">
+        <figure class="pj-cover"><img src="${p.cover.thumb || p.cover.src}" alt="${p.title}, cover"></figure>
+        <img class="pj-planet" src="assets/theme/elements/red-planet.svg?v=100" alt="">
       </header>
       <section class="pj-body">
         <p class="eyebrow"><i class="bar"></i>ABOUT THE PROJECT</p><p class="pj-desc">${p.desc}</p>
@@ -312,10 +313,11 @@ class ProjectPage {
     const tl = gsap.timeline();
     tl.from(split.chars, { yPercent: 115, rotate: 6, duration: 1.1, ease: 'expo.out', stagger: 0.025 })
       .from('.pj-no', { y: 20, opacity: 0, duration: 0.9, ease: 'expo.out' }, 0.15)
-      .from('.pj-card', { y: 80, rotate: 6, opacity: 0, filter: 'blur(12px)', duration: 1.8, ease: 'expo.out' }, 0.1)
+      .from('.pj-cover', { y: 80, rotate: 4, opacity: 0, filter: 'blur(12px)', duration: 1.8, ease: 'expo.out' }, 0.1)
+      .from('.pj-planet', { x: 120, opacity: 0, duration: 2.4, ease: 'expo.out' }, 0.2)
       .from('.pj-meta li', { y: 20, opacity: 0, filter: 'blur(6px)', duration: 1, ease: 'expo.out', stagger: 0.06 }, 0.5)
       .from('.pj-body > *', { y: 40, opacity: 0, duration: 1, ease: 'expo.out', stagger: 0.1 }, 0.35);
-    gsap.to(this.inner.querySelector('.pj-card'), { y: -14, rotate: 1.5, duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.8 });
+    gsap.to(this.inner.querySelector('.pj-cover'), { y: -14, rotate: 1, duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 1.8 });
     return tl;
   }
 
@@ -335,7 +337,7 @@ class ProjectPage {
       const r = face.getBoundingClientRect();
       const fly = document.createElement('img');
       fly.className = 'fly';
-      fly.src = `assets/v9/cards/${CARD[i]}-with-text.webp?v=91`;
+      fly.src = PROJECTS[i].cover.src;
       Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
       document.body.append(fly);
       tl.to(fly, { left: 0, top: 0, width: innerWidth, height: innerHeight, duration: 1.05, ease: 'expo.inOut' }, 0)

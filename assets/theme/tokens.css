@@ -1,0 +1,83 @@
+/* =========================================================================
+   Red Planet · design tokens (Portfolio 2026, v10)
+   Taken from the three mockups (Landing and About me, Content and cards,
+   Connect and contact and Footer; 1512 px frames). Every value here is used
+   by components.css, motion.css and the site's own css/style.css.
+   ========================================================================= */
+:root {
+  /* ---- colour ---------------------------------------------------------- */
+  --space: #000000;          /* the night: page, black bands, footer */
+  --paper: #ffffff;          /* torn paper: skills, the work, contact */
+  --cream: #ffe0b5;          /* display type on black, the emblem's star */
+  --red: #ff0000;            /* the planet: accents, stats, headlines */
+  --red-ink: #e00000;        /* red for small text on paper (5:1 on white; pure red is 4:1) */
+  --red-deep: #b30000;       /* ring shading, pressed states */
+  --red-ember: #7a0000;      /* the ring's far edge */
+  --white: #ffffff;          /* small type on black (experience) */
+  --ink: #000000;            /* type on paper */
+  --slate: #52707a;          /* nav labels on paper (the mockup's #67858C, deepened to pass 4.5:1) */
+  --mist: #cfcfcf;           /* field and pill fills on paper (used at 10–20%) */
+  --rule-dark: #2a2a2a;      /* hairlines on black */
+  --rule-light: #e6e6e6;     /* hairlines on paper */
+  --dust: #b9b2a8;           /* quiet text on black */
+  --umber: #3a2e1e;          /* the torn edge's shadow */
+  --muted-ink: #5a5a5a;      /* quiet text on paper */
+
+  /* glass, as the mockup draws the nav: white at 20% over the page */
+  --glass-dark: rgba(255, 255, 255, .12);
+  --glass-light: rgba(255, 255, 255, .72);
+
+  /* ---- type ------------------------------------------------------------ */
+  --font-display: 'Anton', 'Impact', 'Arial Narrow', sans-serif;   /* always upper case */
+  --font-body: 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mantra: 'Noto Sans Devanagari', 'Mangal', sans-serif;
+  /* the frame's sizes (px at 1512 wide); the site scales the frame, the
+     fluid values are for reflowed layouts */
+  --fs-mega: 250px;     /* CONTENT */
+  --fs-hero: 200px;     /* PO 20 / RT 26 / FOLIO */
+  --fs-h1: 130px;       /* LET'S CONNECT */
+  --fs-h2: 96px;        /* DEEPAK SHARMA */
+  --fs-h3: 64px;        /* CONTENT (over the cards) */
+  --fs-h4: 42px;        /* LET'S WORK TOGETHER. */
+  --fs-stat: 48px;      /* 7+  6  4 */
+  --fs-tag: 30px;       /* THINK BEYOND, marquee */
+  --fs-lead: 20px;      /* hero stats, GRAPHIC DESIGNER */
+  --fs-eyebrow: 16px;   /* ABOUT ME, CONTACT */
+  --fs-title: 15px;     /* job titles */
+  --fs-body: 14px;
+  --fs-small: 13px;     /* chips, labels, form */
+  --fs-micro: 8px;      /* SEE MORE on a card */
+  --lh-body: 1.57;      /* 14 / 22 */
+  --track-eyebrow: .25em;
+  --track-tag: .2em;
+
+  /* ---- space (an 8 px base; the frame's own gutters) --------------------- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px;
+  --sp-6: 32px; --sp-7: 48px; --sp-8: 64px; --sp-9: 96px; --sp-10: 128px;
+  --gutter: 72px;       /* frame edge to content */
+  --col-2: 578px;       /* second column (skills: tools) */
+  --col-3: 1044px;      /* third column (skills: web) */
+  --col-xp: 950px;      /* experience column */
+  --frame: 1512px;
+
+  /* ---- radii ----------------------------------------------------------- */
+  --r-pill: 999px;
+  --r-chip: 19px;       /* 38 px chips */
+  --r-field: 20px;      /* inputs, message box, contact card */
+  --r-card: 2px;        /* the work's panels are crisp slabs */
+  --r-small: 16px;
+
+  /* ---- elevation (the mockup's drop shadows) ------------------------------ */
+  --shadow-chip: 0 3px 6px rgba(0, 0, 0, .25);
+  --shadow-field: 0 4px 4px rgba(0, 0, 0, .05);
+  --shadow-nav: 0 4px 4px rgba(0, 0, 0, .1);
+  --shadow-panel: 0 18px 40px rgba(0, 0, 0, .18);
+  --glow-red: 0 0 26px rgba(255, 0, 0, .55);
+  --glow-cream: 0 0 22px rgba(255, 224, 181, .45);
+
+  /* ---- motion ------------------------------------------------------------ */
+  --ease: cubic-bezier(.16, 1, .3, 1);        /* expo out: most reveals */
+  --ease-io: cubic-bezier(.65, 0, .35, 1);    /* page wipes, menu */
+  --ease-soft: cubic-bezier(.33, 0, .2, 1);   /* breathing loops */
+  --t-fast: .25s; --t-mid: .5s; --t-slow: .9s; --t-reveal: 1.25s;
+}
